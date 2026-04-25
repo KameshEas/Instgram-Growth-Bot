@@ -1,0 +1,7 @@
+# API Clients & HTTP
+requests==2.31.0
+groq==0.4.1
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2023.3.post1
