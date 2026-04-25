@@ -62,13 +62,8 @@ class TelegramBotHandler:
     
     def __init__(self):
         """Initialize the Telegram bot handler"""
-        # Try to get from environment first
+        # Get bot token from .env file
         self.bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
-        
-        # If env var has wrong token (old one starting with 8619), override with correct one
-        if self.bot_token and self.bot_token.startswith("8619343286"):
-            # Use the correct token from .env file directly
-            self.bot_token = "8787363306:AAH0liokciNOe0Mhuom7DuxC8DdVR2fGKmI"
         
         if not self.bot_token:
             raise ValueError("[ERROR] TELEGRAM_BOT_TOKEN not found in .env file")
