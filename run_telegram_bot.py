@@ -14,21 +14,14 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).parent
 os.chdir(PROJECT_ROOT)
 
-# Load .env file FIRST to get the token
+# Load .env file FIRST to get the token — override=True ensures .env wins over system env vars
 env_file = PROJECT_ROOT / ".env"
 if env_file.exists():
-    load_dotenv(dotenv_path=str(env_file))
+    load_dotenv(dotenv_path=str(env_file), override=True)
 else:
     print("[WARN] .env file not found at:", env_file)
 
-# Explicitly remove any conflicting environment variable
-if "TELEGRAM_BOT_TOKEN" in os.environ:
-    # Get the token from .env if available
-    env_token = os.getenv("TELEGRAM_BOT_TOKEN")
-    if env_token and len(env_token) > 50:
-        # This looks like a real token (not from env var cache)
-        del os.environ["TELEGRAM_BOT_TOKEN"]
-        os.environ["TELEGRAM_BOT_TOKEN"] = env_token
+# .env is now loaded with override=True — no manual env var manipulation needed
 
 print("="*60)
 print("Instagram Growth Bot - Telegram Interface Launcher")

@@ -8,6 +8,7 @@ import os
 import sys
 import logging
 import asyncio
+import json
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -17,12 +18,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Load environment variables from the .env file in the telegram-insta-bot directory
 env_path = Path(__file__).parent.parent / ".env"
 if env_path.exists():
-    load_dotenv(dotenv_path=str(env_path))
+    load_dotenv(dotenv_path=str(env_path), override=True)
 else:
     # Try parent directory if not found
     env_path_alt = Path(__file__).parent.parent.parent / ".env"
     if env_path_alt.exists():
-        load_dotenv(dotenv_path=str(env_path_alt))
+        load_dotenv(dotenv_path=str(env_path_alt), override=True)
 
 # Create logs directory
 os.makedirs("logs", exist_ok=True)
@@ -79,60 +80,56 @@ class TelegramBotHandler:
         """Handle /start command"""
         logger.info(f"[DEBUG] /start command received from {update.effective_user.username}")
         user = update.effective_user
-        text = f"Welcome to Instagram Growth Bot, {user.first_name}! 🎯\n\n"
-        text += "Available Commands:\n\n"
-        text += "📝 /content [topic] [style]\n"
-        text += "   Generate viral-optimized Instagram captions\n"
-        text += "   Example: /content fitness transformation motivational\n\n"
-        text += "�️ /generate [category]\n"
-        text += "   Generate image prompts from professional library\n"
-        text += "   Example: /generate women_professional\n\n"
-        text += "�📊 /trends [niche]\n"
-        text += "   Analyze trending topics and hashtags\n"
-        text += "   Example: /trends fitness\n\n"
-        text += "👥 /engagement [size]\n"
-        text += "   Get engagement strategy and daily targets\n"
-        text += "   Example: /engagement micro\n\n"
-        text += "💰 /monetize [niche] [followers]\n"
-        text += "   Discover monetization strategies and revenue projections\n"
-        text += "   Example: /monetize fitness 50000\n\n"
-        text += "❓ /help - Show detailed help\n"
-        
-        await update.message.reply_text(text)
+        text = f"👋 *Welcome, {user.first_name}!*\n\n"
+        text += "*Instagram Growth Bot* — Your AI creative studio\n"
+        text += "300+ prompts · 18 categories · 3 skill levels\n\n"
+        text += "━━━━━━━━━━━━━━━━━━━━━\n"
+        text += "🎨 *PROMPT LIBRARY*\n"
+        text += "  /categories — Browse all 18 categories\n"
+        text += "  /generate `[category]` — Get 3 prompts\n"
+        text += "  /generate `[category] [level]` — Filter by skill\n"
+        text += '  /generate `[category] "concept"` — AI enhance\n'
+        text += "  /search `[keyword]` — Find matching prompts\n"
+        text += "  /inspire `[topic]` — 3 creative angles\n\n"
+        text += "📊 *GROWTH TOOLS*\n"
+        text += "  /content `[topic] [style]` — Generate captions\n"
+        text += "  /trends `[niche]` — Trending topics\n"
+        text += "  /engagement `[size]` — Engagement strategy\n"
+        text += "  /monetize `[niche] [followers]` — Revenue ideas\n\n"
+        text += "🟢 Beginner  🔵 Professional  🔴 Expert\n"
+        text += "━━━━━━━━━━━━━━━━━━━━━\n"
+        text += "/help — Full usage guide"
+
+        await update.message.reply_text(text, parse_mode="Markdown")
         logger.info(f"[OK] User {user.id} ({user.username}) started bot")
     
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /help command"""
         logger.info(f"[DEBUG] /help command received from {update.effective_user.username}")
-        text = "How to use Instagram Growth Bot:\n\n"
-        text += "1. CONTENT GENERATION\n"
-        text += "   /content [topic] [style]\n"
-        text += "   Styles: engaging, motivational, humorous, inspirational\n"
-        text += "   Example: /content fitness_transformation motivational\n\n"
-        text += "2. IMAGE GENERATION PROMPTS\n"
-        text += "   /generate [category]\n"
-        text += "   Categories: general_photography, women_professional, women_transform, men_professional, men_transform, couples_general, couples_transform, design_posters, reel_scripts, captions_templates, email_subjects\n"
-        text += "   Example: /generate women_professional\n"
-        text += "   Returns: 3 professional prompts to use with DALL-E, Midjourney, Stable Diffusion\n\n"
-        text += "3. TREND ANALYSIS\n"
-        text += "   /trends [niche]\n"
-        text += "   Example: /trends fitness\n"
-        text += "   Returns: Top 5 trending topics with viral potential scores\n\n"
-        text += "4. ENGAGEMENT STRATEGY\n"
-        text += "   /engagement [size]\n"
-        text += "   Sizes: micro (5K-100K), small (100K-500K), medium (500K+)\n"
-        text += "   Example: /engagement micro\n"
-        text += "   Returns: Daily targets, comment templates, timing\n\n"
-        text += "5. MONETIZATION IDEAS\n"
-        text += "   /monetize [niche] [follower_count]\n"
-        text += "   Example: /monetize fitness 50000\n"
-        text += "   Returns: Revenue streams, pricing, projections\n\n"
-        text += "Tips:\n"
-        text += "• Use underscores for multi-word inputs\n"
-        text += "• Wait 2-5 seconds for AI to generate response\n"
-        text += "• Each command calls Groq AI (fast, free, reliable)\n"
-        
-        await update.message.reply_text(text)
+        text = "📖 *Full Usage Guide*\n\n"
+        text += "*🎨 PROMPT LIBRARY*\n"
+        text += "• `/generate [category]` — 3 mixed-level prompts\n"
+        text += "• `/generate [category] beginner` — 🟢 simple prompts\n"
+        text += "• `/generate [category] professional` — 🔵 pro prompts\n"
+        text += "• `/generate [category] expert` — 🔴 advanced prompts\n"
+        text += '• `/generate design_posters "Diwali poster"` — AI enhance\n'
+        text += '• `/generate ui_ux_design expert "fitness app"` — Level + AI\n\n'
+        text += "• `/categories` — All 18 categories with tools\n"
+        text += "• `/search logo` — Find prompts by keyword\n"
+        text += "• `/inspire Indian wedding` — 3 creative angles\n\n"
+        text += "*📊 GROWTH TOOLS*\n"
+        text += "• `/content fitness motivational` — Viral captions\n"
+        text += "• `/trends fitness` — Trending hashtags\n"
+        text += "• `/engagement micro` — Daily targets + templates\n"
+        text += "• `/monetize fitness 50000` — Revenue strategies\n\n"
+        text += "*📂 18 CATEGORIES*\n"
+        text += "📷 Photography · ✨ Transform · 💑 Couples\n"
+        text += "🎨 Design · 🏷️ Brand · 🖌️ Illustration · 🖨️ Print · 📦 3D\n"
+        text += "🖥️ UI/UX · 🎞️ Animation · 📸 Photo Styles\n"
+        text += "🎬 Reels · ✍️ Captions · 📧 Email\n\n"
+        text += "💡 Tip: Use `/categories` to see all with tools & examples"
+
+        await update.message.reply_text(text, parse_mode="Markdown")
     
     async def content_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /content command - Generate captions"""
@@ -206,13 +203,38 @@ class TelegramBotHandler:
         try:
             result = self.bot.analyze_trends(niche=niche)
             
-            if result and "trending_topics" in result:
+            # If result is a string, try to parse it
+            if isinstance(result, str):
+                try:
+                    result = json.loads(result)
+                except json.JSONDecodeError:
+                    pass
+            
+            # Handle both old and new response formats
+            if result and isinstance(result, dict) and ("trending_topics" in result or "topHashtags" in result):
                 msg = f"✅ Trending topics in {niche}:\n\n"
                 
-                for i, topic in enumerate(result.get("trending_topics", [])[:5], 1):
-                    topic_name = topic.get("topic") or topic.get("hashtag", "N/A")
-                    viral_potential = topic.get("viral_potential", "N/A")
-                    msg += f"{i}. {topic_name}\n   Viral Potential: {viral_potential}%\n\n"
+                # Try new format first (topHashtags)
+                if "topHashtags" in result:
+                    for i, hashtag_obj in enumerate(result.get("topHashtags", [])[:5], 1):
+                        hashtag = hashtag_obj.get("hashtag", "N/A")
+                        viral_potential = hashtag_obj.get("viralPotential", "N/A")
+                        msg += f"{i}. {hashtag}\n   Viral Potential: {viral_potential}%\n\n"
+                else:
+                    # Fall back to old format
+                    for i, topic in enumerate(result.get("trending_topics", [])[:5], 1):
+                        topic_name = topic.get("topic") or topic.get("hashtag", "N/A")
+                        viral_potential = topic.get("viral_potential", "N/A")
+                        msg += f"{i}. {topic_name}\n   Viral Potential: {viral_potential}%\n\n"
+                
+                # Add posting times if available
+                if "bestPostingTimes" in result:
+                    msg += "⏰ Best Posting Times:\n"
+                    for time_obj in result.get("bestPostingTimes", [])[:3]:
+                        time_slot = time_obj.get("time", "N/A")
+                        engagement = time_obj.get("engagementRate", "N/A")
+                        msg += f"• {time_slot}: {engagement}% engagement\n"
+                    msg += "\n"
                 
                 msg += "Use /content to generate posts for these trending topics"
                 
@@ -346,169 +368,270 @@ class TelegramBotHandler:
             logger.error(f"Monetize command error: {e}")
     
     async def generate_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /generate command - Get image generation prompts"""
-        logger.info(f"[DEBUG] /generate command received from {update.effective_user.username}")
-        
-        # Get the full command text and remove the /generate command itself
+        """Handle /generate [category] [level] ["custom prompt"] — get image generation prompts."""
+        logger.info(f"[DEBUG] /generate command from {update.effective_user.username}")
+
         full_text = update.message.text
         text_after_command = full_text.replace("/generate", "", 1).strip()
-        
+
         if not text_after_command:
             await update.message.reply_text(
-                "Usage: /generate [category]\n"
-                "Or: /generate [category] \"Your custom prompt here\"\n\n"
-                "Available categories:\n"
-                "• general_photography\n"
-                "• women_professional\n"
-                "• women_transform\n"
-                "• men_professional\n"
-                "• men_transform\n"
-                "• couples_general\n"
-                "• couples_transform\n"
-                "• design_posters\n"
-                "• reel_scripts\n"
-                "• captions_templates\n"
-                "• email_subjects\n\n"
+                "🎨 *Generate Prompts*\n\n"
+                "Usage:\n"
+                "  `/generate [category]`\n"
+                "  `/generate [category] [level]`\n"
+                "  `/generate [category] \"custom concept\"`\n"
+                "  `/generate [category] [level] \"custom concept\"`\n\n"
+                "Levels: `beginner` 🟢 · `professional` 🔵 · `expert` 🔴\n\n"
                 "Examples:\n"
-                "/generate women_professional\n"
-                '/generate design_posters "A surreal visual of intertwined glowing threads..."\n'
-                "/generate reel_scripts \"30-second video about...\""
+                "• `/generate ui_ux_design professional`\n"
+                "• `/generate design_posters expert \"Diwali sale poster\"`\n"
+                "• `/generate brand_identity beginner`\n\n"
+                "See all categories: `/categories`",
+                parse_mode="Markdown",
             )
             return
-        
-        # Split to get category and custom prompt
-        parts = text_after_command.split(" ", 1)
-        category = parts[0].strip().lower()
+
+        # Parse: category + optional level + optional quoted prompt
+        LEVELS = {"beginner", "professional", "expert"}
+        tokens = text_after_command.split(" ", 2)
+        category = tokens[0].strip().lower()
+        level = None
         custom_prompt = None
-        
-        # Check if custom prompt is provided (looks for quoted text)
-        if len(parts) > 1:
-            custom_text = parts[1].strip()
-            # Remove quotes if present
-            if (custom_text.startswith('"') and custom_text.endswith('"')) or \
-               (custom_text.startswith("'") and custom_text.endswith("'")):
-                custom_prompt = custom_text[1:-1]
-            elif custom_text.startswith('"') or custom_text.startswith("'"):
-                # Handle case where quote might span multiple words
-                custom_prompt = custom_text[1:]
-                if custom_prompt.endswith('"') or custom_prompt.endswith("'"):
-                    custom_prompt = custom_prompt[:-1]
-        
-        # Use custom prompt or library prompts
+
+        remaining = text_after_command[len(category):].strip()
+
+        # Check if second token is a difficulty level
+        if remaining:
+            next_token = remaining.split(" ", 1)[0].lower()
+            if next_token in LEVELS:
+                level = next_token
+                remaining = remaining[len(next_token):].strip()
+
+        # Extract quoted custom prompt from remaining text
+        if remaining:
+            if (remaining.startswith('"') or remaining.startswith("'")):
+                custom_prompt = remaining.strip("\"'")
+            else:
+                custom_prompt = remaining
+
         if custom_prompt:
-            await update.message.reply_text(f"[WAIT] Processing custom prompt for '{category}'...")
+            lvl_label = f" [{level}]" if level else ""
+            await update.message.reply_text(f"⏳ Enhancing your concept for *{category}*{lvl_label}...", parse_mode="Markdown")
         else:
-            await update.message.reply_text(f"[WAIT] Generating prompts for '{category}'...")
-        
+            lvl_label = f" [{level}]" if level else " [mixed levels]"
+            await update.message.reply_text(f"⏳ Fetching prompts for *{category}*{lvl_label}...", parse_mode="Markdown")
+
         try:
-            result = self.bot.image_generation_prompts(category=category, custom_prompt=custom_prompt)
-            
+            result = self.bot.image_generation_prompts(category=category, custom_prompt=custom_prompt, level=level)
+
             if result and result.get("status") == "success":
                 prompts = result.get("prompts", [])
                 is_custom = result.get("custom", False)
-                
+                meta = result.get("meta", {})
+                cat_emoji = meta.get("emoji", "🎯")
+                tools = ", ".join(meta.get("tools", [])) or "DALL-E 3, Midjourney, Stable Diffusion"
+                best_for = meta.get("best_for", "")
+                res_level = result.get("level", level or "mixed")
+
+                from src.prompts.templates import DIFFICULTY_EMOJI
+                lvl_icon = DIFFICULTY_EMOJI.get(res_level, "")
+
+                def split_smart(text, max_len=3500):
+                    if len(text) <= max_len:
+                        return [text]
+                    parts, current = [], ""
+                    for line in text.split("\n"):
+                        if len(current) + len(line) + 2 > max_len:
+                            if current.strip():
+                                parts.append(current.strip())
+                            current = line + "\n"
+                        else:
+                            current += line + "\n"
+                    if current.strip():
+                        parts.append(current.strip())
+                    return parts or [text]
+
                 if is_custom:
-                    # For custom prompts, send in a more compact format
-                    prompt_text = prompts[0]
-                    
-                    # Split at structural boundaries to avoid mid-sentence cuts
-                    def split_smart(text, max_len=3800):
-                        """Split text intelligently at structural boundaries"""
-                        if len(text) <= max_len:
-                            return [text]
-                        
-                        parts = []
-                        current_part = ""
-                        
-                        # Split on multiple structural markers
-                        lines = text.split("\n")
-                        
-                        for line in lines:
-                            # If adding this line would exceed limit, start new part
-                            if len(current_part) + len(line) + 2 > max_len:
-                                if current_part.strip():
-                                    parts.append(current_part.strip())
-                                current_part = line + "\n"
-                            else:
-                                current_part += line + "\n"
-                        
-                        if current_part.strip():
-                            parts.append(current_part.strip())
-                        
-                        return parts if parts else [text]
-                    
-                    prompt_parts = split_smart(prompt_text, max_len=3500)  # More conservative limit
-                    
-                    # Send first part with header (check combined length)
-                    header = f"✅ Custom Prompt - {result.get('category')}:\n\n"
-                    first_msg = header + prompt_parts[0]
-                    
-                    # If combined header + first part exceeds limit, send header separately
-                    if len(first_msg) > 4000:
-                        await update.message.reply_text(header)
-                        await update.message.reply_text(prompt_parts[0])
+                    header = f"{cat_emoji} *Custom Prompt — {category}* {lvl_icon}\n"
+                    if best_for:
+                        header += f"Best for: {best_for}\n"
+                    header += "─────────────────────\n\n"
+
+                    parts = split_smart(prompts[0])
+                    first = header + parts[0]
+                    if len(first) > 4000:
+                        await update.message.reply_text(header, parse_mode="Markdown")
+                        await update.message.reply_text(parts[0])
                     else:
-                        await update.message.reply_text(first_msg)
-                    
-                    # Send remaining parts if any
-                    for part in prompt_parts[1:]:
-                        if len(part) > 0:
+                        await update.message.reply_text(first, parse_mode="Markdown")
+                    for part in parts[1:]:
+                        if part:
                             await update.message.reply_text(part)
-                    
-                    # Send footer with usage info
-                    footer = f"\n💡 Ready to use with: DALL-E 3, Midjourney, Stable Diffusion\n"
-                    footer += f"📚 Available: {', '.join(result.get('available_categories', []))}"
+
+                    footer = f"\n🛠 Tools: {tools}"
                     await update.message.reply_text(footer)
-                    
+
                 else:
-                    # For library prompts, use original format
-                    msg = f"✅ Image Generation Prompts - {result.get('category')}:\n\n"
-                    
+                    level_labels = {"beginner": "🟢 Beginner", "professional": "🔵 Professional",
+                                    "expert": "🔴 Expert", "mixed": "🌈 Mixed Levels"}
+                    level_display = level_labels.get(res_level, res_level.title())
+
+                    msg = f"{cat_emoji} *{category}* — {level_display}\n"
+                    if best_for:
+                        msg += f"Best for: {best_for}\n"
+                    msg += "─────────────────────\n\n"
+
                     for i, prompt in enumerate(prompts, 1):
-                        msg += f"{i}. {prompt}\n\n"
-                    
-                    msg += "💡 Tip: Use these with DALL-E 3, Midjourney, or Stable Diffusion\n"
-                    msg += f"📚 Or provide custom: /generate {result.get('category')} \"your prompt\""
-                    
-                    categories_str = ", ".join(result.get('available_categories', []))
-                    msg += f"\n📚 Available: {categories_str}"
-                    
-                    # Smart split for long messages
-                    if len(msg) > 4000:
-                        # Try to split at newline boundaries
-                        lines = msg.split("\n")
-                        current_msg = ""
-                        
-                        for line in lines:
-                            if len(current_msg) + len(line) + 1 <= 3800:
-                                current_msg += line + "\n"
-                            else:
-                                if current_msg:
-                                    await update.message.reply_text(current_msg.strip())
-                                current_msg = line + "\n"
-                        
-                        if current_msg:
-                            await update.message.reply_text(current_msg.strip())
-                    else:
-                        await update.message.reply_text(msg)
-                
-                logger.info(f"[OK] Generated prompts for: {category}")
+                        msg += f"*Prompt {i}:*\n{prompt}\n\n"
+
+                    msg += f"─────────────────────\n"
+                    msg += f"🛠 Tools: {tools}\n"
+                    msg += f"💡 Custom: `/generate {category} \"your concept\"`\n"
+                    msg += f"🔢 Levels: `/generate {category} beginner|professional|expert`"
+
+                    parts = split_smart(msg)
+                    await update.message.reply_text(parts[0], parse_mode="Markdown")
+                    for part in parts[1:]:
+                        if part:
+                            await update.message.reply_text(part, parse_mode="Markdown")
+
+                logger.info(f"[OK] Prompts served — category={category}, level={res_level}")
             else:
                 error_msg = result.get("error", "Unknown error")
-                categories = result.get("available_categories", [])
-                
-                msg = f"[ERROR] {error_msg}\n\n"
-                if categories:
-                    msg += f"Available categories:\n"
-                    for cat in categories:
-                        msg += f"• {cat}\n"
-                
+                cats = result.get("available_categories", [])
+                msg = f"❌ {error_msg}\n\nSee all categories: /categories"
+                if cats:
+                    msg += "\n\n" + "\n".join(f"• {c}" for c in cats[:10])
                 await update.message.reply_text(msg)
-                logger.error(f"Prompt generation failed: {result}")
-        
+
         except Exception as e:
-            await update.message.reply_text(f"[ERROR] {str(e)}")
+            await update.message.reply_text(f"❌ Error: {str(e)}")
             logger.error(f"Generate command error: {e}")
+
+    async def categories_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /categories — list all prompt categories with metadata."""
+        logger.info(f"[DEBUG] /categories from {update.effective_user.username}")
+        try:
+            from src.prompts.templates import list_categories, get_category_meta, get_all_prompts_count
+            cats = list_categories()
+            total = get_all_prompts_count()
+
+            msg = f"📚 *Prompt Library — {total}+ Prompts*\n\n"
+            msg += "🟢 Beginner  🔵 Professional  🔴 Expert\n"
+            msg += "─────────────────────────────────\n\n"
+
+            sections = {
+                "📷 Photography": ["general_photography", "women_professional", "men_professional",
+                                   "couples_general", "photography_styles"],
+                "✨ Transformation": ["women_transform", "men_transform", "couples_transform"],
+                "🎨 Design & Visual": ["design_posters", "brand_identity", "illustration_art",
+                                       "print_design", "product_3d"],
+                "🖥️ Digital": ["ui_ux_design", "animation_motion"],
+                "📝 Content": ["reel_scripts", "captions_templates", "email_subjects"],
+            }
+
+            for section, section_cats in sections.items():
+                msg += f"*{section}*\n"
+                for cat in section_cats:
+                    if cat in cats:
+                        meta = get_category_meta(cat)
+                        emoji = meta.get("emoji", "•")
+                        tools = meta.get("tools", [])
+                        tool_str = f" — {', '.join(tools[:2])}" if tools else ""
+                        msg += f"  {emoji} `{cat}`{tool_str}\n"
+                msg += "\n"
+
+            msg += "─────────────────────────────────\n"
+            msg += "Usage: `/generate [category]`\n"
+            msg += "With level: `/generate [category] expert`\n"
+            msg += "With concept: `/generate [category] \"concept\"`"
+
+            await update.message.reply_text(msg, parse_mode="Markdown")
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error: {str(e)}")
+            logger.error(f"Categories command error: {e}")
+
+    async def search_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /search [keyword] — find prompts across all categories."""
+        logger.info(f"[DEBUG] /search from {update.effective_user.username}")
+        if not context.args:
+            await update.message.reply_text(
+                "🔍 *Search Prompts*\n\nUsage: `/search [keyword]`\nExample: `/search logo`",
+                parse_mode="Markdown",
+            )
+            return
+
+        keyword = " ".join(context.args)
+        await update.message.reply_text(f"🔍 Searching for *{keyword}*...", parse_mode="Markdown")
+
+        try:
+            result = self.bot.search_prompts(keyword)
+            if result.get("status") == "success" and result.get("count", 0) > 0:
+                results = result["results"]
+                from src.prompts.templates import DIFFICULTY_EMOJI
+                msg = f"🔍 *Results for \"{keyword}\"* — {result['count']} found\n"
+                msg += "─────────────────────────────────\n\n"
+                for i, item in enumerate(results[:6], 1):
+                    cat = item.get("category", "")
+                    lvl = item.get("level", "")
+                    lvl_icon = DIFFICULTY_EMOJI.get(lvl, "")
+                    prompt_preview = item["prompt"][:120] + ("..." if len(item["prompt"]) > 120 else "")
+                    msg += f"*{i}.* `{cat}` {lvl_icon}\n{prompt_preview}\n\n"
+                msg += f"Use full prompt: `/generate {results[0]['category']}`"
+                await update.message.reply_text(msg, parse_mode="Markdown")
+            else:
+                await update.message.reply_text(
+                    f"🔍 No results for *{keyword}*.\n\nTry: `/categories` to browse all.", parse_mode="Markdown"
+                )
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error: {str(e)}")
+            logger.error(f"Search command error: {e}")
+
+    async def inspire_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /inspire [topic] — AI generates 3 creative angles."""
+        logger.info(f"[DEBUG] /inspire from {update.effective_user.username}")
+        if not context.args:
+            await update.message.reply_text(
+                "💡 *Inspire Mode*\n\nUsage: `/inspire [topic]`\nExample: `/inspire Indian wedding`",
+                parse_mode="Markdown",
+            )
+            return
+
+        topic = " ".join(context.args)
+        await update.message.reply_text(f"💡 Generating creative angles for *{topic}*...", parse_mode="Markdown")
+
+        try:
+            enhancement_prompt = f"""Generate 3 creative visual content angles for the topic: "{topic}"
+
+For each angle give:
+1. Angle name (5 words max)
+2. Best category: one of [design_posters, ui_ux_design, brand_identity, illustration_art, photography_styles, animation_motion, print_design, product_3d, women_transform, men_transform]
+3. One-sentence concept (max 20 words)
+4. Difficulty: beginner / professional / expert
+
+Format as plain text with clear numbering. Be creative and diverse. Max 200 words total."""
+
+            response = self.bot.client.chat.completions.create(
+                model=self.bot.model,
+                messages=[{"role": "user", "content": enhancement_prompt}],
+                temperature=0.9,
+                max_tokens=280,
+            )
+            ideas = response.choices[0].message.content.strip()
+
+            msg = f"💡 *Creative Angles — {topic}*\n"
+            msg += "─────────────────────────────────\n\n"
+            msg += ideas
+            msg += "\n\n─────────────────────────────────\n"
+            msg += "Use: `/generate [category] \"concept\"` to create a prompt for any angle above."
+
+            await update.message.reply_text(msg, parse_mode="Markdown")
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error: {str(e)}")
+            logger.error(f"Inspire command error: {e}")
+
+
 
 
 async def main():
@@ -535,6 +658,9 @@ async def main():
     app.add_handler(CommandHandler("engagement", handler.engagement_command))
     app.add_handler(CommandHandler("monetize", handler.monetize_command))
     app.add_handler(CommandHandler("generate", handler.generate_command))
+    app.add_handler(CommandHandler("categories", handler.categories_command))
+    app.add_handler(CommandHandler("search", handler.search_command))
+    app.add_handler(CommandHandler("inspire", handler.inspire_command))
     
     # Start polling
     logger.info("[OK] Telegram bot started (polling mode)")
@@ -586,6 +712,9 @@ def main_sync():
     app.add_handler(CommandHandler("engagement", handler.engagement_command))
     app.add_handler(CommandHandler("monetize", handler.monetize_command))
     app.add_handler(CommandHandler("generate", handler.generate_command))
+    app.add_handler(CommandHandler("categories", handler.categories_command))
+    app.add_handler(CommandHandler("search", handler.search_command))
+    app.add_handler(CommandHandler("inspire", handler.inspire_command))
     
     # Add catch-all message handler for debugging
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler.handle_message))
