@@ -38,6 +38,27 @@ def escape_md(text: str) -> str:
         text = text.replace(ch, "\\" + ch)
     return text
 
+
+_TRANSFORM_CATEGORIES = {"women_transform", "men_transform", "couples_transform"}
+
+
+def strip_transform_boilerplate(prompt: str) -> str:
+    """Strip the repetitive facial-preservation header/footer from transform prompts.
+    Keeps only the core scene description for clean Telegram display.
+    The full prompt remains stored in the data layer for AI-tool copy-paste.
+    """
+    # Remove leading identity-preservation header
+    prefix = "EXACT FACE MATCH + IDENTITY PRESERVATION: "
+    if prompt.startswith(prefix):
+        prompt = prompt[len(prefix):]
+    # Truncate at the facial-preservation clause (everything after the scene description)
+    for marker in (" Facial feature preservation", ". Facial feature preservation"):
+        idx = prompt.find(marker)
+        if idx != -1:
+            prompt = prompt[:idx].rstrip(".,; ")
+            break
+    return prompt.strip()
+
 # Configure logging
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -493,7 +514,8 @@ class TelegramBotHandler:
                     msg += "─────────────────────\n\n"
 
                     for i, prompt in enumerate(prompts, 1):
-                        msg += f"*Prompt {i}:*\n{escape_md(prompt)}\n\n"
+                        display = strip_transform_boilerplate(prompt) if category in _TRANSFORM_CATEGORIES else prompt
+                        msg += f"*Prompt {i}:*\n{escape_md(display)}\n\n"
 
                     msg += f"─────────────────────\n"
                     msg += f"🛠 Tools: {tools}\n"
