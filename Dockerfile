@@ -9,15 +9,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip first to avoid resolution issues
-RUN pip install --upgrade pip
+# Create a virtual environment so run_telegram_bot.py venv check passes
+RUN python -m venv /app/venv
 
-# Install Python dependencies
+# Upgrade pip inside the venv
+RUN /app/venv/bin/pip install --upgrade pip
+
+# Install Python dependencies into the venv
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN /app/venv/bin/pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
 COPY . .
 
-# Run the bot
-CMD ["python", "run_telegram_bot.py"]
+# Run the bot using the venv Python
+CMD ["/app/venv/bin/python", "run_telegram_bot.py"]
