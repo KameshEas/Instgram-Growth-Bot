@@ -1,6 +1,22 @@
 version: '3.8'
 
 services:
+  # Telegram Bot
+  bot:
+    build: .
+    container_name: telegram_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./metrics:/app/metrics
+
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
