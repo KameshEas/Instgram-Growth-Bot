@@ -1,19 +1,30 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from datetime import datetime
 
+if TYPE_CHECKING:
+    from src.main import InstagramGrowthBot
+
+
 class EngagementAgent(BaseAgent):
-    """Growth strategies and engagement recommendations (non-automation)"""
-    
-    def __init__(self):
+    """Growth strategies and engagement recommendations (non-automation).
+
+    When a ``groq_bot`` is supplied the agent delegates to Groq for
+    AI-powered strategies.  Falls back to built-in static data otherwise.
+    """
+
+    def __init__(self, groq_bot: "InstagramGrowthBot | None" = None):
         super().__init__("Engagement")
+        self._groq_bot = groq_bot
     
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Execute engagement strategy recommendations"""
         try:
             action = input_data.get("action", "strategies")
-            
-            if action == "strategies":
+
+            if action == "strategy_for_size":
+                return await self._strategy_for_account_size(input_data)
+            elif action == "strategies":
                 return await self._engagement_strategies(input_data)
             elif action == "growth_tips":
                 return await self._growth_tips(input_data)
@@ -30,6 +41,24 @@ class EngagementAgent(BaseAgent):
             self.logger.error(f"Engagement error: {str(e)}")
             return {"status": "error", "error": str(e)}
     
+    async def _strategy_for_account_size(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """AI-powered engagement strategy for a specific account size tier.
+
+        Calls ``groq_bot.engagement_strategy()`` when available so the
+        response is dynamic and AI-generated.  Falls back to the built-in
+        static strategies dict otherwise.
+        """
+        account_size = data.get("account_size", "micro")
+        if self._groq_bot:
+            try:
+                result = self._groq_bot.engagement_strategy(account_size=account_size)
+                await self.log_execution(data, result, "success")
+                return result
+            except Exception as e:
+                self.logger.warning(f"Groq engagement fallback triggered: {e}")
+        # Static fallback
+        return await self._engagement_strategies({**data, "niche": account_size})
+
     async def _engagement_strategies(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Get engagement strategies for niche"""
         try:

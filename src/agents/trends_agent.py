@@ -1,18 +1,33 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from datetime import datetime, timedelta
 import random
 import requests
-from bs4 import BeautifulSoup
+try:
+    from bs4 import BeautifulSoup
+    BS4_AVAILABLE = True
+except ImportError:
+    BS4_AVAILABLE = False
 import logging
+
+if TYPE_CHECKING:
+    from src.main import InstagramGrowthBot
 
 logger = logging.getLogger(__name__)
 
+
 class TrendsAgent(BaseAgent):
-    """Detect trending topics from real-world APIs (Reddit, GitHub, etc.)"""
-    
-    def __init__(self):
+    """Detect trending topics from real-world APIs (Reddit, GitHub, etc.) and
+    enrich them with AI analysis via Groq.
+
+    When a ``groq_bot`` is supplied the ``analyze_for_niche`` action combines
+    live scraped trends with an AI-structured response (topHashtags,
+    bestPostingTimes) that the Telegram handler already knows how to render.
+    """
+
+    def __init__(self, groq_bot: "InstagramGrowthBot | None" = None):
         super().__init__("Trends")
+        self._groq_bot = groq_bot
         
         # Fallback topics in case APIs fail
         self.fallback_topics = [
@@ -78,10 +93,12 @@ class TrendsAgent(BaseAgent):
     
     async def _fetch_github_trends(self) -> List[str]:
         """Fetch trending repositories from GitHub"""
+        if not BS4_AVAILABLE:
+            return []
         try:
             url = "https://github.com/trending"
             headers = {"User-Agent": "PhotographyBot/1.0"}
-            
+
             response = requests.get(url, headers=headers, timeout=5)
             if response.status_code == 200:
                 soup = BeautifulSoup(response.content, "html.parser")
@@ -104,11 +121,13 @@ class TrendsAgent(BaseAgent):
     
     async def _fetch_news_topics(self) -> List[str]:
         """Fetch trending news topics"""
+        if not BS4_AVAILABLE:
+            return []
         try:
             # Using Hacker News as proxy for real-time trends
             url = "https://news.ycombinator.com/"
             headers = {"User-Agent": "PhotographyBot/1.0"}
-            
+
             response = requests.get(url, headers=headers, timeout=5)
             if response.status_code == 200:
                 soup = BeautifulSoup(response.content, "html.parser")
@@ -135,8 +154,10 @@ class TrendsAgent(BaseAgent):
         """Execute trends detection"""
         try:
             action = input_data.get("action", "detect")
-            
-            if action == "detect":
+
+            if action == "analyze_for_niche":
+                return await self._analyze_for_niche(input_data)
+            elif action == "detect":
                 return await self._detect_trends(input_data)
             elif action == "trending_hashtags":
                 return await self._get_trending_hashtags(input_data)
@@ -150,7 +171,50 @@ class TrendsAgent(BaseAgent):
         except Exception as e:
             self.logger.error(f"Trends error: {str(e)}")
             return {"status": "error", "error": str(e)}
-    
+
+    async def _analyze_for_niche(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Combine live web trends with AI analysis for a specific niche.
+
+        Steps:
+        1. Scrape real-time trends (Reddit / GitHub / HN) via ``_detect_trends``.
+        2. Ask Groq to produce a structured analysis (topHashtags, bestPostingTimes)
+           that matches the shape the Telegram trends handler already parses.
+        3. Inject the raw web trends under ``real_web_trends`` for transparency.
+        Falls back to the raw scrape result when Groq is unavailable.
+        """
+        niche = data.get("niche", "photography")
+        try:
+            # Step 1 — live web trends (with cache)
+            web_result = await self._detect_trends({})
+            real_web_trends: List[str] = []
+            if web_result.get("status") == "success":
+                trending = web_result.get("trending", {})
+                for topics in trending.values():
+                    real_web_trends.extend(topics)
+
+            # Step 2 — AI analysis via Groq
+            if self._groq_bot:
+                try:
+                    ai_result = self._groq_bot.analyze_trends(niche=niche)
+                    if isinstance(ai_result, dict) and ai_result:
+                        # Step 3 — inject real web trends into AI result
+                        ai_result["real_web_trends"] = real_web_trends[:15]
+                        ai_result["agent"] = "TrendsAgent"
+                        await self.log_execution(data, ai_result, "success")
+                        return ai_result
+                except Exception as e:
+                    self.logger.warning(f"Groq trends fallback triggered: {e}")
+
+            # Fallback — return raw web scrape result enriched with niche
+            web_result["niche"] = niche
+            web_result["agent"] = "TrendsAgent"
+            await self.log_execution(data, web_result, "success")
+            return web_result
+
+        except Exception as e:
+            self.logger.error(f"Analyze for niche error: {str(e)}")
+            return {"status": "error", "error": str(e)}
+
     async def _detect_trends(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Detect current trending topics from real APIs"""
         try:

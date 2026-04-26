@@ -608,6 +608,326 @@ Format as JSON."""
                 health_check.record_error()
             return {"error": "Failed to generate ideas"}
 
+    # ─────────────────────────────────────────────────────────────────────
+    #  Phase 4 — new AI methods (all inject user-profile context)
+    # ─────────────────────────────────────────────────────────────────────
+
+    def _profile_ctx(self, niche: str = "", audience_size: str = "", goals: list = None) -> str:
+        """Build a short profile-context string to inject into every system prompt."""
+        parts = []
+        if niche:
+            parts.append(f"niche: {niche}")
+        if audience_size:
+            parts.append(f"audience size: {audience_size}")
+        if goals:
+            parts.append(f"goals: {', '.join(goals)}")
+        return f" The user's Instagram profile — {'; '.join(parts)}." if parts else ""
+
+    def caption_generator(self, post_description: str, niche: str = "",
+                          audience_size: str = "") -> dict:
+        """Generate a viral Instagram caption with CTA and hashtags."""
+        ctx = self._profile_ctx(niche=niche, audience_size=audience_size)
+        prompt = f"""You are an expert Instagram copywriter.{ctx}
+
+Write a viral Instagram caption for this post:
+\"{post_description}\"
+
+Return JSON with exactly these keys:
+- caption: the full caption text (hook + story + CTA, max 2200 chars)
+- hook: the opening line (max 15 words, no emoji)
+- cta: call-to-action sentence
+- hashtags: list of 10 targeted hashtags (no # prefix)
+- estimated_reach: low/medium/high"""
+
+        start = time.time()
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.8,
+            )
+            duration = time.time() - start
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(prompt))
+            result = parse_json_response(resp.choices[0].message.content)
+            if result:
+                if METRICS_ENABLED:
+                    health_check.record_success()
+            return result or {"error": "Failed to generate caption"}
+        except Exception as e:
+            logger.error(f"caption_generator error: {e}")
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
+                health_check.record_error()
+            return {"error": str(e)}
+
+    def hashtag_pack(self, topic: str, niche: str = "") -> dict:
+        """Return 30 hashtags in 3 tiers for a given topic."""
+        ctx = self._profile_ctx(niche=niche)
+        prompt = f"""You are an Instagram hashtag strategist.{ctx}
+
+Generate a hashtag pack for the topic: \"{topic}\"
+
+Return JSON with exactly these keys:
+- broad: list of 10 high-reach hashtags (1M+ posts, no # prefix)
+- niche: list of 10 mid-range hashtags (100K–1M posts, no # prefix)
+- micro: list of 10 micro/specific hashtags (<100K posts, no # prefix)
+- tip: one-sentence usage tip"""
+
+        start = time.time()
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.6,
+            )
+            duration = time.time() - start
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(prompt))
+            result = parse_json_response(resp.choices[0].message.content)
+            if result:
+                if METRICS_ENABLED:
+                    health_check.record_success()
+            return result or {"error": "Failed to generate hashtags"}
+        except Exception as e:
+            logger.error(f"hashtag_pack error: {e}")
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
+                health_check.record_error()
+            return {"error": str(e)}
+
+    def bio_optimizer(self, current_bio: str, niche: str = "", goals: list = None) -> dict:
+        """Rewrite an Instagram bio: hook + value prop + CTA."""
+        ctx = self._profile_ctx(niche=niche, goals=goals or [])
+        prompt = f"""You are an Instagram profile expert.{ctx}
+
+Rewrite this Instagram bio to maximise follows and profile visits:
+\"{current_bio}\"
+
+Return JSON with exactly these keys:
+- rewritten_bio: the new bio text (max 150 chars)
+- hook: opening line that grabs attention
+- value_prop: what the audience gets from following
+- cta: call-to-action (e.g. "DM for collabs ↓")
+- keywords: list of 5 SEO keywords included in the bio
+- char_count: character count of rewritten_bio"""
+
+        start = time.time()
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+            )
+            duration = time.time() - start
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(prompt))
+            result = parse_json_response(resp.choices[0].message.content)
+            if result:
+                if METRICS_ENABLED:
+                    health_check.record_success()
+            return result or {"error": "Failed to optimise bio"}
+        except Exception as e:
+            logger.error(f"bio_optimizer error: {e}")
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
+                health_check.record_error()
+            return {"error": str(e)}
+
+    def content_calendar(self, niche: str = "", audience_size: str = "") -> dict:
+        """Generate a 7-post weekly content calendar."""
+        ctx = self._profile_ctx(niche=niche, audience_size=audience_size)
+        prompt = f"""You are an Instagram content strategist.{ctx}
+
+Create a 7-post weekly content calendar for an Instagram account.
+
+Return JSON with exactly these keys:
+- week_theme: an overarching theme for the week (max 10 words)
+- posts: list of 7 objects, one per day, each with:
+    - day: Monday/Tuesday/…/Sunday
+    - format: Reel | Carousel | Story | Static Post
+    - topic: specific post topic (max 10 words)
+    - caption_angle: hook or emotional angle (max 15 words)
+    - hashtag_theme: 1-word hashtag cluster to use
+    - best_time: posting time e.g. "7:00 PM"
+- pro_tip: one actionable insight for the week"""
+
+        start = time.time()
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.75,
+            )
+            duration = time.time() - start
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(prompt))
+            result = parse_json_response(resp.choices[0].message.content)
+            if result:
+                if METRICS_ENABLED:
+                    health_check.record_success()
+            return result or {"error": "Failed to generate calendar"}
+        except Exception as e:
+            logger.error(f"content_calendar error: {e}")
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
+                health_check.record_error()
+            return {"error": str(e)}
+
+    def posting_schedule(self, niche: str = "", audience_size: str = "") -> dict:
+        """Return best posting times and a weekly schedule."""
+        ctx = self._profile_ctx(niche=niche, audience_size=audience_size)
+        prompt = f"""You are an Instagram growth expert.{ctx}
+
+Recommend the optimal posting schedule.
+
+Return JSON with exactly these keys:
+- best_times: list of 3 objects each with time (e.g. "8:00 AM IST"), day_type (weekday/weekend), reason (max 15 words)
+- weekly_schedule: object mapping Monday–Sunday to a recommended format (Reel/Carousel/Story/Rest)
+- frequency: recommended posts per week (integer)
+- timezone_note: note about audience timezone assumptions
+- pro_tip: one sentence on timing strategy"""
+
+        start = time.time()
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.6,
+            )
+            duration = time.time() - start
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(prompt))
+            result = parse_json_response(resp.choices[0].message.content)
+            if result:
+                if METRICS_ENABLED:
+                    health_check.record_success()
+            return result or {"error": "Failed to generate schedule"}
+        except Exception as e:
+            logger.error(f"posting_schedule error: {e}")
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
+                health_check.record_error()
+            return {"error": str(e)}
+
+    def story_ideas(self, topic: str, niche: str = "") -> dict:
+        """Generate 5 interactive Instagram Story ideas."""
+        ctx = self._profile_ctx(niche=niche)
+        prompt = f"""You are an Instagram Stories expert.{ctx}
+
+Generate 5 interactive Instagram Story ideas for the topic: \"{topic}\"
+
+Return JSON with exactly these keys:
+- stories: list of 5 objects each with:
+    - type: Poll | Quiz | Countdown | Slider | Question Box | This or That
+    - title: Story slide title (max 8 words)
+    - prompt: the interactive question or text shown to viewers (max 20 words)
+    - engagement_tip: one line on why this drives engagement
+- hook_tip: one tip for the first Story slide to maximise retention"""
+
+        start = time.time()
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.8,
+            )
+            duration = time.time() - start
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(prompt))
+            result = parse_json_response(resp.choices[0].message.content)
+            if result:
+                if METRICS_ENABLED:
+                    health_check.record_success()
+            return result or {"error": "Failed to generate story ideas"}
+        except Exception as e:
+            logger.error(f"story_ideas error: {e}")
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
+                health_check.record_error()
+            return {"error": str(e)}
+
+    def profile_audit(self, niche: str = "", audience_size: str = "",
+                      goals: list = None) -> dict:
+        """Return an Instagram profile improvement checklist."""
+        ctx = self._profile_ctx(niche=niche, audience_size=audience_size, goals=goals or [])
+        prompt = f"""You are an Instagram growth auditor.{ctx}
+
+Perform an advisory profile audit and provide actionable recommendations.
+
+Return JSON with exactly these keys:
+- score: estimated profile health score 0–100 (integer) based on typical accounts in this niche
+- checklist: list of 6 objects each with:
+    - area: Bio | Highlights | Feed Aesthetic | Posting Frequency | Hashtag Strategy | Engagement
+    - status: Good | Needs Work | Critical
+    - finding: what to look for (max 20 words)
+    - action: specific improvement step (max 20 words)
+- quick_wins: list of 3 things to do this week for fastest growth
+- note: disclaimer that this is advisory without seeing the actual account"""
+
+        start = time.time()
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.65,
+            )
+            duration = time.time() - start
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(prompt))
+            result = parse_json_response(resp.choices[0].message.content)
+            if result:
+                if METRICS_ENABLED:
+                    health_check.record_success()
+            return result or {"error": "Failed to generate audit"}
+        except Exception as e:
+            logger.error(f"profile_audit error: {e}")
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
+                health_check.record_error()
+            return {"error": str(e)}
+
+    def chat_response(self, user_message: str, profile: dict = None) -> str:
+        """Return a conversational Instagram growth answer for free-text messages.
+
+        Injects the user's saved profile as system context so every response
+        is personalised without the user having to re-state their niche each time.
+        """
+        profile = profile or {}
+        niche = profile.get("niche", "")
+        audience_size = profile.get("audience_size", "")
+        goals = profile.get("goals", [])
+        ctx = self._profile_ctx(niche=niche, audience_size=audience_size, goals=goals)
+
+        system = (
+            "You are an expert Instagram growth coach. Give concise, actionable advice. "
+            "Use plain text — no markdown headers, no bullet stars. Keep replies under 300 words."
+            + ctx
+        )
+        start = time.time()
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user_message},
+                ],
+                temperature=0.7,
+                max_tokens=400,
+            )
+            duration = time.time() - start
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(user_message))
+                health_check.record_success()
+            return resp.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error(f"chat_response error: {e}")
+            if METRICS_ENABLED:
+                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
+                health_check.record_error()
+            return "Sorry, I couldn't process that. Please try again."
+
+
 def main():
     """Main bot function"""
     logger.info("="*60)

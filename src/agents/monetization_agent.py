@@ -1,13 +1,22 @@
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from datetime import datetime
 import random
 
+if TYPE_CHECKING:
+    from src.main import InstagramGrowthBot
+
+
 class MonetizationAgent(BaseAgent):
-    """Track all 6 revenue streams and monetization activities"""
-    
-    def __init__(self):
+    """Revenue stream advice and monetization tracking.
+
+    When a ``groq_bot`` is supplied the agent uses Groq for real AI-generated
+    revenue ideas.  Falls back to simulated dashboard data otherwise.
+    """
+
+    def __init__(self, groq_bot: "InstagramGrowthBot | None" = None):
         super().__init__("Monetization")
+        self._groq_bot = groq_bot
         self.revenue_streams = [
             "sponsored_posts",
             "affiliate_marketing",
@@ -21,8 +30,10 @@ class MonetizationAgent(BaseAgent):
         """Execute monetization tracking"""
         try:
             action = input_data.get("action", "track")
-            
-            if action == "track_revenue":
+
+            if action == "ideas_for_niche":
+                return await self._ideas_for_niche(input_data)
+            elif action == "track_revenue":
                 return await self._track_revenue(input_data)
             elif action == "affiliate_link":
                 return await self._add_affiliate_link(input_data)
@@ -41,6 +52,27 @@ class MonetizationAgent(BaseAgent):
             self.logger.error(f"Monetization error: {str(e)}")
             return {"status": "error", "error": str(e)}
     
+    async def _ideas_for_niche(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """AI-generated monetization ideas for a specific niche and audience size.
+
+        Delegates to ``groq_bot.monetization_ideas()`` when available so
+        suggestions are personalised and AI-powered instead of random numbers.
+        Falls back to the simulated dashboard if Groq is unavailable.
+        """
+        niche = data.get("niche", "general")
+        follower_count = int(data.get("follower_count", 10000))
+        if self._groq_bot:
+            try:
+                result = self._groq_bot.monetization_ideas(
+                    niche=niche, follower_count=follower_count
+                )
+                await self.log_execution(data, result, "success")
+                return result
+            except Exception as e:
+                self.logger.warning(f"Groq monetization fallback triggered: {e}")
+        # Static fallback
+        return await self._get_monetization_dashboard(data)
+
     async def _track_revenue(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Track revenue from all streams"""
         try:
