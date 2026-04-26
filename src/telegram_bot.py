@@ -217,6 +217,11 @@ class TelegramBotHandler:
             "  /monetize `[niche] [followers]` — Revenue ideas\n"
             "  /analytics `[daily|weekly|monthly]` — Performance report\n"
             "  /audit — Profile improvement checklist\n\n"
+            "🎨 *Prompt Library*\n"
+            "  /generate `[category]` — AI image prompts\n"
+            "  /categories — Browse all prompt categories\n"
+            "  /search `[keyword]` — Find prompts by keyword\n"
+            "  /inspire `[topic]` — 3 creative content angles\n\n"
             "💬 *Free-text chat*\n"
             "  Just type any question — I'll answer as your Instagram coach!\n\n"
             "💡 Tip: Run /setup first for personalised responses."
@@ -990,6 +995,172 @@ class TelegramBotHandler:
         else:
             logger.debug(f"[WARN] Unknown callback: {data}")
 
+    # ── prompt library commands ───────────────────────────────────────────────
+
+    async def generate_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /generate [category] [level] ["custom concept"]."""
+        full_text = update.message.text
+        text_after_cmd = full_text.replace("/generate", "", 1).strip()
+
+        if not text_after_cmd:
+            await update.message.reply_text(
+                "🎨 *Generate Prompts*\n\n"
+                "Usage:\n"
+                "  `/generate [category]`\n"
+                "  `/generate [category] [level]`\n"
+                "  `/generate [category] \"custom concept\"`\n\n"
+                "Levels: `beginner` 🟢 · `professional` 🔵 · `expert` 🔴\n\n"
+                "Examples:\n"
+                "• `/generate ui_ux_design professional`\n"
+                "• `/generate design_posters \"Diwali sale poster\"`\n\n"
+                "See all categories: /categories",
+                parse_mode="Markdown",
+            )
+            return
+
+        LEVELS = {"beginner", "professional", "expert"}
+        category = text_after_cmd.split()[0].strip().lower()
+        remaining = text_after_cmd[len(category):].strip()
+        level = None
+        custom_prompt = None
+        if remaining:
+            next_tok = remaining.split(" ", 1)[0].lower()
+            if next_tok in LEVELS:
+                level = next_tok
+                remaining = remaining[len(next_tok):].strip()
+        if remaining:
+            custom_prompt = remaining.strip("\"'")
+
+        wait_msg = (f"⏳ Enhancing your concept for *{category}*..." if custom_prompt
+                    else f"⏳ Fetching prompts for *{category}*{' [' + level + ']' if level else ' [mixed]'}...")
+        await update.message.reply_text(wait_msg, parse_mode="Markdown")
+
+        try:
+            result = await self.orchestrator.execute({
+                "command": "/generate",
+                "category": category,
+                "custom_prompt": custom_prompt,
+                "level": level,
+            })
+            if result and result.get("status") == "success":
+                prompts = result.get("prompts", [])
+                is_custom = result.get("custom", False)
+                meta = result.get("meta", {})
+                cat_emoji = meta.get("emoji", "🎯")
+                tools = ", ".join(meta.get("tools", [])) or "DALL-E 3, Midjourney, Stable Diffusion"
+                best_for = meta.get("best_for", "")
+                res_level = result.get("level", level or "mixed")
+                level_labels = {"beginner": "🟢 Beginner", "professional": "🔵 Professional",
+                                "expert": "🔴 Expert", "mixed": "🌈 Mixed Levels"}
+                if is_custom:
+                    msg = f"{cat_emoji} *Custom Prompt — {category}*\n"
+                    if best_for:
+                        msg += f"_{best_for}_\n"
+                    msg += "─────────────────────\n\n"
+                    msg += escape_md(prompts[0]) if prompts else "No prompt returned."
+                    msg += f"\n\n🛠 Tools: {tools}"
+                else:
+                    msg = f"{cat_emoji} *{category}* — {level_labels.get(res_level, res_level)}\n"
+                    if best_for:
+                        msg += f"_{best_for}_\n"
+                    msg += "─────────────────────\n\n"
+                    for i, p in enumerate(prompts, 1):
+                        display = strip_transform_boilerplate(p) if category in _TRANSFORM_CATEGORIES else p
+                        msg += f"*Prompt {i}:*\n{escape_md(display)}\n\n"
+                    msg += f"─────────────────────\n🛠 Tools: {tools}\n"
+                    msg += f"💡 Custom: `/generate {category} \"your concept\"`"
+                for chunk in self._send_long(msg):
+                    await update.message.reply_text(chunk, parse_mode="Markdown")
+                logger.info(f"[OK] /generate category={category}")
+            else:
+                err = result.get("error", "Unknown") if isinstance(result, dict) else str(result)
+                cats = result.get("available_categories", []) if isinstance(result, dict) else []
+                rep = f"❌ {err}\n\nSee all categories: /categories"
+                if cats:
+                    rep += "\n\n" + "\n".join(f"• {c}" for c in cats[:10])
+                await update.message.reply_text(rep)
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error: {e}")
+            logger.error(f"generate_command error: {e}")
+
+    async def categories_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """List all prompt categories."""
+        try:
+            from src.prompts.templates import list_categories
+            cats = list_categories()
+            msg = "📚 *Prompt Categories*\n\n"
+            msg += "\n".join(f"• `{c}`" for c in cats)
+            msg += "\n\nUsage: `/generate [category]`"
+            await update.message.reply_text(msg, parse_mode="Markdown")
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error: {e}")
+            logger.error(f"categories_command error: {e}")
+
+    async def search_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Search prompts by keyword."""
+        if not context.args:
+            await update.message.reply_text(
+                "🔍 *Search Prompts*\n\nUsage: `/search [keyword]`\nExample: `/search logo`",
+                parse_mode="Markdown",
+            )
+            return
+        keyword = " ".join(context.args)
+        await update.message.reply_text(f"🔍 Searching for *{keyword}*...", parse_mode="Markdown")
+        try:
+            result = self.bot.search_prompts(keyword)
+            if result.get("status") == "success" and result.get("count", 0) > 0:
+                results = result["results"]
+                msg = f"🔍 *Results for \"{keyword}\"* — {result['count']} found\n"
+                msg += "─────────────────────────────────\n\n"
+                for i, item in enumerate(results[:6], 1):
+                    cat = item.get("category", "")
+                    preview = item["prompt"][:120] + ("..." if len(item["prompt"]) > 120 else "")
+                    msg += f"*{i}.* `{cat}`\n{escape_md(preview)}\n\n"
+                msg += f"Use: `/generate {results[0]['category']}`"
+                await update.message.reply_text(msg, parse_mode="Markdown")
+            else:
+                await update.message.reply_text(
+                    f"🔍 No results for *{keyword}*.\n\nTry: /categories", parse_mode="Markdown"
+                )
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error: {e}")
+            logger.error(f"search_command error: {e}")
+
+    async def inspire_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Generate 3 creative angles for a topic."""
+        if not context.args:
+            await update.message.reply_text(
+                "💡 *Inspire Mode*\n\nUsage: `/inspire [topic]`\nExample: `/inspire Indian wedding`",
+                parse_mode="Markdown",
+            )
+            return
+        topic = " ".join(context.args)
+        await update.message.reply_text(f"💡 Generating angles for *{topic}*...", parse_mode="Markdown")
+        try:
+            prompt = (
+                f'Generate 3 creative visual content angles for: "{topic}"\n\n'
+                "For each give:\n1. Angle name (5 words max)\n"
+                "2. Best prompt-library category\n"
+                "3. One-sentence concept (max 20 words)\n"
+                "4. Difficulty: beginner / professional / expert\n\n"
+                "Plain text, numbered, max 200 words."
+            )
+            resp = self.bot.client.chat.completions.create(
+                model=self.bot.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.9,
+                max_tokens=300,
+            )
+            ideas = resp.choices[0].message.content.strip()
+            msg = f"💡 *Creative Angles — {topic}*\n─────────────────────────────────\n\n"
+            msg += ideas
+            msg += "\n\n─────────────────────────────────\n"
+            msg += "Use: `/generate [category] \"concept\"`"
+            await update.message.reply_text(msg, parse_mode="Markdown")
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error: {e}")
+            logger.error(f"inspire_command error: {e}")
+
     # ── free-text chat handler ────────────────────────────────────────────────
 
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1127,6 +1298,10 @@ def _build_app(handler: "TelegramBotHandler") -> "Application":
     app.add_handler(CommandHandler("engagement", handler.engagement_command))
     app.add_handler(CommandHandler("monetize", handler.monetize_command))
     app.add_handler(CommandHandler("analytics", handler.analytics_command))
+    app.add_handler(CommandHandler("generate", handler.generate_command))
+    app.add_handler(CommandHandler("categories", handler.categories_command))
+    app.add_handler(CommandHandler("search", handler.search_command))
+    app.add_handler(CommandHandler("inspire", handler.inspire_command))
 
     # Inline button callbacks
     app.add_handler(CallbackQueryHandler(handler.button_callback))
