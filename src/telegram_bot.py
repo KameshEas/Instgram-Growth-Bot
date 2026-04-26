@@ -28,6 +28,16 @@ else:
 # Create logs directory
 os.makedirs("logs", exist_ok=True)
 
+
+def escape_md(text: str) -> str:
+    """Escape special characters for Telegram legacy Markdown (v1).
+    Prevents 'can't find end of entity' parse errors when LLM output
+    contains unmatched *, _, `, or [ characters.
+    """
+    for ch in ("*", "_", "`", "["):
+        text = text.replace(ch, "\\" + ch)
+    return text
+
 # Configure logging
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -458,7 +468,7 @@ class TelegramBotHandler:
                         header += f"Best for: {best_for}\n"
                     header += "─────────────────────\n\n"
 
-                    parts = split_smart(prompts[0])
+                    parts = split_smart(escape_md(prompts[0]))
                     first = header + parts[0]
                     if len(first) > 4000:
                         await update.message.reply_text(header, parse_mode="Markdown")
@@ -483,7 +493,7 @@ class TelegramBotHandler:
                     msg += "─────────────────────\n\n"
 
                     for i, prompt in enumerate(prompts, 1):
-                        msg += f"*Prompt {i}:*\n{prompt}\n\n"
+                        msg += f"*Prompt {i}:*\n{escape_md(prompt)}\n\n"
 
                     msg += f"─────────────────────\n"
                     msg += f"🛠 Tools: {tools}\n"
