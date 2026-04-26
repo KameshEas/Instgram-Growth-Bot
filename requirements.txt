@@ -5,10 +5,8 @@ httpx==0.24.1
 aiohttp==3.9.1
 
 # LLM & AI (Groq)
-langchain==0.1.14
-langchain-community==0.0.29
-langchain-core==0.1.38
-langsmith==0.1.17
+langchain>=0.1.14,<0.2
+langchain-community>=0.0.30,<0.2
 langchain-groq
 groq>=0.4.1
 
