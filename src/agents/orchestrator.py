@@ -22,10 +22,10 @@ class ContentOrchestratorAgent(BaseAgent):
         super().__init__("Orchestrator")
         self._groq_bot = groq_bot
         self.agents = {
-            "content_generator": ContentGeneratorAgent(),
+            "content_generator": ContentGeneratorAgent(groq_bot=groq_bot),
             "engagement": EngagementAgent(groq_bot=groq_bot),
             "monetization": MonetizationAgent(groq_bot=groq_bot),
-            "analytics": AnalyticsAgent(),
+            "analytics": AnalyticsAgent(groq_bot=groq_bot),
             "trends": TrendsAgent(groq_bot=groq_bot),
         }
 
@@ -33,6 +33,14 @@ class ContentOrchestratorAgent(BaseAgent):
         """Route the request to the correct agent based on the Telegram command."""
         try:
             command = input_data.get("command", "help")
+
+            # ── Extract UserContext (thread into every agent call) ─────────────────
+            niche = input_data.get("niche", "")
+            follower_count = input_data.get("follower_count")
+            region = input_data.get("region", "")
+            language = input_data.get("language", "")
+            account_stage = input_data.get("account_stage", "")
+            chat_id = input_data.get("chat_id")
 
             # ── Content library commands ──────────────────────────────────────
             if command == "/generate":
@@ -92,6 +100,12 @@ class ContentOrchestratorAgent(BaseAgent):
                     result = self._groq_bot.generate_content(
                         topic=input_data.get("topic", ""),
                         style=input_data.get("style", "engaging"),
+                        niche=niche,
+                        follower_count=follower_count,
+                        region=region,
+                        language=language,
+                        account_stage=account_stage,
+                        chat_id=chat_id,
                     )
                 else:
                     result = {"status": "error", "error": "Groq bot not available"}
@@ -105,7 +119,8 @@ class ContentOrchestratorAgent(BaseAgent):
                 result = await self.agents["trends"].execute({
                     **input_data,
                     "action": "analyze_for_niche",
-                    "niche": input_data.get("niche", "photography"),
+                    "niche": niche or input_data.get("niche", "photography"),
+                    "region": region,
                 })
 
             # ── Engagement agent (AI strategy) ────────────────────────────────
@@ -114,6 +129,7 @@ class ContentOrchestratorAgent(BaseAgent):
                     **input_data,
                     "action": "strategy_for_size",
                     "account_size": input_data.get("account_size", "micro"),
+                    "niche": niche, "follower_count": follower_count, "region": region,
                 })
 
             # ── Monetization agent (AI ideas) ─────────────────────────────────
@@ -121,8 +137,9 @@ class ContentOrchestratorAgent(BaseAgent):
                 result = await self.agents["monetization"].execute({
                     **input_data,
                     "action": "ideas_for_niche",
-                    "niche": input_data.get("niche", "general"),
-                    "follower_count": input_data.get("follower_count", 10000),
+                    "niche": niche or input_data.get("niche", "general"),
+                    "follower_count": follower_count or input_data.get("follower_count", 10000),
+                    "region": region,
                 })
 
             # ── Analytics agent ───────────────────────────────────────────────
@@ -130,13 +147,48 @@ class ContentOrchestratorAgent(BaseAgent):
                 result = await self.agents["analytics"].execute({
                     **input_data,
                     "report_type": input_data.get("report_type", "daily"),
+                    "niche": niche, "follower_count": follower_count,
+                    "account_stage": account_stage, "region": region,
                 })
 
             # ── Help ──────────────────────────────────────────────────────────
             elif command in ("/help", "help"):
                 result = self._get_help()
 
-            else:
+            else:                # ── AI intent classification for unknown commands ────────────
+                user_message = input_data.get("text", "")
+                if (
+                    self._groq_bot
+                    and user_message
+                    and not input_data.get("_intent_classified")
+                ):
+                    available_commands = [
+                        "/generate", "/categories", "/search", "/content",
+                        "/inspire", "/trends", "/viral", "/hashtags",
+                        "/engagement", "/monetize", "/analytics", "/report",
+                        "/stats", "/help",
+                    ]
+                    try:
+                        intent = self._groq_bot.classify_intent(
+                            user_message=user_message,
+                            available_commands=available_commands,
+                            chat_id=chat_id,
+                        )
+                        if (
+                            isinstance(intent, dict)
+                            and not intent.get("fallback_to_chat")
+                            and float(intent.get("confidence", 0)) >= 0.5
+                        ):
+                            classified_cmd = intent.get("command", "")
+                            extracted = intent.get("extracted_params", {}) or {}
+                            return await self.execute({
+                                **input_data,
+                                **extracted,
+                                "command": classified_cmd,
+                                "_intent_classified": True,
+                            })
+                    except Exception as ie:
+                        self.logger.warning(f"Intent classification failed: {ie}")
                 result = {"status": "error", "message": f"Unknown command: {command}"}
 
             await self.log_execution(input_data, result, "success")

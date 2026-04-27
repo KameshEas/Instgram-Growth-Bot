@@ -7,6 +7,7 @@ Includes metrics tracking and error resilience
 
 import os
 import json
+import hashlib
 import logging
 import time
 from pathlib import Path
@@ -39,6 +40,14 @@ try:
 except ImportError:
     METRICS_ENABLED = False
     logger.debug("Metrics module not available")
+
+# Import prompt logging / response cache (SQLite-backed)
+try:
+    import src.database.prompt_log as _plog
+    PROMPT_LOG_ENABLED = True
+except Exception:
+    PROMPT_LOG_ENABLED = False
+    logger.debug("Prompt log module not available")
 
 # Initialize Groq client
 def init_groq():
@@ -165,160 +174,265 @@ class InstagramGrowthBot:
     def __init__(self):
         self.client = init_groq()
         self.model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+        if PROMPT_LOG_ENABLED:
+            _plog.init_prompt_log_db()
+            _plog.purge_expired_cache()
         logger.info("[OK] Bot initialized with Groq API")
-        
-    def generate_content(self, topic: str, style: str = "engaging") -> dict:
-        """Generate viral-optimized Instagram content"""
-        prompt = f"""Create 3 viral-optimized Instagram captions for a {style} post about "{topic}".
-        
-Include:
-- Hook (first line)
-- Main message
-- Call-to-action
-- 3-5 relevant hashtags
-- Virality score (0-100)
 
-Format as JSON with keys: captions (list), virality_score (int), hashtags (list)"""
-        
-        start_time = time.time()
+    # ── Private helpers ──────────────────────────────────────────────────────
+
+    def _make_cache_key(self, command: str, **context) -> str:
+        """Build a deterministic SHA-256 cache key from command + semantic context."""
+        parts = [command]
+        for field in ("niche", "account_stage", "region", "action", "topic"):
+            parts.append(str(context.get(field, "")).lower().strip())
+        raw = "|".join(parts)
+        return hashlib.sha256(raw.encode()).hexdigest()
+
+    def _call_groq_with_fallback(
+        self,
+        command: str,
+        cache_key: str,
+        prompt: str,
+        chat_id: int = None,
+        temperature: float = 0.7,
+        max_tokens: int = None,
+        ttl_hours: int = None,
+    ) -> dict:
+        """Centralised Groq call with DB logging and tiered fallback cache.
+
+        Flow:
+        1. Check fresh cache → return immediately on hit.
+        2. Call Groq → on success log + cache + return result.
+        3. On failure → log error → serve stale cache with _stale flag.
+        4. Nothing cached → return error dict.
+        """
+        # Step 1 — fresh cache check
+        if PROMPT_LOG_ENABLED:
+            cached = _plog.get_cached_response(cache_key)
+            if cached:
+                logger.info("[CACHE] Fresh hit for %s", command)
+                return {**cached, "_from_cache": True, "_stale": False}
+
+        call_kwargs: dict = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+        }
+        if max_tokens:
+            call_kwargs["max_tokens"] = max_tokens
+
+        start = time.time()
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-            )
-            
-            duration = time.time() - start_time
+            response = self.client.chat.completions.create(**call_kwargs)
+            duration = time.time() - start
+            latency_ms = int(duration * 1000)
+
             if METRICS_ENABLED:
                 metrics.record_api_call(
-                    model=self.model,
-                    duration=duration,
-                    success=True,
-                    prompt_length=len(prompt)
+                    model=self.model, duration=duration,
+                    success=True, prompt_length=len(prompt),
                 )
-            
+
             result = parse_json_response(response.choices[0].message.content)
+
             if result:
-                logger.info(f"[OK] Generated {len(result.get('captions', []))} captions")
                 if METRICS_ENABLED:
-                    metrics.record_content_generation(
-                        topic=topic,
-                        captions_count=len(result.get('captions', [])),
-                        virality_score=result.get('virality_score', 0)
+                    health_check.record_success()
+                if PROMPT_LOG_ENABLED:
+                    _plog.log_prompt_response(
+                        command=command, prompt_hash=cache_key,
+                        prompt_text=prompt, response_json=json.dumps(result),
+                        success=1, latency_ms=latency_ms, model=self.model,
+                        chat_id=chat_id,
                     )
-                    health_check.record_success()
-            return result or {"error": "Failed to parse content generation"}
-        except Exception as e:
-            duration = time.time() - start_time
-            logger.error(f"Content generation error: {e}")
-            if METRICS_ENABLED:
-                metrics.record_api_call(
-                    model=self.model,
-                    duration=duration,
-                    success=False
-                )
-                metrics.record_error("ContentGenerationError", str(e), "ContentGenerator")
-                health_check.record_error()
-            return {"error": "Failed to generate content"}
-    
-    def analyze_trends(self, niche: str) -> dict:
-        """Analyze trending topics in a niche"""
-        prompt = f"""Analyze current trending topics for a {niche} Instagram account.
-        
-Provide:
-- Top 5 trending hashtags
-- Estimated viral potential (0-100) for each
-- Content ideas based on trends
-- Best posting times
-- Competitor strategies to watch
+                    _plog.upsert_cache(
+                        cache_key=cache_key, command=command,
+                        response_json=json.dumps(result), ttl_hours=ttl_hours,
+                    )
+                return result
 
-Format as JSON."""
-        
-        start_time = time.time()
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.6,
-            )
-            
-            duration = time.time() - start_time
-            if METRICS_ENABLED:
-                metrics.record_api_call(
-                    model=self.model,
-                    duration=duration,
-                    success=True,
-                    prompt_length=len(prompt)
+            # Parse failure — try stale cache as fallback
+            if PROMPT_LOG_ENABLED:
+                _plog.log_prompt_response(
+                    command=command, prompt_hash=cache_key, prompt_text=prompt,
+                    response_json=None, success=0, error_msg="JSON parse failed",
+                    latency_ms=latency_ms, model=self.model, chat_id=chat_id,
                 )
-            
-            result = parse_json_response(response.choices[0].message.content)
-            if result:
-                logger.info(f"[OK] Analyzed trends for {niche}")
-                if METRICS_ENABLED:
-                    health_check.record_success()
-            return result or {"error": "Failed to analyze trends"}
-        except Exception as e:
-            duration = time.time() - start_time
-            logger.error(f"Trend analysis error: {e}")
-            if METRICS_ENABLED:
-                metrics.record_api_call(
-                    model=self.model,
-                    duration=duration,
-                    success=False
-                )
-                metrics.record_error("TrendAnalysisError", str(e), "TrendAnalyzer")
-                health_check.record_error()
-            return {"error": "Failed to analyze trends"}
-    
-    def engagement_strategy(self, account_size: str) -> dict:
-        """Generate engagement strategy based on account size"""
-        prompt = f"""Create a safe, organic engagement strategy for a {account_size} Instagram account.
-        
-Include:
-- Daily engagement targets (follows, likes, comments)
-- Comment templates (5 variations)
-- DM outreach strategy
-- Hashtag strategy
-- Timing recommendations
-- Anti-bot precautions
+                stale = _plog.get_cached_response(cache_key, ignore_ttl=True)
+                if stale:
+                    logger.warning("[CACHE] Stale fallback for %s (parse failure)", command)
+                    return {**stale, "_from_cache": True, "_stale": True}
+            return {"error": f"Failed to parse {command} response"}
 
-Format as JSON."""
-        
-        start_time = time.time()
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-            )
-            
-            duration = time.time() - start_time
+        except Exception as exc:
+            duration = time.time() - start
+            latency_ms = int(duration * 1000)
+            logger.error("%s error: %s", command, exc)
             if METRICS_ENABLED:
-                metrics.record_api_call(
-                    model=self.model,
-                    duration=duration,
-                    success=True,
-                    prompt_length=len(prompt)
-                )
-            
-            result = parse_json_response(response.choices[0].message.content)
-            if result:
-                logger.info(f"[OK] Generated engagement strategy for {account_size} account")
-                if METRICS_ENABLED:
-                    health_check.record_success()
-            return result or {"error": "Failed to generate strategy"}
-        except Exception as e:
-            duration = time.time() - start_time
-            logger.error(f"Engagement strategy error: {e}")
-            if METRICS_ENABLED:
-                metrics.record_api_call(
-                    model=self.model,
-                    duration=duration,
-                    success=False
-                )
-                metrics.record_error("EngagementStrategyError", str(e), "EngagementStrategist")
+                metrics.record_api_call(model=self.model, duration=duration, success=False)
+                metrics.record_error(f"{command}Error", str(exc), command)
                 health_check.record_error()
-            return {"error": "Failed to generate strategy"}
+            if PROMPT_LOG_ENABLED:
+                _plog.log_prompt_response(
+                    command=command, prompt_hash=cache_key, prompt_text=prompt,
+                    response_json=None, success=0, error_msg=str(exc),
+                    latency_ms=latency_ms, model=self.model, chat_id=chat_id,
+                )
+                stale = _plog.get_cached_response(cache_key, ignore_ttl=True)
+                if stale:
+                    logger.warning("[CACHE] Stale fallback for %s (AI unavailable)", command)
+                    return {**stale, "_from_cache": True, "_stale": True}
+            return {"error": f"Failed to execute {command}"}
+        
+    def generate_content(
+        self,
+        topic: str,
+        style: str = "engaging",
+        niche: str = "",
+        follower_count: int = None,
+        region: str = "",
+        language: str = "English",
+        account_stage: str = "",
+        chat_id: int = None,
+    ) -> dict:
+        """Generate viral-optimized Instagram content using full account context."""
+        ctx_lines = []
+        if niche:
+            ctx_lines.append(f"- Niche: {niche}")
+        if follower_count:
+            ctx_lines.append(f"- Followers: {follower_count:,}")
+        if account_stage:
+            ctx_lines.append(f"- Account stage: {account_stage}")
+        if region:
+            ctx_lines.append(f"- Target region: {region}")
+        if language and language.lower() != "english":
+            ctx_lines.append(f"- Content language: {language}")
+        context_block = "\n".join(ctx_lines) if ctx_lines else "- No account profile provided"
+
+        prompt = f"""You are an expert Instagram content strategist.
+
+Account context:
+{context_block}
+
+Topic: "{topic}"
+Style: {style}
+
+Generate the optimal set of Instagram captions for this account. Decide the best number based on the topic and account stage. For each caption include a compelling hook, main message, and strong call-to-action.
+
+Return JSON with:
+- captions: list of caption objects, each with: hook (opening line ≤15 words), body (main message), cta (call-to-action), format_type (Reel/Carousel/Static/Story)
+- hashtags: list of relevant hashtags tailored to this niche and region (you decide the right quantity and mix)
+- virality_score: estimated score 0-100 with brief reasoning
+- posting_tip: one actionable tip specific to this content and account stage"""
+
+        cache_key = self._make_cache_key(
+            "generate_content", niche=niche, account_stage=account_stage,
+            region=region, topic=topic,
+        )
+        result = self._call_groq_with_fallback(
+            command="generate_content", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.7,
+        )
+        if result and "error" not in result and METRICS_ENABLED:
+            metrics.record_content_generation(
+                topic=topic,
+                captions_count=len(result.get("captions", [])),
+                virality_score=result.get("virality_score", 0),
+            )
+            logger.info("[OK] Generated %d captions", len(result.get("captions", [])))
+        return result
+    
+    def analyze_trends(
+        self,
+        niche: str,
+        region: str = "",
+        scraped_trends: list = None,
+        chat_id: int = None,
+    ) -> dict:
+        """Analyze trending topics using real scraped data where available."""
+        if scraped_trends:
+            scraped_block = (
+                f"Live scraped trends (Reddit / GitHub / HN):\n"
+                f"{json.dumps(scraped_trends[:30], indent=2)}\n"
+                f"Analyse these real-world trends for relevance to the {niche} niche."
+            )
+        else:
+            scraped_block = (
+                f"No live scrape data available. Use your knowledge of current {niche} trends "
+                f"and the broader social-media landscape."
+            )
+
+        region_note = f" Target audience region: {region}." if region else ""
+
+        prompt = f"""You are an Instagram growth strategist specialising in trend analysis.{region_note}
+
+Niche: {niche}
+
+{scraped_block}
+
+Provide a comprehensive trend analysis. Let the data and niche guide how many hashtags and ideas to surface — do not limit yourself to a fixed count.
+
+Return JSON with:
+- trending_hashtags: list of objects with hashtag, relevance_to_niche (0-100), why_it_works
+- content_ideas: list of specific, actionable content ideas based on the trends
+- posting_schedule: recommended times for {region or 'the target'} audience (include timezone reasoning)
+- competitor_insights: strategies to watch or adopt
+- trend_summary: 2-sentence overview of the current trend landscape"""
+
+        cache_key = self._make_cache_key("analyze_trends", niche=niche, region=region)
+        return self._call_groq_with_fallback(
+            command="analyze_trends", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.6, ttl_hours=6,
+        )
+    
+    def engagement_strategy(
+        self,
+        account_size: str,
+        niche: str = "",
+        follower_count: int = None,
+        region: str = "",
+        content_mix: dict = None,
+        chat_id: int = None,
+    ) -> dict:
+        """Generate a personalised safe organic engagement strategy."""
+        ctx_lines = [f"- Account size tier: {account_size}"]
+        if niche:
+            ctx_lines.append(f"- Niche: {niche}")
+        if follower_count:
+            ctx_lines.append(f"- Current followers: {follower_count:,}")
+        if region:
+            ctx_lines.append(f"- Region: {region}")
+        if content_mix:
+            ctx_lines.append(f"- Content mix: {json.dumps(content_mix)}")
+        context_block = "\n".join(ctx_lines)
+
+        prompt = f"""You are an Instagram growth coach specialising in safe, organic engagement.
+
+Account context:
+{context_block}
+
+Create a personalised engagement strategy for this account. Base all recommendations on the specific niche, region, and account stage — do not use generic one-size-fits-all numbers.
+
+Return JSON with:
+- daily_engagement_plan: specific daily actions tailored to this niche and stage (the AI determines right volume/frequency)
+- comment_templates: niche-specific comment templates the creator can personalise
+- dm_strategy: DM outreach approach appropriate for this account size and niche
+- hashtag_approach: how to find and use hashtags for this specific niche
+- timing_recommendations: best posting times for this niche and region audience
+- anti_spam_guidelines: how to stay safe while growing organically
+- growth_projection: realistic projection based on consistent execution of this strategy"""
+
+        cache_key = self._make_cache_key(
+            "engagement_strategy", niche=niche, account_stage=account_size, region=region,
+        )
+        result = self._call_groq_with_fallback(
+            command="engagement_strategy", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.7, ttl_hours=48,
+        )
+        if result and "error" not in result:
+            logger.info("[OK] Generated engagement strategy for %s account", account_size)
+        return result
     
     def image_generation_prompts(self, category: str, custom_prompt: str = None, level: str = None) -> dict:
         """Get image generation prompts from library or enhance a custom prompt.
@@ -556,57 +670,156 @@ IMPORTANT: Return ONLY the prompt/spec itself — no explanations. Max 250 words
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
+    def generate_image_prompts(
+        self,
+        category: str = "general_photography",
+        niche: str = "",
+        count: int = 3,
+        user_context: str = "",
+        chat_id: int = None,
+    ) -> dict:
+        """Generate AI-crafted, niche-tailored image generation prompts for a given category."""
+        CATEGORY_DESC = {
+            "general_photography":  "lifestyle, street, travel, and editorial photography",
+            "women_professional":   "professional/corporate female portrait photography",
+            "women_transform":      "female portrait transformation (strict facial feature preservation required)",
+            "men_professional":     "professional/corporate male portrait photography",
+            "men_transform":        "male portrait transformation (strict facial feature preservation required)",
+            "couples_transform":    "couples portrait transformation (facial preservation for both subjects)",
+            "design_posters":       "social media poster and graphic design",
+            "ui_ux_design":         "UI/UX screen and interface design",
+            "brand_identity":       "brand identity and logo design",
+            "illustration_art":     "digital illustration and concept art",
+            "animation_motion":     "animation and motion graphics",
+            "photography_styles":   "fine-art and editorial photography styles",
+            "print_design":         "print collateral and marketing design",
+            "product_3d":           "3D product visualisation and rendering",
+            "reel_scripts":         "Instagram Reel short-form video scripts",
+        }
 
-    
-    def monetization_ideas(self, niche: str, follower_count: int) -> dict:
-        """Suggest monetization strategies"""
-        prompt = f"""Suggest monetization strategies for a {niche} Instagram account with {follower_count} followers.
-        
+        transform_categories = {"women_transform", "men_transform", "couples_transform"}
+        category_desc = CATEGORY_DESC.get(category, category.replace("_", " "))
+        niche_line = f"\nNiche/brand: {niche}" if niche else ""
+        context_line = f"\nContext: {user_context}" if user_context else ""
+
+        if category in transform_categories:
+            if category == "couples_transform":
+                facial_rule = (
+                    "\n\nMANDATORY for EVERY prompt:"
+                    "\n- Start each prompt with: EXACT FACE MATCH + IDENTITY PRESERVATION"
+                    "\n- Include facial feature preservation for BOTH subjects"
+                    "\n- End each prompt with: USE FACE_ID FROM REFERENCE IMAGE."
+                    " Preserve both subjects exact facial features. Match 100% exactly."
+                    " Do NOT vary faces. Keep original facial anatomy intact."
+                    " - Maintain exact facial geometry - No face modifications"
+                    " - Identity-locked to reference - Facial structure immutable"
+                )
+            elif category == "men_transform":
+                facial_rule = (
+                    "\n\nMANDATORY for EVERY prompt:"
+                    "\n- Start each prompt with: EXACT FACE MATCH + IDENTITY PRESERVATION"
+                    "\n- Include: face shape, jawline, eye shape & color, nose, lips,"
+                    " skin tone, beard/facial hair, complexion"
+                    "\n- End each prompt with: USE FACE_ID FROM REFERENCE IMAGE."
+                    " Preserve subjects exact facial features. Match 100% exactly."
+                    " Do NOT vary face. Keep original facial anatomy intact."
+                    " - Maintain exact facial geometry - No face modifications"
+                    " - Identity-locked to reference - Facial structure immutable"
+                )
+            else:  # women_transform
+                facial_rule = (
+                    "\n\nMANDATORY for EVERY prompt:"
+                    "\n- Start each prompt with: EXACT FACE MATCH + IDENTITY PRESERVATION"
+                    "\n- Include: face shape, eye shape & color, nose, lips,"
+                    " skin tone, complexion"
+                    "\n- End each prompt with: USE FACE_ID FROM REFERENCE IMAGE."
+                    " Preserve subjects exact facial features. Match 100% exactly."
+                    " Do NOT vary face. Keep original facial anatomy intact."
+                    " - Maintain exact facial geometry - No face modifications"
+                    " - Identity-locked to reference - Facial structure immutable"
+                )
+        else:
+            facial_rule = ""
+
+        prompt = f"""You are an expert AI image generation prompt engineer.
+Generate {count} ready-to-use image generation prompts for the category: {category_desc}.{niche_line}{context_line}{facial_rule}
+
+Rules:
+- Each prompt must work directly in DALL-E 3, Midjourney, or Stable Diffusion
+- Be specific and detailed — no generic filler
+- Tailor every prompt to the creator niche/brand if provided
+- Vary the scene, setting, and angle across all {count} prompts so they complement each other
+- Include: subject, setting, lighting, style, mood, quality keywords
+
+Return ONLY valid JSON:
+{{
+  "prompts": [
+    {{"prompt": "<full ready-to-use prompt text>", "scene": "<3-5 word scene label>"}}
+  ],
+  "tip": "<one actionable tip for best results with these prompts>"
+}}"""
+
+        cache_key = self._make_cache_key(
+            "generate_image_prompts",
+            niche=niche,
+            action=category,
+            topic=str(count),
+        )
+        return self._call_groq_with_fallback(
+            command="generate_image_prompts",
+            cache_key=cache_key,
+            prompt=prompt,
+            chat_id=chat_id,
+            temperature=0.8,
+            ttl_hours=24,
+        )
+
+    def monetization_ideas(
+        self,
+        niche: str,
+        follower_count: int,
+        engagement_rate: float = None,
+        content_type: str = "",
+        region: str = "",
+        chat_id: int = None,
+    ) -> dict:
+        """Suggest the most suitable monetization strategies for this specific account."""
+        ctx_lines = [f"- Niche: {niche}", f"- Followers: {follower_count:,}"]
+        if engagement_rate:
+            ctx_lines.append(f"- Estimated engagement rate: {engagement_rate:.1%}")
+        if content_type:
+            ctx_lines.append(f"- Primary content type: {content_type}")
+        if region:
+            ctx_lines.append(f"- Market region: {region}")
+        context_block = "\n".join(ctx_lines)
+
+        prompt = f"""You are an Instagram monetization strategist.
+
+Account context:
+{context_block}
+
+Suggest the most suitable monetization strategies for this specific account. Identify which revenue streams genuinely fit this niche and audience size — do not default to a fixed list. All revenue projections should reflect realistic ranges for this specific niche and market, not arbitrary numbers.
+
 Include:
-- 6 Revenue streams (sponsored posts, affiliates, digital products, etc.)
-- Realistic revenue projections
-- Implementation timeline
-- Partner types to target
-- Pricing recommendations
-- Success metrics
+- Recommended revenue streams (only those that genuinely fit this niche and size)
+- Realistic revenue projections per stream (range based on niche market rates)
+- Implementation priority and timeline
+- Partner types and platforms best suited to this niche
+- Pricing recommendations for this market
+- Success metrics relevant to this niche
 
 Format as JSON."""
-        
-        start_time = time.time()
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-            )
-            
-            duration = time.time() - start_time
-            if METRICS_ENABLED:
-                metrics.record_api_call(
-                    model=self.model,
-                    duration=duration,
-                    success=True,
-                    prompt_length=len(prompt)
-                )
-            
-            result = parse_json_response(response.choices[0].message.content)
-            if result:
-                logger.info(f"[OK] Generated monetization ideas for {follower_count}+ followers")
-                if METRICS_ENABLED:
-                    health_check.record_success()
-            return result or {"error": "Failed to generate ideas"}
-        except Exception as e:
-            duration = time.time() - start_time
-            logger.error(f"Monetization ideas error: {e}")
-            if METRICS_ENABLED:
-                metrics.record_api_call(
-                    model=self.model,
-                    duration=duration,
-                    success=False
-                )
-                metrics.record_error("MonetizationError", str(e), "MonetizationAdvisor")
-                health_check.record_error()
-            return {"error": "Failed to generate ideas"}
+
+        cache_key = self._make_cache_key(
+            "monetization_ideas", niche=niche, account_stage="", region=region,
+        )
+        result = self._call_groq_with_fallback(
+            command="monetization_ideas", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.7, ttl_hours=24,
+        )
+        if result and "error" not in result:
+            logger.info("[OK] Generated monetization ideas for %s+ followers", follower_count)
+        return result
 
     # ─────────────────────────────────────────────────────────────────────
     #  Phase 4 — new AI methods (all inject user-profile context)
@@ -624,7 +837,7 @@ Format as JSON."""
         return f" The user's Instagram profile — {'; '.join(parts)}." if parts else ""
 
     def caption_generator(self, post_description: str, niche: str = "",
-                          audience_size: str = "") -> dict:
+                          audience_size: str = "", chat_id: int = None) -> dict:
         """Generate a viral Instagram caption with CTA and hashtags."""
         ctx = self._profile_ctx(niche=niche, audience_size=audience_size)
         prompt = f"""You are an expert Instagram copywriter.{ctx}
@@ -639,64 +852,35 @@ Return JSON with exactly these keys:
 - hashtags: list of 10 targeted hashtags (no # prefix)
 - estimated_reach: low/medium/high"""
 
-        start = time.time()
-        try:
-            resp = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.8,
-            )
-            duration = time.time() - start
-            if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(prompt))
-            result = parse_json_response(resp.choices[0].message.content)
-            if result:
-                if METRICS_ENABLED:
-                    health_check.record_success()
-            return result or {"error": "Failed to generate caption"}
-        except Exception as e:
-            logger.error(f"caption_generator error: {e}")
-            if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
-                health_check.record_error()
-            return {"error": str(e)}
+        cache_key = self._make_cache_key(
+            "caption_generator", niche=niche, action=post_description[:40],
+        )
+        return self._call_groq_with_fallback(
+            command="caption_generator", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.8,
+        )
 
-    def hashtag_pack(self, topic: str, niche: str = "") -> dict:
-        """Return 30 hashtags in 3 tiers for a given topic."""
+    def hashtag_pack(self, topic: str, niche: str = "", chat_id: int = None) -> dict:
+        """Return hashtags in 3 tiers for a given topic."""
         ctx = self._profile_ctx(niche=niche)
         prompt = f"""You are an Instagram hashtag strategist.{ctx}
 
 Generate a hashtag pack for the topic: \"{topic}\"
 
 Return JSON with exactly these keys:
-- broad: list of 10 high-reach hashtags (1M+ posts, no # prefix)
-- niche: list of 10 mid-range hashtags (100K–1M posts, no # prefix)
-- micro: list of 10 micro/specific hashtags (<100K posts, no # prefix)
+- broad: list of high-reach hashtags (1M+ posts, no # prefix)
+- niche: list of mid-range hashtags (100K–1M posts, no # prefix)
+- micro: list of micro/specific hashtags (<100K posts, no # prefix)
 - tip: one-sentence usage tip"""
 
-        start = time.time()
-        try:
-            resp = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.6,
-            )
-            duration = time.time() - start
-            if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(prompt))
-            result = parse_json_response(resp.choices[0].message.content)
-            if result:
-                if METRICS_ENABLED:
-                    health_check.record_success()
-            return result or {"error": "Failed to generate hashtags"}
-        except Exception as e:
-            logger.error(f"hashtag_pack error: {e}")
-            if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
-                health_check.record_error()
-            return {"error": str(e)}
+        cache_key = self._make_cache_key("hashtag_pack", niche=niche, topic=topic)
+        return self._call_groq_with_fallback(
+            command="hashtag_pack", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.6,
+        )
 
-    def bio_optimizer(self, current_bio: str, niche: str = "", goals: list = None) -> dict:
+    def bio_optimizer(self, current_bio: str, niche: str = "", goals: list = None,
+                      chat_id: int = None) -> dict:
         """Rewrite an Instagram bio: hook + value prop + CTA."""
         ctx = self._profile_ctx(niche=niche, goals=goals or [])
         prompt = f"""You are an Instagram profile expert.{ctx}
@@ -712,29 +896,14 @@ Return JSON with exactly these keys:
 - keywords: list of 5 SEO keywords included in the bio
 - char_count: character count of rewritten_bio"""
 
-        start = time.time()
-        try:
-            resp = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-            )
-            duration = time.time() - start
-            if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(prompt))
-            result = parse_json_response(resp.choices[0].message.content)
-            if result:
-                if METRICS_ENABLED:
-                    health_check.record_success()
-            return result or {"error": "Failed to optimise bio"}
-        except Exception as e:
-            logger.error(f"bio_optimizer error: {e}")
-            if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
-                health_check.record_error()
-            return {"error": str(e)}
+        cache_key = self._make_cache_key("bio_optimizer", niche=niche, action=current_bio[:40])
+        return self._call_groq_with_fallback(
+            command="bio_optimizer", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.7, ttl_hours=48,
+        )
 
-    def content_calendar(self, niche: str = "", audience_size: str = "") -> dict:
+    def content_calendar(self, niche: str = "", audience_size: str = "",
+                         chat_id: int = None) -> dict:
         """Generate a 7-post weekly content calendar."""
         ctx = self._profile_ctx(niche=niche, audience_size=audience_size)
         prompt = f"""You are an Instagram content strategist.{ctx}
@@ -752,29 +921,14 @@ Return JSON with exactly these keys:
     - best_time: posting time e.g. "7:00 PM"
 - pro_tip: one actionable insight for the week"""
 
-        start = time.time()
-        try:
-            resp = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.75,
-            )
-            duration = time.time() - start
-            if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(prompt))
-            result = parse_json_response(resp.choices[0].message.content)
-            if result:
-                if METRICS_ENABLED:
-                    health_check.record_success()
-            return result or {"error": "Failed to generate calendar"}
-        except Exception as e:
-            logger.error(f"content_calendar error: {e}")
-            if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
-                health_check.record_error()
-            return {"error": str(e)}
+        cache_key = self._make_cache_key("content_calendar", niche=niche)
+        return self._call_groq_with_fallback(
+            command="content_calendar", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.75,
+        )
 
-    def posting_schedule(self, niche: str = "", audience_size: str = "") -> dict:
+    def posting_schedule(self, niche: str = "", audience_size: str = "",
+                         chat_id: int = None) -> dict:
         """Return best posting times and a weekly schedule."""
         ctx = self._profile_ctx(niche=niche, audience_size=audience_size)
         prompt = f"""You are an Instagram growth expert.{ctx}
@@ -782,73 +936,41 @@ Return JSON with exactly these keys:
 Recommend the optimal posting schedule.
 
 Return JSON with exactly these keys:
-- best_times: list of 3 objects each with time (e.g. "8:00 AM IST"), day_type (weekday/weekend), reason (max 15 words)
+- best_times: list of objects each with time (e.g. "8:00 AM IST"), day_type (weekday/weekend), reason (max 15 words)
 - weekly_schedule: object mapping Monday–Sunday to a recommended format (Reel/Carousel/Story/Rest)
 - frequency: recommended posts per week (integer)
 - timezone_note: note about audience timezone assumptions
 - pro_tip: one sentence on timing strategy"""
 
-        start = time.time()
-        try:
-            resp = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.6,
-            )
-            duration = time.time() - start
-            if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(prompt))
-            result = parse_json_response(resp.choices[0].message.content)
-            if result:
-                if METRICS_ENABLED:
-                    health_check.record_success()
-            return result or {"error": "Failed to generate schedule"}
-        except Exception as e:
-            logger.error(f"posting_schedule error: {e}")
-            if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
-                health_check.record_error()
-            return {"error": str(e)}
+        cache_key = self._make_cache_key("posting_schedule", niche=niche)
+        return self._call_groq_with_fallback(
+            command="posting_schedule", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.6, ttl_hours=48,
+        )
 
-    def story_ideas(self, topic: str, niche: str = "") -> dict:
-        """Generate 5 interactive Instagram Story ideas."""
+    def story_ideas(self, topic: str, niche: str = "", chat_id: int = None) -> dict:
+        """Generate interactive Instagram Story ideas."""
         ctx = self._profile_ctx(niche=niche)
         prompt = f"""You are an Instagram Stories expert.{ctx}
 
-Generate 5 interactive Instagram Story ideas for the topic: \"{topic}\"
+Generate interactive Instagram Story ideas for the topic: \"{topic}\"
 
 Return JSON with exactly these keys:
-- stories: list of 5 objects each with:
+- stories: list of objects each with:
     - type: Poll | Quiz | Countdown | Slider | Question Box | This or That
     - title: Story slide title (max 8 words)
     - prompt: the interactive question or text shown to viewers (max 20 words)
     - engagement_tip: one line on why this drives engagement
 - hook_tip: one tip for the first Story slide to maximise retention"""
 
-        start = time.time()
-        try:
-            resp = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.8,
-            )
-            duration = time.time() - start
-            if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(prompt))
-            result = parse_json_response(resp.choices[0].message.content)
-            if result:
-                if METRICS_ENABLED:
-                    health_check.record_success()
-            return result or {"error": "Failed to generate story ideas"}
-        except Exception as e:
-            logger.error(f"story_ideas error: {e}")
-            if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
-                health_check.record_error()
-            return {"error": str(e)}
+        cache_key = self._make_cache_key("story_ideas", niche=niche, topic=topic)
+        return self._call_groq_with_fallback(
+            command="story_ideas", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.8,
+        )
 
     def profile_audit(self, niche: str = "", audience_size: str = "",
-                      goals: list = None) -> dict:
+                      goals: list = None, chat_id: int = None) -> dict:
         """Return an Instagram profile improvement checklist."""
         ctx = self._profile_ctx(niche=niche, audience_size=audience_size, goals=goals or [])
         prompt = f"""You are an Instagram growth auditor.{ctx}
@@ -857,7 +979,7 @@ Perform an advisory profile audit and provide actionable recommendations.
 
 Return JSON with exactly these keys:
 - score: estimated profile health score 0–100 (integer) based on typical accounts in this niche
-- checklist: list of 6 objects each with:
+- checklist: list of objects each with:
     - area: Bio | Highlights | Feed Aesthetic | Posting Frequency | Hashtag Strategy | Engagement
     - status: Good | Needs Work | Critical
     - finding: what to look for (max 20 words)
@@ -865,27 +987,11 @@ Return JSON with exactly these keys:
 - quick_wins: list of 3 things to do this week for fastest growth
 - note: disclaimer that this is advisory without seeing the actual account"""
 
-        start = time.time()
-        try:
-            resp = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.65,
-            )
-            duration = time.time() - start
-            if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(prompt))
-            result = parse_json_response(resp.choices[0].message.content)
-            if result:
-                if METRICS_ENABLED:
-                    health_check.record_success()
-            return result or {"error": "Failed to generate audit"}
-        except Exception as e:
-            logger.error(f"profile_audit error: {e}")
-            if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
-                health_check.record_error()
-            return {"error": str(e)}
+        cache_key = self._make_cache_key("profile_audit", niche=niche)
+        return self._call_groq_with_fallback(
+            command="profile_audit", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.65, ttl_hours=48,
+        )
 
     def chat_response(self, user_message: str, profile: dict = None) -> str:
         """Return a conversational Instagram growth answer for free-text messages.
@@ -897,6 +1003,7 @@ Return JSON with exactly these keys:
         niche = profile.get("niche", "")
         audience_size = profile.get("audience_size", "")
         goals = profile.get("goals", [])
+        chat_id = profile.get("chat_id")
         ctx = self._profile_ctx(niche=niche, audience_size=audience_size, goals=goals)
 
         system = (
@@ -916,16 +1023,390 @@ Return JSON with exactly these keys:
                 max_tokens=400,
             )
             duration = time.time() - start
+            latency_ms = int(duration * 1000)
             if METRICS_ENABLED:
                 metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(user_message))
                 health_check.record_success()
-            return resp.choices[0].message.content.strip()
+            answer = resp.choices[0].message.content.strip()
+            if PROMPT_LOG_ENABLED:
+                _plog.log_prompt_response(
+                    command="chat_response",
+                    prompt_hash=self._make_cache_key("chat_response", action=user_message[:50]),
+                    prompt_text=user_message,
+                    response_json=json.dumps({"reply": answer}),
+                    success=1, latency_ms=latency_ms, model=self.model, chat_id=chat_id,
+                )
+            return answer
         except Exception as e:
             logger.error(f"chat_response error: {e}")
             if METRICS_ENABLED:
                 metrics.record_api_call(model=self.model, duration=time.time()-start, success=False)
                 health_check.record_error()
+            if PROMPT_LOG_ENABLED:
+                _plog.log_prompt_response(
+                    command="chat_response",
+                    prompt_hash=self._make_cache_key("chat_response", action=user_message[:50]),
+                    prompt_text=user_message, response_json=None,
+                    success=0, error_msg=str(e),
+                    latency_ms=int((time.time() - start) * 1000),
+                    model=self.model, chat_id=chat_id,
+                )
             return "Sorry, I couldn't process that. Please try again."
+
+    # ── New AI methods (Phase 1 additions) ──────────────────────────────────
+
+    def get_engagement_action(
+        self,
+        action: str,
+        niche: str = "",
+        follower_count: int = None,
+        region: str = "",
+        chat_id: int = None,
+        **kwargs,
+    ) -> dict:
+        """AI-powered response for a specific engagement action.
+
+        Actions: growth_tips | hashtag_strategy | posting_schedule |
+                 comment_templates | strategies
+        """
+        ctx_lines = []
+        if niche:
+            ctx_lines.append(f"- Niche: {niche}")
+        if follower_count:
+            ctx_lines.append(f"- Followers: {follower_count:,}")
+        if region:
+            ctx_lines.append(f"- Region: {region}")
+        context_block = "\n".join(ctx_lines) if ctx_lines else "- General Instagram account"
+
+        action_prompts = {
+            "growth_tips": f"""You are an Instagram growth expert.
+
+Account context:
+{context_block}
+
+Provide the most impactful growth tips for this specific account. Prioritise by expected impact. All numbers, frequencies, and content ratios should be reasoned from the niche and account stage — do not use generic defaults.
+
+Return JSON with:
+- tips: list of tip objects, each with: priority, tip (title), detail (specific actionable guidance for this niche), impact (expected outcome explained), effort_level""",
+
+            "hashtag_strategy": f"""You are an Instagram hashtag strategist.
+
+Account context:
+{context_block}
+
+Design a complete hashtag strategy for this account. Determine the optimal tier breakdown, quantities, and rotation approach based on the niche competition and account size — do not default to a fixed split.
+
+Return JSON with:
+- strategy: object with breakdown (tiers with counts and reach ranges appropriate for this niche), rotation_approach, research_method, best_practices
+- niche_specific_tips: tips specific to hashtag use in the {niche or 'this'} niche""",
+
+            "posting_schedule": f"""You are an Instagram scheduling expert.
+
+Account context:
+{context_block}
+
+Recommend an optimal posting schedule for this specific account. Base timing on the niche audience's behaviour and the target region — do not use generic peak hours.
+
+Return JSON with:
+- schedule: list of time slots with time, timezone, day_type (weekday/weekend), reason (why this time for this audience)
+- frequency: recommended posts per day with reasoning
+- content_format_rotation: which formats to use on which days
+- note: any important caveats about testing and adjusting""",
+
+            "comment_templates": f"""You are an Instagram engagement specialist.
+
+Account context:
+{context_block}
+
+Write comment templates specifically for the {niche or 'this'} niche. Templates should feel genuine and niche-appropriate — not generic. Include guidance on personalising each one.
+
+Return JSON with:
+- templates: object with categories (e.g., praise, question, relatable, call_to_action) — each with niche-specific template strings
+- personalization_guide: how to adapt these templates to feel authentic
+- engagement_rules: guidelines for effective commenting in this specific niche""",
+
+            "strategies": f"""You are an Instagram growth strategist.
+
+Account context:
+{context_block}
+
+Provide comprehensive engagement strategies tailored to this account. All metrics and expected outcomes should reflect realistic performance for this specific niche and account stage.
+
+Return JSON with:
+- strategies: list of strategy objects, each with: name, description, how_to_implement, expected_impact (reasoned for this niche), effort_level, time_investment
+- priority_order: which strategy to tackle first and why
+- 30_day_roadmap: phased approach for the first month""",
+        }
+
+        prompt = action_prompts.get(action)
+        if not prompt:
+            return {"error": f"Unknown engagement action: {action}"}
+
+        cache_key = self._make_cache_key(
+            "get_engagement_action", niche=niche, action=action, region=region,
+        )
+        return self._call_groq_with_fallback(
+            command="get_engagement_action", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.7, ttl_hours=48,
+        )
+
+    def generate_analytics_report(
+        self,
+        report_type: str = "daily",
+        niche: str = "",
+        follower_count: int = None,
+        account_stage: str = "",
+        content_mix: dict = None,
+        region: str = "",
+        chat_id: int = None,
+    ) -> dict:
+        """Generate an AI-estimated analytics report from account profile context."""
+        ctx_lines = [f"- Report type: {report_type}"]
+        if niche:
+            ctx_lines.append(f"- Niche: {niche}")
+        if follower_count:
+            ctx_lines.append(f"- Current followers: {follower_count:,}")
+        if account_stage:
+            ctx_lines.append(f"- Account stage: {account_stage}")
+        if region:
+            ctx_lines.append(f"- Region: {region}")
+        if content_mix:
+            ctx_lines.append(f"- Content mix: {json.dumps(content_mix)}")
+        context_block = "\n".join(ctx_lines)
+        period_map = {"daily": "past 24 hours", "weekly": "past 7 days", "monthly": "past 30 days"}
+        period = period_map.get(report_type, "past 24 hours")
+
+        prompt = f"""You are an Instagram analytics expert.
+
+Account context:
+{context_block}
+
+Generate a realistic {report_type} analytics report for this account covering the {period}. Base all estimates on what is typical for accounts of this size, niche, and stage. Do not use generic fixed numbers — reason from the specific context provided.
+
+Return JSON with:
+- report_type: "{report_type}"
+- period: "{period}"
+- metrics: realistic estimated metrics for this account (new_followers, engagement_rate, reach, impressions, saves, shares, comments — values should be plausible for this niche/size/stage)
+- top_performing_content: what format and topic type likely performs best for this niche
+- insights: list of data-driven observations specific to this niche and account stage
+- growth_trajectory: honest assessment of the growth path if current strategy is maintained
+- recommendations: prioritised list of actions to improve performance
+- note: AI-estimated projections based on account profile — connect real analytics for precise data"""
+
+        cache_key = self._make_cache_key(
+            "generate_analytics_report", niche=niche,
+            account_stage=account_stage, region=region, action=report_type,
+        )
+        return self._call_groq_with_fallback(
+            command="generate_analytics_report", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.6, ttl_hours=12,
+        )
+
+    def project_monetization(
+        self,
+        niche: str = "",
+        follower_count: int = None,
+        engagement_rate: float = None,
+        content_type: str = "",
+        region: str = "",
+        chat_id: int = None,
+    ) -> dict:
+        """Generate AI-reasoned monetization projections for the account."""
+        ctx_lines = []
+        if niche:
+            ctx_lines.append(f"- Niche: {niche}")
+        if follower_count:
+            ctx_lines.append(f"- Followers: {follower_count:,}")
+        if engagement_rate:
+            ctx_lines.append(f"- Estimated engagement rate: {engagement_rate:.1%}")
+        if content_type:
+            ctx_lines.append(f"- Primary content type: {content_type}")
+        if region:
+            ctx_lines.append(f"- Market region: {region}")
+        context_block = "\n".join(ctx_lines) if ctx_lines else "- General Instagram creator"
+
+        prompt = f"""You are an Instagram monetization strategist.
+
+Account context:
+{context_block}
+
+Provide a detailed monetization analysis. Identify the revenue streams most suited to this niche and account stage — do not default to a fixed list. All revenue estimates should reflect realistic ranges for this specific niche and market.
+
+Return JSON with:
+- recommended_streams: list of revenue stream objects suited to this account, each with:
+    name, why_it_fits (specific to this niche), monthly_revenue_range (realistic low-high for this account size/niche), implementation_steps, time_to_first_revenue
+- streams_to_avoid: list of streams not suited to this account with reasons
+- priority_order: which stream to start with and why
+- monthly_projection_total: combined realistic monthly revenue range
+- 90_day_roadmap: step-by-step monetization plan
+- note: Projections are AI estimates based on account profile — actual results depend on execution and audience quality"""
+
+        cache_key = self._make_cache_key(
+            "project_monetization", niche=niche, account_stage="", region=region,
+        )
+        return self._call_groq_with_fallback(
+            command="project_monetization", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.7, ttl_hours=24,
+        )
+
+    def suggest_content_category(
+        self,
+        user_context: str,
+        available_categories: list,
+        niche: str = "",
+        goal: str = "",
+        chat_id: int = None,
+    ) -> dict:
+        """AI-driven selection of the most relevant prompt category for the user."""
+        categories_str = ", ".join(available_categories)
+        extra = ""
+        if niche:
+            extra += f"\nNiche: {niche}"
+        if goal:
+            extra += f"\nGoal: {goal}"
+
+        prompt = f"""You are an Instagram content strategist.
+
+Available prompt categories: {categories_str}
+User context: {user_context}{extra}
+
+Select the most relevant categories from the available list for this user.
+
+Return JSON with:
+- recommended: list of 1-3 category names (exact strings from the available list)
+- reasoning: why these categories fit the user's context
+- suggested_category: single best match (exact string from the available list)"""
+
+        cache_key = self._make_cache_key(
+            "suggest_content_category", niche=niche, action=goal,
+        )
+        return self._call_groq_with_fallback(
+            command="suggest_content_category", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.4, ttl_hours=24,
+        )
+
+    def forecast_viral_potential(
+        self,
+        content_idea: str,
+        niche: str = "",
+        account_stage: str = "",
+        region: str = "",
+        chat_id: int = None,
+    ) -> dict:
+        """AI-reasoned viral potential score for a content idea."""
+        ctx_parts = []
+        if niche:
+            ctx_parts.append(f"niche: {niche}")
+        if account_stage:
+            ctx_parts.append(f"account stage: {account_stage}")
+        if region:
+            ctx_parts.append(f"region: {region}")
+        context_note = f" ({', '.join(ctx_parts)})" if ctx_parts else ""
+
+        prompt = f"""You are an Instagram viral content analyst.
+
+Content idea{context_note}: \"{content_idea}\"
+
+Evaluate the viral potential of this content idea. Base your assessment on the specific niche and audience — do not use generic keyword matching or fixed formulas.
+
+Return JSON with:
+- viral_score: estimated score 0-100
+- virality_prediction: one of Very High | High | Medium | Low with brief explanation
+- why_it_works: specific reasons this idea could go viral for this niche
+- risks: factors that might limit performance
+- predicted_reach_tier: broad/medium/niche explanation of expected distribution
+- recommendations: list of specific improvements to maximise viral potential
+- confidence_note: honest assessment of prediction certainty"""
+
+        cache_key = self._make_cache_key(
+            "forecast_viral_potential", niche=niche,
+            account_stage=account_stage, region=region, topic=content_idea[:40],
+        )
+        return self._call_groq_with_fallback(
+            command="forecast_viral_potential", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.6, ttl_hours=12,
+        )
+
+    def classify_intent(
+        self,
+        user_message: str,
+        available_commands: list,
+        chat_id: int = None,
+    ) -> dict:
+        """Classify free-text user intent into a known command with extracted parameters."""
+        commands_str = ", ".join(available_commands)
+        prompt = f"""You are an intent classifier for an Instagram growth bot.
+
+Available commands: {commands_str}
+User message: \"{user_message}\"
+
+Classify the user's intent and extract any relevant parameters (niche, topic, account_size, etc.).
+
+Return JSON with:
+- command: best matching command from the available list (exact string)
+- confidence: 0.0-1.0
+- extracted_params: dict of any parameters mentioned or implied in the message
+- fallback_to_chat: true if no command fits well (confidence < 0.5)"""
+
+        cache_key = self._make_cache_key(
+            "classify_intent", action=user_message[:50],
+        )
+        return self._call_groq_with_fallback(
+            command="classify_intent", cache_key=cache_key,
+            prompt=prompt, chat_id=chat_id, temperature=0.2, ttl_hours=1,
+        )
+
+    def generate_content_ideas(
+        self,
+        trends: list,
+        niche: str = "",
+        region: str = "",
+        chat_id: int = None,
+    ) -> dict:
+        """Generate AI content ideas from a list of scraped trends."""
+        trends_str = (
+            "\n".join(f"- {t}" for t in trends[:20])
+            if trends
+            else "No specific trends provided"
+        )
+        ctx_parts = []
+        if niche:
+            ctx_parts.append(f"niche: {niche}")
+        if region:
+            ctx_parts.append(f"region: {region}")
+        context_note = f" ({', '.join(ctx_parts)})" if ctx_parts else ""
+
+        prompt = f"""You are an Instagram content strategist{context_note}.
+
+Current trending topics:
+{trends_str}
+
+Generate creative content ideas based on these trends. Tailor ideas to the specific niche and audience — do not use generic templates.
+
+Return JSON with:
+- content_ideas: list of idea objects, each with:
+    topic: specific content topic (not generic)
+    format: Reel | Carousel | Story Series | Static Post
+    angle: unique creative angle that makes this shareable
+    trend_connection: how it connects to the trending topic
+    hook: opening line for the caption
+- trend_summary: what the trending data signals for content strategy
+- best_opportunity: the single highest-potential idea with detailed execution notes"""
+
+        cache_key = self._make_cache_key(
+            "generate_content_ideas",
+            niche=niche,
+            region=region,
+            topic=str(trends[:3]),
+        )
+        return self._call_groq_with_fallback(
+            command="generate_content_ideas",
+            cache_key=cache_key,
+            prompt=prompt,
+            chat_id=chat_id,
+            temperature=0.75,
+            ttl_hours=12,
+        )
 
 
 def main():

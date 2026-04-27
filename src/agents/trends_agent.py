@@ -31,21 +31,21 @@ class TrendsAgent(BaseAgent):
         
         # Fallback topics in case APIs fail
         self.fallback_topics = [
-            "#IndianPhotography",
-            "#SareeStyle",
-            "#StreetPhotography",
-            "#CulturalHeritage",
-            "#IndianWeddings",
-            "#TraditionalFashion",
-            "#FusionStyle",
-            "#IndianTravel",
-            "#PhotographyTips",
-            "#CreativeContent",
-            "#DigitalMarketing",
-            "#ContentCreation",
-            "#SocialMediaTrends",
-            "#InfluencerTips",
-            "#ProductPhotography"
+            "#trending",
+            "#viral",
+            "#contentcreator",
+            "#socialmedia",
+            "#instagram",
+            "#reels",
+            "#growth",
+            "#explore",
+            "#creative",
+            "#photography",
+            "#lifestyle",
+            "#motivation",
+            "#business",
+            "#digitalmarketing",
+            "#tips",
         ]
         
         # Cache for trends (to avoid hitting APIs too frequently)
@@ -176,40 +176,44 @@ class TrendsAgent(BaseAgent):
         """Combine live web trends with AI analysis for a specific niche.
 
         Steps:
-        1. Scrape real-time trends (Reddit / GitHub / HN) via ``_detect_trends``.
-        2. Ask Groq to produce a structured analysis (topHashtags, bestPostingTimes)
-           that matches the shape the Telegram trends handler already parses.
-        3. Inject the raw web trends under ``real_web_trends`` for transparency.
-        Falls back to the raw scrape result when Groq is unavailable.
+        1. Scrape all real-time trends (Reddit / GitHub / HN) into combined list.
+        2. Pass the full scraped list to Groq so AI reasons from real data.
+        Falls back to raw scrape result when Groq is unavailable.
         """
         niche = data.get("niche", "photography")
+        region = data.get("region", "")
         try:
-            # Step 1 — live web trends (with cache)
-            web_result = await self._detect_trends({})
-            real_web_trends: List[str] = []
-            if web_result.get("status") == "success":
-                trending = web_result.get("trending", {})
-                for topics in trending.values():
-                    real_web_trends.extend(topics)
+            # Step 1 — collect all scraped data first
+            reddit_trends = await self._fetch_reddit_trends()
+            github_trends = await self._fetch_github_trends()
+            news_trends = await self._fetch_news_topics()
+            combined_scraped: List[str] = reddit_trends + github_trends + news_trends
 
-            # Step 2 — AI analysis via Groq
+            # Step 2 — AI analysis from scraped data
             if self._groq_bot:
                 try:
-                    ai_result = self._groq_bot.analyze_trends(niche=niche)
+                    ai_result = self._groq_bot.analyze_trends(
+                        niche=niche,
+                        region=region,
+                        scraped_trends=combined_scraped,
+                    )
                     if isinstance(ai_result, dict) and ai_result:
-                        # Step 3 — inject real web trends into AI result
-                        ai_result["real_web_trends"] = real_web_trends[:15]
                         ai_result["agent"] = "TrendsAgent"
                         await self.log_execution(data, ai_result, "success")
                         return ai_result
                 except Exception as e:
                     self.logger.warning(f"Groq trends fallback triggered: {e}")
 
-            # Fallback — return raw web scrape result enriched with niche
-            web_result["niche"] = niche
-            web_result["agent"] = "TrendsAgent"
-            await self.log_execution(data, web_result, "success")
-            return web_result
+            # Fallback — return raw scraped data
+            fallback = {
+                "status": "success",
+                "niche": niche,
+                "agent": "TrendsAgent",
+                "real_web_trends": combined_scraped[:20],
+                "note": "AI unavailable — showing raw scraped trends only",
+            }
+            await self.log_execution(data, fallback, "success")
+            return fallback
 
         except Exception as e:
             self.logger.error(f"Analyze for niche error: {str(e)}")
@@ -266,126 +270,110 @@ class TrendsAgent(BaseAgent):
             return {"status": "error", "error": str(e)}
     
     async def _get_trending_hashtags(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Get trending hashtags for niche"""
+        """Get trending hashtags for niche — AI classifies tiers from scraped data."""
         try:
             niche = data.get("niche", "photography")
-            count = data.get("count", 30)
-            
-            # Get trending data
+            region = data.get("region", "")
+
+            # Collect scraped data
             trends_response = await self._detect_trends({})
-            
-            # Combine all trends into one list
-            all_trends = []
-            if trends_response["status"] == "success":
+            all_trends: List[str] = []
+            if trends_response.get("status") == "success":
                 trending = trends_response.get("trending", {})
-                for source, topics in trending.items():
+                for topics in trending.values():
                     all_trends.extend(topics)
-            
-            # If no real trends, use fallback
             if not all_trends:
                 all_trends = self.fallback_topics
-            
-            # Remove duplicates and shuffle
-            all_trends = list(set(all_trends))
-            random.shuffle(all_trends)
-            
-            # Categorize by tier
-            tier_1 = all_trends[:max(5, count // 3)]  # High reach
-            tier_2 = all_trends[max(5, count // 3):max(10, count // 2)]  # Medium reach
-            tier_3 = all_trends[max(10, count // 2):min(len(all_trends), count)]  # Niche
-            
+
+            # AI classifies and categorises
+            if self._groq_bot:
+                try:
+                    ai_result = self._groq_bot.analyze_trends(
+                        niche=niche, region=region, scraped_trends=all_trends,
+                    )
+                    if isinstance(ai_result, dict) and ai_result.get("trending_hashtags"):
+                        await self.log_execution(data, ai_result, "success")
+                        return {
+                            "status": "success",
+                            "action": "trending_hashtags",
+                            "niche": niche,
+                            **ai_result,
+                        }
+                except Exception as e:
+                    self.logger.warning(f"Groq hashtag fallback: {e}")
+
+            # Fallback — return raw list uncategorised
             return {
                 "status": "success",
                 "action": "trending_hashtags",
                 "niche": niche,
-                "source": "real_apis",
-                "hashtags": {
-                    "high_reach": tier_1,
-                    "medium_reach": tier_2,
-                    "niche": tier_3
-                },
-                "total_count": len(tier_1) + len(tier_2) + len(tier_3),
-                "recommendation": "Use 5-10 from each tier for optimal reach",
-                "detected_at": datetime.utcnow().isoformat()
+                "hashtags": {"all": list(set(all_trends))[:30]},
+                "note": "AI unavailable — unclassified scraped hashtags",
+                "detected_at": datetime.utcnow().isoformat(),
             }
         except Exception as e:
             self.logger.error(f"Hashtag fetch error: {str(e)}")
             return {"status": "error", "error": str(e)}
     
     async def _suggest_content(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Suggest content based on current trends"""
+        """Suggest content based on current trends — AI-generated when Groq is available."""
         try:
-            trend = data.get("trend", "Photography")
-            
-            content_ideas = [
-                f"Before/After: Master {trend} with professional editing",
-                f"Behind-the-scenes: Creating stunning {trend} content",
-                f"Top 5 proven techniques for {trend}",
-                f"Common {trend} mistakes - how to fix them",
-                f"Evolution of {trend} - past to present",
-                f"Collaboration opportunities in {trend}",
-                f"Tutorial: Viral-worthy {trend} content creation"
-            ]
-            
-            suggestions = random.sample(content_ideas, min(3, len(content_ideas)))
-            
+            trend = data.get("trend", "")
+            niche = data.get("niche", "")
+            region = data.get("region", "")
+
+            if self._groq_bot:
+                try:
+                    result = self._groq_bot.generate_content_ideas(
+                        trends=[trend] if trend else [],
+                        niche=niche,
+                        region=region,
+                    )
+                    if isinstance(result, dict) and result:
+                        result["action"] = "content_suggestions"
+                        await self.log_execution(data, result, "success")
+                        return result
+                except Exception as e:
+                    self.logger.warning(f"Groq content ideas fallback: {e}")
+
             return {
-                "status": "success",
+                "status": "unavailable",
                 "action": "content_suggestions",
-                "trend": trend,
-                "suggested_content": suggestions,
-                "virality_potential": "High - based on real trending data",
-                "best_format": random.choice(["Reel", "Carousel", "Story Series"]),
-                "optimal_posting_time": "10:00 AM - 12:00 PM IST",
-                "generated_at": datetime.utcnow().isoformat()
+                "message": "AI is currently unavailable. Please try again shortly.",
+                "generated_at": datetime.utcnow().isoformat(),
             }
         except Exception as e:
             self.logger.error(f"Content suggestion error: {str(e)}")
             return {"status": "error", "error": str(e)}
     
     async def _forecast_viral_content(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Forecast virality potential of content ideas"""
+        """Forecast virality potential of content ideas — AI-powered."""
         try:
-            content_idea = data.get("content_idea", "Photography tips")
-            
-            # Simple but deterministic viral score (not random)
-            # Based on content idea characteristics
-            base_score = 50.0
-            
-            # Adjust based on keywords
-            high_potential_keywords = ["viral", "trending", "tutorial", "tips", "hack"]
-            for keyword in high_potential_keywords:
-                if keyword.lower() in content_idea.lower():
-                    base_score += 15
-            
-            viral_score = min(95.0, max(30.0, base_score + random.uniform(-5, 5)))
-            
-            forecast = {
-                "content_idea": content_idea,
-                "viral_score": round(viral_score, 1),
-                "virality_prediction": (
-                    "Very High - Excellent potential" if viral_score > 80
-                    else "High - Good potential" if viral_score > 60
-                    else "Medium - Worth trying" if viral_score > 40
-                    else "Low - Consider alternatives"
-                ),
-                "predicted_reach": int(viral_score * 1000),
-                "predicted_engagement": int(viral_score * 50),
-                "recommendations": [
-                    "Post during peak hours (10 AM - 1 PM IST)",
-                    "Use trending sounds/music/hashtags",
-                    "Include compelling call-to-action",
-                    "Add engaging captions with story",
-                    "Post consistently for algorithm favor"
-                ],
-                "confidence": 0.75,
-                "forecasted_at": datetime.utcnow().isoformat()
-            }
-            
+            content_idea = data.get("content_idea", "")
+            niche = data.get("niche", "")
+            account_stage = data.get("account_stage", "")
+            region = data.get("region", "")
+
+            if self._groq_bot:
+                try:
+                    result = self._groq_bot.forecast_viral_potential(
+                        content_idea=content_idea,
+                        niche=niche,
+                        account_stage=account_stage,
+                        region=region,
+                    )
+                    if isinstance(result, dict) and result:
+                        result["action"] = "viral_forecast"
+                        await self.log_execution(data, result, "success")
+                        return result
+                except Exception as e:
+                    self.logger.warning(f"Groq viral forecast fallback: {e}")
+
             return {
-                "status": "success",
+                "status": "unavailable",
                 "action": "viral_forecast",
-                "forecast": forecast
+                "message": "AI is currently unavailable. Please try again shortly.",
+                "generated_at": datetime.utcnow().isoformat(),
             }
         except Exception as e:
             self.logger.error(f"Viral forecast error: {str(e)}")

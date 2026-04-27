@@ -1,7 +1,6 @@
 from typing import Dict, Any, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from datetime import datetime
-import random
 
 if TYPE_CHECKING:
     from src.main import InstagramGrowthBot
@@ -17,14 +16,6 @@ class MonetizationAgent(BaseAgent):
     def __init__(self, groq_bot: "InstagramGrowthBot | None" = None):
         super().__init__("Monetization")
         self._groq_bot = groq_bot
-        self.revenue_streams = [
-            "sponsored_posts",
-            "affiliate_marketing",
-            "digital_products",
-            "email_list",
-            "saas_links",
-            "engagement_services"
-        ]
     
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Execute monetization tracking"""
@@ -74,30 +65,33 @@ class MonetizationAgent(BaseAgent):
         return await self._get_monetization_dashboard(data)
 
     async def _track_revenue(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Track revenue from all streams"""
-        try:
-            revenue_breakdown = {
-                "sponsored_posts": random.uniform(500, 2000),
-                "affiliate_marketing": random.uniform(200, 800),
-                "digital_products": random.uniform(300, 1500),
-                "email_list": random.uniform(100, 500),
-                "saas_links": random.uniform(50, 300),
-                "engagement_services": random.uniform(0, 400)
-            }
-            
-            total_revenue = sum(revenue_breakdown.values())
-            
-            return {
-                "status": "success",
-                "action": "track_revenue",
-                "revenue_breakdown": revenue_breakdown,
-                "total_revenue": round(total_revenue, 2),
-                "currency": "USD",
-                "tracked_at": datetime.utcnow().isoformat()
-            }
-        except Exception as e:
-            self.logger.error(f"Revenue tracking error: {str(e)}")
-            return {"status": "error", "error": str(e)}
+        """Track and project revenue from all streams — AI-powered."""
+        niche = data.get("niche", "")
+        follower_count = data.get("follower_count")
+        engagement_rate = data.get("engagement_rate")
+        content_type = data.get("content_type", "")
+        region = data.get("region", "")
+
+        if self._groq_bot:
+            try:
+                result = self._groq_bot.project_monetization(
+                    niche=niche,
+                    follower_count=follower_count,
+                    engagement_rate=engagement_rate,
+                    content_type=content_type,
+                    region=region,
+                )
+                await self.log_execution(data, result, "success")
+                return result
+            except Exception as e:
+                self.logger.warning(f"Groq track_revenue fallback: {e}")
+
+        return {
+            "status": "unavailable",
+            "action": "track_revenue",
+            "message": "AI is currently unavailable. Please try again shortly.",
+            "generated_at": datetime.utcnow().isoformat(),
+        }
     
     async def _add_affiliate_link(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Add and track affiliate link"""
@@ -169,46 +163,67 @@ class MonetizationAgent(BaseAgent):
             return {"status": "error", "error": str(e)}
     
     async def _track_email_campaign(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Track email campaign performance"""
-        try:
-            campaign_data = {
-                "campaign_name": data.get("name", "Campaign"),
-                "subscriber_count": data.get("subscriber_count", 0),
-                "open_rate": random.uniform(0.2, 0.4),
-                "click_rate": random.uniform(0.05, 0.15),
-                "conversion_rate": random.uniform(0.02, 0.08),
-                "revenue": random.uniform(50, 500),
-                "created_at": datetime.utcnow().isoformat()
-            }
-            
-            return {
-                "status": "success",
-                "action": "email_campaign",
-                "campaign": campaign_data,
-                "message": f"Email campaign tracked"
-            }
-        except Exception as e:
-            self.logger.error(f"Email campaign error: {str(e)}")
-            return {"status": "error", "error": str(e)}
+        """Track email campaign performance — AI-estimated rates."""
+        niche = data.get("niche", "")
+        follower_count = data.get("follower_count")
+        region = data.get("region", "")
+        campaign_name = data.get("name", "Campaign")
+        subscriber_count = data.get("subscriber_count", 0)
+
+        if self._groq_bot:
+            try:
+                result = self._groq_bot.project_monetization(
+                    niche=niche,
+                    follower_count=follower_count,
+                    region=region,
+                    content_type="email",
+                )
+                if isinstance(result, dict) and result:
+                    result["action"] = "email_campaign"
+                    result["campaign_name"] = campaign_name
+                    result["subscriber_count"] = subscriber_count
+                    await self.log_execution(data, result, "success")
+                    return result
+            except Exception as e:
+                self.logger.warning(f"Groq email campaign fallback: {e}")
+
+        # User-provided data — record without AI estimates
+        return {
+            "status": "success",
+            "action": "email_campaign",
+            "campaign_name": campaign_name,
+            "subscriber_count": subscriber_count,
+            "note": "AI unavailable — connect real analytics for open/click rates.",
+            "created_at": datetime.utcnow().isoformat(),
+        }
     
     async def _get_monetization_dashboard(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Get full monetization dashboard"""
-        try:
-            # Calculate projected monthly revenue
-            daily_revenue = sum([random.uniform(50, 200) for _ in range(6)])
-            monthly_projected = daily_revenue * 30
-            yearly_projected = monthly_projected * 12
-            
-            return {
-                "status": "success",
-                "action": "dashboard",
-                "daily_revenue": round(daily_revenue, 2),
-                "monthly_projected": round(monthly_projected, 2),
-                "yearly_projected": round(yearly_projected, 2),
-                "active_streams": len(self.revenue_streams),
-                "revenue_streams": self.revenue_streams,
-                "last_updated": datetime.utcnow().isoformat()
-            }
-        except Exception as e:
-            self.logger.error(f"Dashboard error: {str(e)}")
-            return {"status": "error", "error": str(e)}
+        """Get full monetization dashboard — AI-powered projections."""
+        niche = data.get("niche", "")
+        follower_count = data.get("follower_count")
+        engagement_rate = data.get("engagement_rate")
+        content_type = data.get("content_type", "")
+        region = data.get("region", "")
+
+        if self._groq_bot:
+            try:
+                result = self._groq_bot.project_monetization(
+                    niche=niche,
+                    follower_count=follower_count,
+                    engagement_rate=engagement_rate,
+                    content_type=content_type,
+                    region=region,
+                )
+                if isinstance(result, dict) and result:
+                    result["action"] = "dashboard"
+                    await self.log_execution(data, result, "success")
+                    return result
+            except Exception as e:
+                self.logger.warning(f"Groq dashboard fallback: {e}")
+
+        return {
+            "status": "unavailable",
+            "action": "dashboard",
+            "message": "AI is currently unavailable. Please try again shortly.",
+            "generated_at": datetime.utcnow().isoformat(),
+        }
