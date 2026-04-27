@@ -1,7 +1,6 @@
 from typing import Dict, Any, List, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
-from src.prompts.templates import get_category_prompts, list_categories
-import random
+from src.prompts.templates import list_categories
 
 if TYPE_CHECKING:
     from src.main import InstagramGrowthBot
@@ -35,7 +34,7 @@ class ContentGeneratorAgent(BaseAgent):
             return {"status": "error", "error": str(e)}
     
     async def _generate_prompts(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate prompts — AI-generated when groq_bot available, static library fallback otherwise."""
+        """Generate prompts via AI only — no static library or hardcoded fallbacks."""
         try:
             requested_category = data.get("category", "").lower()
             count = data.get("count", 3)
@@ -60,77 +59,58 @@ class ContentGeneratorAgent(BaseAgent):
             if not category:
                 category = "general_photography"
 
-            # ── AI prompt generation (primary path when groq_bot available) ──
-            if self._groq_bot:
-                try:
-                    ai_result = self._groq_bot.generate_image_prompts(
-                        category=category,
-                        niche=niche,
-                        count=count,
-                        user_context=str({k: v for k, v in data.items() if k not in ("action", "chat_id")}),
-                        chat_id=data.get("chat_id"),
-                    )
-                    if isinstance(ai_result, dict) and "prompts" in ai_result and not ai_result.get("error"):
-                        result = {
-                            "status": "success",
-                            "action": "generate",
-                            "category": category,
-                            "count": len(ai_result["prompts"]),
-                            "prompts": ai_result["prompts"],
-                            "ai_generated": True,
-                            "metadata": {
-                                "tip": ai_result.get("tip", ""),
-                                "total_in_category": len(ai_result["prompts"]),
-                            },
-                        }
-                        await self.log_execution(data, result, "success")
-                        return result
-                except Exception as e:
-                    self.logger.warning(f"AI prompt generation failed, falling back to library: {e}")
-
-            # ── Static library fallback ───────────────────────────────────────
-            prompts = get_category_prompts(category)
-
-            if not prompts:
+            # ── AI prompt generation (only source) ──
+            if not self._groq_bot:
                 return {
                     "status": "error",
-                    "message": f"Category '{category}' not found",
-                    "available_categories": self.categories,
-                    "help": "Use action='list_categories' to see all available categories",
+                    "message": "AI bot not initialized. Prompts must be generated via AI only.",
                 }
 
-            selected_prompts = random.sample(prompts, min(count, len(prompts)))
-
-            result = {
-                "status": "success",
-                "action": "generate",
-                "category": category,
-                "count": len(selected_prompts),
-                "prompts": selected_prompts,
-                "ai_generated": False,
-                "metadata": {
-                    "total_in_category": len(prompts),
-                    "tip": "Copy any prompt and use with DALL-E 3, Midjourney, or Stable Diffusion",
-                },
+            ai_result = self._groq_bot.generate_image_prompts(
+                category=category,
+                niche=niche,
+                count=count,
+                user_context=str({k: v for k, v in data.items() if k not in ("action", "chat_id")}),
+                chat_id=data.get("chat_id"),
+            )
+            
+            if isinstance(ai_result, dict) and "prompts" in ai_result and not ai_result.get("error"):
+                result = {
+                    "status": "success",
+                    "action": "generate",
+                    "category": category,
+                    "count": len(ai_result["prompts"]),
+                    "prompts": ai_result["prompts"],
+                    "ai_generated": True,
+                    "metadata": {
+                        "tip": ai_result.get("tip", ""),
+                        "total_in_category": len(ai_result["prompts"]),
+                    },
+                }
+                await self.log_execution(data, result, "success")
+                return result
+            
+            # If AI returns error
+            return {
+                "status": "error",
+                "message": "AI prompt generation failed",
+                "details": ai_result.get("error") if isinstance(ai_result, dict) else str(ai_result),
+                "help": "Try again in a moment or provide more context (niche, goal, etc.)",
             }
-
-            await self.log_execution(data, result, "success")
-            return result
 
         except Exception as e:
             self.logger.error(f"Prompt generation error: {str(e)}")
             return {"status": "error", "error": str(e)}
     
     async def _list_all_categories(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """List all available prompt categories"""
+        """List all available prompt categories for AI generation."""
         try:
             categories_info = {}
             
             for category in self.categories:
-                prompts = get_category_prompts(category)
                 categories_info[category] = {
-                    "count": len(prompts),
-                    "friendly_name": category.replace("_", " ").title()
+                    "friendly_name": category.replace("_", " ").title(),
+                    "ai_generated": True,
                 }
             
             return {
@@ -138,7 +118,8 @@ class ContentGeneratorAgent(BaseAgent):
                 "action": "list_categories",
                 "categories": categories_info,
                 "total_categories": len(self.categories),
-                "usage": "Use action='generate' with category parameter to get prompts",
+                "note": "All prompts are generated via AI for this category",
+                "usage": "Use action='generate' with category parameter to get AI-generated prompts",
                 "example": {
                     "action": "generate",
                     "category": "women_professional",
@@ -151,7 +132,7 @@ class ContentGeneratorAgent(BaseAgent):
             return {"status": "error", "error": str(e)}
     
     async def _search_category(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Search for categories by keyword"""
+        """Search for categories by keyword (AI-generated prompts available)."""
         try:
             keyword = data.get("keyword", "").lower()
             
@@ -163,10 +144,9 @@ class ContentGeneratorAgent(BaseAgent):
             
             results = {}
             for category in matching:
-                prompts = get_category_prompts(category)
                 results[category] = {
-                    "count": len(prompts),
-                    "friendly_name": category.replace("_", " ").title()
+                    "friendly_name": category.replace("_", " ").title(),
+                    "ai_generated": True,
                 }
             
             return {
@@ -175,16 +155,10 @@ class ContentGeneratorAgent(BaseAgent):
                 "keyword": keyword,
                 "matches_found": len(matching),
                 "results": results,
-                "usage": "Use action='generate' with any category to get prompts"
+                "note": "All prompts are generated via AI",
+                "usage": "Use action='generate' with any category to get AI-generated prompts"
             }
         
         except Exception as e:
             self.logger.error(f"Search error: {str(e)}")
             return {"status": "error", "error": str(e)}
-    
-    def get_quick_prompts(self, category: str, count: int = 3) -> List[str]:
-        """Synchronous method to get prompts quickly"""
-        prompts = get_category_prompts(category)
-        if not prompts:
-            return []
-        return random.sample(prompts, min(count, len(prompts)))

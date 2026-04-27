@@ -52,10 +52,20 @@ class MonetizationAgent(BaseAgent):
         """
         niche = data.get("niche", "general")
         follower_count = int(data.get("follower_count", 10000))
+        region = data.get("region", "")
+        engagement_rate = data.get("engagement_rate")
+        content_type = data.get("content_type", "")
+        chat_id = data.get("chat_id")
+        
         if self._groq_bot:
             try:
                 result = self._groq_bot.monetization_ideas(
-                    niche=niche, follower_count=follower_count
+                    niche=niche,
+                    follower_count=follower_count,
+                    engagement_rate=engagement_rate,
+                    content_type=content_type,
+                    region=region,
+                    chat_id=chat_id,
                 )
                 await self.log_execution(data, result, "success")
                 return result
@@ -71,6 +81,7 @@ class MonetizationAgent(BaseAgent):
         engagement_rate = data.get("engagement_rate")
         content_type = data.get("content_type", "")
         region = data.get("region", "")
+        chat_id = data.get("chat_id")
 
         if self._groq_bot:
             try:
@@ -80,6 +91,7 @@ class MonetizationAgent(BaseAgent):
                     engagement_rate=engagement_rate,
                     content_type=content_type,
                     region=region,
+                    chat_id=chat_id,
                 )
                 await self.log_execution(data, result, "success")
                 return result

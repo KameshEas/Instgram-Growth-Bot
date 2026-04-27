@@ -661,6 +661,7 @@ IMPORTANT: Return ONLY the prompt/spec itself — no explanations. Max 250 words
             logger.error(f"image_generation_prompts error: {e}")
             return {"status": "error", "error": str(e)}
 
+
     def search_prompts(self, keyword: str) -> dict:
         """Search all prompt categories for a keyword."""
         try:
@@ -703,60 +704,28 @@ IMPORTANT: Return ONLY the prompt/spec itself — no explanations. Max 250 words
         context_line = f"\nContext: {user_context}" if user_context else ""
 
         if category in transform_categories:
-            if category == "couples_transform":
-                facial_rule = (
-                    "\n\nMANDATORY for EVERY prompt:"
-                    "\n- Start each prompt with: EXACT FACE MATCH + IDENTITY PRESERVATION"
-                    "\n- Include facial feature preservation for BOTH subjects"
-                    "\n- End each prompt with: USE FACE_ID FROM REFERENCE IMAGE."
-                    " Preserve both subjects exact facial features. Match 100% exactly."
-                    " Do NOT vary faces. Keep original facial anatomy intact."
-                    " - Maintain exact facial geometry - No face modifications"
-                    " - Identity-locked to reference - Facial structure immutable"
-                )
-            elif category == "men_transform":
-                facial_rule = (
-                    "\n\nMANDATORY for EVERY prompt:"
-                    "\n- Start each prompt with: EXACT FACE MATCH + IDENTITY PRESERVATION"
-                    "\n- Include: face shape, jawline, eye shape & color, nose, lips,"
-                    " skin tone, beard/facial hair, complexion"
-                    "\n- End each prompt with: USE FACE_ID FROM REFERENCE IMAGE."
-                    " Preserve subjects exact facial features. Match 100% exactly."
-                    " Do NOT vary face. Keep original facial anatomy intact."
-                    " - Maintain exact facial geometry - No face modifications"
-                    " - Identity-locked to reference - Facial structure immutable"
-                )
-            else:  # women_transform
-                facial_rule = (
-                    "\n\nMANDATORY for EVERY prompt:"
-                    "\n- Start each prompt with: EXACT FACE MATCH + IDENTITY PRESERVATION"
-                    "\n- Include: face shape, eye shape & color, nose, lips,"
-                    " skin tone, complexion"
-                    "\n- End each prompt with: USE FACE_ID FROM REFERENCE IMAGE."
-                    " Preserve subjects exact facial features. Match 100% exactly."
-                    " Do NOT vary face. Keep original facial anatomy intact."
-                    " - Maintain exact facial geometry - No face modifications"
-                    " - Identity-locked to reference - Facial structure immutable"
-                )
+            facial_rule = "\n\nIMPORTANT: Keep the EXACT 100% facial features and skin tone from reference image. No variations."
         else:
             facial_rule = ""
 
-        prompt = f"""You are an expert AI image generation prompt engineer.
-Generate {count} ready-to-use image generation prompts for the category: {category_desc}.{niche_line}{context_line}{facial_rule}
+        prompt = f"""You are an expert AI image generation prompt engineer creating CONCISE, ready-to-use prompts.
 
-Rules:
-- Each prompt must work directly in DALL-E 3, Midjourney, or Stable Diffusion
-- Be specific and detailed — no generic filler
-- Tailor every prompt to the creator niche/brand if provided
-- Vary the scene, setting, and angle across all {count} prompts so they complement each other
-- Include: subject, setting, lighting, style, mood, quality keywords
+Category: {category_desc}{niche_line}{context_line}
+
+Instructions:
+- Create {count} distinct, complementary prompts (each ~100-150 words max)
+- Each must work directly in DALL-E 3, Midjourney, or Stable Diffusion
+- NO generic filler — be specific about scene, mood, lighting, style
+- Vary settings/angles across prompts{facial_rule}
+
+IMPORTANT: Keep prompts CONCISE. Say "woman with oval face, almond eyes, full lips" NOT the full description repeated 3 times.
 
 Return ONLY valid JSON:
 {{
   "prompts": [
-    {{"prompt": "<full ready-to-use prompt text>", "scene": "<3-5 word scene label>"}}
+    {{"prompt": "<full ready-to-use prompt, 100-150 words>", "scene": "<3-5 word scene label>"}}
   ],
-  "tip": "<one actionable tip for best results with these prompts>"
+  "tip": "<one actionable tip for best results>"
 }}"""
 
         cache_key = self._make_cache_key(

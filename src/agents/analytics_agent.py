@@ -38,6 +38,7 @@ class AnalyticsAgent(BaseAgent):
         account_stage = data.get("account_stage", "")
         content_mix = data.get("content_mix")
         region = data.get("region", "")
+        chat_id = data.get("chat_id")
 
         if self._groq_bot:
             try:
@@ -48,6 +49,7 @@ class AnalyticsAgent(BaseAgent):
                     account_stage=account_stage,
                     content_mix=content_mix,
                     region=region,
+                    chat_id=chat_id,
                 )
                 await self.log_execution(data, result, "success")
                 return result
@@ -68,6 +70,7 @@ class AnalyticsAgent(BaseAgent):
         account_stage = data.get("account_stage", "")
         content_mix = data.get("content_mix")
         region = data.get("region", "")
+        chat_id = data.get("chat_id")
 
         if self._groq_bot:
             try:
@@ -78,6 +81,7 @@ class AnalyticsAgent(BaseAgent):
                     account_stage=account_stage,
                     content_mix=content_mix,
                     region=region,
+                    chat_id=chat_id,
                 )
                 await self.log_execution(data, result, "success")
                 return result
@@ -98,6 +102,7 @@ class AnalyticsAgent(BaseAgent):
         account_stage = data.get("account_stage", "")
         content_mix = data.get("content_mix")
         region = data.get("region", "")
+        chat_id = data.get("chat_id")
 
         if self._groq_bot:
             try:
@@ -108,6 +113,7 @@ class AnalyticsAgent(BaseAgent):
                     account_stage=account_stage,
                     content_mix=content_mix,
                     region=region,
+                    chat_id=chat_id,
                 )
                 await self.log_execution(data, result, "success")
                 return result

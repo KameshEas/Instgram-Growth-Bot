@@ -30,10 +30,13 @@ class ContentOrchestratorAgent(BaseAgent):
         }
 
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Route the request to the correct agent based on the Telegram command."""
+        """Route the request to the correct agent based on the Telegram command.
+        
+        For any message that is NOT a direct slash command, use AI intent classification
+        to determine the best command to execute. This allows natural language inputs like
+        'show me viral content about fitness' to route correctly without requiring /commands.
+        """
         try:
-            command = input_data.get("command", "help")
-
             # ── Extract UserContext (thread into every agent call) ─────────────────
             niche = input_data.get("niche", "")
             follower_count = input_data.get("follower_count")
@@ -41,6 +44,58 @@ class ContentOrchestratorAgent(BaseAgent):
             language = input_data.get("language", "")
             account_stage = input_data.get("account_stage", "")
             chat_id = input_data.get("chat_id")
+
+            # ── AI INTENT CLASSIFICATION (primary router for natural language) ─────
+            command = input_data.get("command", "").strip()
+            user_message = input_data.get("text", "").strip()
+            
+            # If message doesn't start with / and AI is available, classify intent first
+            if (
+                self._groq_bot
+                and user_message
+                and not command.startswith("/")
+                and not input_data.get("_intent_classified")
+            ):
+                available_commands = [
+                    "/generate", "/categories", "/search", "/content",
+                    "/inspire", "/trends", "/viral", "/hashtags",
+                    "/engagement", "/monetize", "/analytics", "/report",
+                    "/stats", "/help",
+                ]
+                try:
+                    intent = self._groq_bot.classify_intent(
+                        user_message=user_message,
+                        available_commands=available_commands,
+                        chat_id=chat_id,
+                    )
+                    if (
+                        isinstance(intent, dict)
+                        and not intent.get("fallback_to_chat")
+                        and float(intent.get("confidence", 0)) >= 0.5
+                    ):
+                        classified_cmd = intent.get("command", "")
+                        extracted = intent.get("extracted_params", {}) or {}
+                        self.logger.info(
+                            f"[INTENT] Classified '{user_message[:40]}...' → {classified_cmd} "
+                            f"(confidence: {intent.get('confidence', 0):.2f})"
+                        )
+                        return await self.execute({
+                            **input_data,
+                            **extracted,
+                            "command": classified_cmd,
+                            "_intent_classified": True,
+                        })
+                    else:
+                        confidence = float(intent.get("confidence", 0))
+                        self.logger.info(
+                            f"[INTENT] Low confidence ({confidence:.2f}) or fallback_to_chat requested"
+                        )
+                except Exception as ie:
+                    self.logger.warning(f"Intent classification failed: {ie}")
+            
+            # Fallback: if no command and classification failed/unavailable, use "help"
+            if not command or not command.startswith("/"):
+                command = "/help"
 
             # ── Content library commands ──────────────────────────────────────
             if command == "/generate":
@@ -155,40 +210,8 @@ class ContentOrchestratorAgent(BaseAgent):
             elif command in ("/help", "help"):
                 result = self._get_help()
 
-            else:                # ── AI intent classification for unknown commands ────────────
-                user_message = input_data.get("text", "")
-                if (
-                    self._groq_bot
-                    and user_message
-                    and not input_data.get("_intent_classified")
-                ):
-                    available_commands = [
-                        "/generate", "/categories", "/search", "/content",
-                        "/inspire", "/trends", "/viral", "/hashtags",
-                        "/engagement", "/monetize", "/analytics", "/report",
-                        "/stats", "/help",
-                    ]
-                    try:
-                        intent = self._groq_bot.classify_intent(
-                            user_message=user_message,
-                            available_commands=available_commands,
-                            chat_id=chat_id,
-                        )
-                        if (
-                            isinstance(intent, dict)
-                            and not intent.get("fallback_to_chat")
-                            and float(intent.get("confidence", 0)) >= 0.5
-                        ):
-                            classified_cmd = intent.get("command", "")
-                            extracted = intent.get("extracted_params", {}) or {}
-                            return await self.execute({
-                                **input_data,
-                                **extracted,
-                                "command": classified_cmd,
-                                "_intent_classified": True,
-                            })
-                    except Exception as ie:
-                        self.logger.warning(f"Intent classification failed: {ie}")
+            else:
+                # No recognized command at this point
                 result = {"status": "error", "message": f"Unknown command: {command}"}
 
             await self.log_execution(input_data, result, "success")
