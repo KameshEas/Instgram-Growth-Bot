@@ -743,6 +743,69 @@ Return ONLY valid JSON:
             ttl_hours=24,
         )
 
+    def generate_design_brief(
+        self,
+        category: str = "design_posters",
+        user_input: str = "",
+        niche: str = "",
+        brand_context: dict = None,
+        chat_id: int = None,
+    ) -> dict:
+        """Generate comprehensive design briefs from user input — 3 creative variations."""
+        from src.prompts.templates import DESIGN_BRIEF_SYSTEM_PROMPT
+        
+        if brand_context is None:
+            brand_context = {}
+
+        niche_line = f"\nBrand/Niche: {niche}" if niche else ""
+        brand_line = f"\nBrand context: {brand_context}" if brand_context else ""
+
+        # Build combined prompt (system instructions + user request)
+        prompt = f"""{DESIGN_BRIEF_SYSTEM_PROMPT}
+
+---
+
+Design Category: {category.replace("_", " ").title()}
+
+User's Design Concept:
+{user_input}{niche_line}{brand_line}
+
+Create 3 distinct, professional design brief variations that incorporate ALL of the user's content and messaging.
+
+Each variation should be a complete, ready-to-brief design brief that a designer can execute immediately."""
+
+        cache_key = self._make_cache_key(
+            "generate_design_brief",
+            category=category,
+            niche=niche,
+        )
+        
+        result = self._call_groq_with_fallback(
+            command="generate_design_brief",
+            cache_key=cache_key,
+            prompt=prompt,
+            chat_id=chat_id,
+            temperature=0.85,
+            ttl_hours=24,
+        )
+
+        # Parse and structure response
+        if result and isinstance(result, dict):
+            if "error" in result:
+                return result
+            
+            # Extract briefs from response
+            briefs = result.get("briefs", [])
+            if briefs:
+                return {
+                    "status": "success",
+                    "brief": result,
+                    "sections": [b.get("title", f"Brief {i+1}") for i, b in enumerate(briefs)],
+                    "total_sections": len(briefs),
+                }
+        
+        return result
+
     def monetization_ideas(
         self,
         niche: str,

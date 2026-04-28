@@ -1,6 +1,7 @@
 from typing import Dict, Any, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from src.agents.content_generator import ContentGeneratorAgent
+from src.agents.design_enhancer import DesignPromptEnhancerAgent
 from src.agents.engagement_agent import EngagementAgent
 from src.agents.monetization_agent import MonetizationAgent
 from src.agents.analytics_agent import AnalyticsAgent
@@ -23,6 +24,7 @@ class ContentOrchestratorAgent(BaseAgent):
         self._groq_bot = groq_bot
         self.agents = {
             "content_generator": ContentGeneratorAgent(groq_bot=groq_bot),
+            "design_enhancer": DesignPromptEnhancerAgent(groq_bot=groq_bot),
             "engagement": EngagementAgent(groq_bot=groq_bot),
             "monetization": MonetizationAgent(groq_bot=groq_bot),
             "analytics": AnalyticsAgent(groq_bot=groq_bot),
@@ -100,9 +102,36 @@ class ContentOrchestratorAgent(BaseAgent):
             # ── Content library commands ──────────────────────────────────────
             if command == "/generate":
                 custom_prompt = input_data.get("custom_prompt")
-                category = input_data.get("category", "general_photography")
+                category = input_data.get("category", "general_photography").lower()
                 level = input_data.get("level")
-                if custom_prompt and custom_prompt.strip() and self._groq_bot:
+                user_input = input_data.get("user_input", "")  # For design briefs
+                
+                # Design categories that require design enhancement
+                design_categories = {
+                    "design_posters", 
+                    "ui_ux_design", 
+                    "brand_identity"
+                }
+                
+                # Route design categories to design enhancer agent
+                if category in design_categories and user_input:
+                    result = await self.agents["design_enhancer"].execute({
+                        **input_data,
+                        "action": "enhance",
+                        "category": category,
+                        "user_input": user_input,
+                        "brand_context": {"niche": niche, "region": region},
+                    })
+                elif category in design_categories and custom_prompt and custom_prompt.strip():
+                    # Design brief from custom prompt
+                    result = await self.agents["design_enhancer"].execute({
+                        **input_data,
+                        "action": "enhance",
+                        "category": category,
+                        "user_input": custom_prompt,
+                        "brand_context": {"niche": niche, "region": region},
+                    })
+                elif custom_prompt and custom_prompt.strip() and self._groq_bot:
                     # Custom-concept path: delegate to Groq for AI enhancement
                     result = self._groq_bot.image_generation_prompts(
                         category=category,

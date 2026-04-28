@@ -952,6 +952,94 @@ class TelegramBotHandler:
             await update.message.reply_text(f"❌ Error: {e}")
             logger.error(f"audit_command error: {e}")
 
+    # ── Design Brief Response Handler ────────────────────────────────────────
+
+    async def _handle_design_brief_response(self, update: Update, result: dict, category: str):
+        """Format and send design brief response with all sections."""
+        try:
+            brief_data = result.get("brief", {})
+            briefs = brief_data.get("briefs", [])
+            
+            if not briefs:
+                await update.message.reply_text("❌ No design briefs generated. Try again.")
+                return
+            
+            cat_display = category.replace("_", " ").title()
+            header = f"🎨 *Design Brief — {cat_display}*\n\n"
+            header += "✨ *3 Creative Variations*\n"
+            header += "─────────────────────────────────────\n\n"
+            
+            await update.message.reply_text(header, parse_mode="Markdown")
+            
+            # Send each brief as a separate message for clarity
+            for idx, brief in enumerate(briefs, 1):
+                msg = f"*📋 Option {idx}: {brief.get('title', 'Brief ' + str(idx))}*\n"
+                msg += "─────────────────────────────────────\n\n"
+                
+                # Core Message
+                if brief.get("core_message"):
+                    msg += f"*📝 Core Message:*\n{escape_md(brief['core_message'])}\n\n"
+                
+                # Project Requirements
+                if brief.get("requirements"):
+                    msg += f"*📐 Project Requirements:*\n{escape_md(brief['requirements'])}\n\n"
+                
+                # Visual Style
+                if brief.get("visual_style"):
+                    msg += f"*🎨 Visual Style:*\n{escape_md(brief['visual_style'])}\n\n"
+                
+                # Color Palette
+                if brief.get("color_palette"):
+                    msg += "*🎨 Color Palette:*\n"
+                    for color in brief["color_palette"]:
+                        color_name = color.get("name", "Color")
+                        color_hex = color.get("hex", "#000000")
+                        msg += f"  • {color_name} ({color_hex})\n"
+                    msg += "\n"
+                
+                # Typography
+                if brief.get("typography"):
+                    msg += f"*✍️ Typography:*\n{escape_md(brief['typography'])}\n\n"
+                
+                # Key Elements
+                if brief.get("key_elements"):
+                    msg += "*🔑 Key Design Elements:*\n"
+                    for elem in brief["key_elements"]:
+                        msg += f"  • {escape_md(elem)}\n"
+                    msg += "\n"
+                
+                # Composition
+                if brief.get("composition"):
+                    msg += f"*📐 Composition & Layout:*\n{escape_md(brief['composition'])}\n\n"
+                
+                # Deliverables
+                if brief.get("deliverables"):
+                    msg += f"*📦 Deliverables:*\n{escape_md(brief['deliverables'])}\n\n"
+                
+                # Tools
+                if brief.get("tools"):
+                    msg += "*🛠 Recommended Tools:*\n"
+                    for tool in brief["tools"]:
+                        msg += f"  • {escape_md(tool)}\n"
+                    msg += "\n"
+                
+                # Send brief in chunks if needed
+                for chunk in self._send_long(msg):
+                    await update.message.reply_text(chunk, parse_mode="Markdown")
+                
+                # Add separator between briefs
+                if idx < len(briefs):
+                    await update.message.reply_text("─────────────────────────────────────")
+            
+            # Final summary
+            summary = f"✅ Generated {len(briefs)} design brief variations.\n"
+            summary += "Pick the direction that resonates most with your brand! 🎯"
+            await update.message.reply_text(summary)
+            
+        except Exception as e:
+            logger.error(f"Design brief formatting error: {e}")
+            await update.message.reply_text(f"❌ Error formatting design brief: {e}")
+
     # ── Inline button router ───────────────────────────────────────────────────
 
     async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -998,80 +1086,103 @@ class TelegramBotHandler:
     # ── prompt library commands ───────────────────────────────────────────────
 
     async def generate_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /generate [category] [level] ["custom concept"]."""
+        """Handle /generate [category] [level] ["custom concept"] or design brief."""
         full_text = update.message.text
         text_after_cmd = full_text.replace("/generate", "", 1).strip()
 
         if not text_after_cmd:
             await update.message.reply_text(
-                "🎨 *Generate Prompts*\n\n"
+                "🎨 *Generate Prompts & Design Briefs*\n\n"
                 "Usage:\n"
                 "  `/generate [category]`\n"
                 "  `/generate [category] [level]`\n"
-                "  `/generate [category] \"custom concept\"`\n\n"
+                "  `/generate [category] \"custom concept\"`\n"
+                "  `/generate design_posters \"full design content\"`\n\n"
                 "Levels: `beginner` 🟢 · `professional` 🔵 · `expert` 🔴\n\n"
                 "Examples:\n"
                 "• `/generate ui_ux_design professional`\n"
-                "• `/generate design_posters \"Diwali sale poster\"`\n\n"
+                "• `/generate design_posters \"Diwali sale poster\"`\n"
+                "• `/generate design_posters \"🌸 Dream Knot...\"`\n\n"
                 "See all categories: /categories",
                 parse_mode="Markdown",
             )
             return
 
         LEVELS = {"beginner", "professional", "expert"}
+        DESIGN_CATEGORIES = {"design_posters", "ui_ux_design", "brand_identity"}
+        
         category = text_after_cmd.split()[0].strip().lower()
         remaining = text_after_cmd[len(category):].strip()
         level = None
         custom_prompt = None
+        
         if remaining:
             next_tok = remaining.split(" ", 1)[0].lower()
             if next_tok in LEVELS:
                 level = next_tok
                 remaining = remaining[len(next_tok):].strip()
+        
         if remaining:
             custom_prompt = remaining.strip("\"'")
 
-        wait_msg = (f"⏳ Enhancing your concept for *{category}*..." if custom_prompt
-                    else f"⏳ Fetching prompts for *{category}*{' [' + level + ']' if level else ' [mixed]'}...")
+        # Determine if this is a design brief request
+        is_design_brief = category in DESIGN_CATEGORIES and custom_prompt
+
+        wait_msg = (f"⏳ Enhancing your concept for *{category}*..."
+                    if is_design_brief else
+                    f"⏳ Fetching prompts for *{category}*{' [' + level + ']' if level else ' [mixed]'}...")
         await update.message.reply_text(wait_msg, parse_mode="Markdown")
 
         try:
+            # Get user profile for context
+            profile = self._get_profile(update.message.chat_id)
+            niche = profile.get("niche", "")
+            
             result = await self.orchestrator.execute({
                 "command": "/generate",
                 "category": category,
                 "custom_prompt": custom_prompt,
+                "user_input": custom_prompt,  # For design briefs
                 "level": level,
+                "chat_id": update.message.chat_id,
+                "niche": niche,
             })
+            
             if result and result.get("status") == "success":
-                prompts = result.get("prompts", [])
-                is_custom = result.get("custom", False)
-                meta = result.get("meta", {})
-                cat_emoji = meta.get("emoji", "🎯")
-                tools = ", ".join(meta.get("tools", [])) or "DALL-E 3, Midjourney, Stable Diffusion"
-                best_for = meta.get("best_for", "")
-                res_level = result.get("level", level or "mixed")
-                level_labels = {"beginner": "🟢 Beginner", "professional": "🔵 Professional",
-                                "expert": "🔴 Expert", "mixed": "🌈 Mixed Levels"}
-                if is_custom:
-                    msg = f"{cat_emoji} *Custom Prompt — {category}*\n"
-                    if best_for:
-                        msg += f"_{best_for}_\n"
-                    msg += "─────────────────────\n\n"
-                    msg += escape_md(prompts[0]) if prompts else "No prompt returned."
-                    msg += f"\n\n🛠 Tools: {tools}"
+                # Check if this is a design brief response
+                if is_design_brief and "brief" in result:
+                    await self._handle_design_brief_response(update, result, category)
                 else:
-                    msg = f"{cat_emoji} *{category}* — {level_labels.get(res_level, res_level)}\n"
-                    if best_for:
-                        msg += f"_{best_for}_\n"
-                    msg += "─────────────────────\n\n"
-                    for i, p in enumerate(prompts, 1):
-                        display = strip_transform_boilerplate(p) if category in _TRANSFORM_CATEGORIES else p
-                        msg += f"*Prompt {i}:*\n{escape_md(display)}\n\n"
-                    msg += f"─────────────────────\n🛠 Tools: {tools}\n"
-                    msg += f"💡 Custom: `/generate {category} \"your concept\"`"
-                for chunk in self._send_long(msg):
-                    await update.message.reply_text(chunk, parse_mode="Markdown")
-                logger.info(f"[OK] /generate category={category}")
+                    # Standard prompt response
+                    prompts = result.get("prompts", [])
+                    is_custom = result.get("custom", False)
+                    meta = result.get("meta", {})
+                    cat_emoji = meta.get("emoji", "🎯")
+                    tools = ", ".join(meta.get("tools", [])) or "DALL-E 3, Midjourney, Stable Diffusion"
+                    best_for = meta.get("best_for", "")
+                    res_level = result.get("level", level or "mixed")
+                    level_labels = {"beginner": "🟢 Beginner", "professional": "🔵 Professional",
+                                    "expert": "🔴 Expert", "mixed": "🌈 Mixed Levels"}
+                    if is_custom:
+                        msg = f"{cat_emoji} *Custom Prompt — {category}*\n"
+                        if best_for:
+                            msg += f"_{best_for}_\n"
+                        msg += "─────────────────────\n\n"
+                        msg += escape_md(prompts[0]) if prompts else "No prompt returned."
+                        msg += f"\n\n🛠 Tools: {tools}"
+                    else:
+                        msg = f"{cat_emoji} *{category}* — {level_labels.get(res_level, res_level)}\n"
+                        if best_for:
+                            msg += f"_{best_for}_\n"
+                        msg += "─────────────────────\n\n"
+                        for i, p in enumerate(prompts, 1):
+                            display = strip_transform_boilerplate(p) if category in _TRANSFORM_CATEGORIES else p
+                            msg += f"*Prompt {i}:*\n{escape_md(display)}\n\n"
+                        msg += f"─────────────────────\n🛠 Tools: {tools}\n"
+                        msg += f"💡 Custom: `/generate {category} \"your concept\"`"
+                    for chunk in self._send_long(msg):
+                        await update.message.reply_text(chunk, parse_mode="Markdown")
+                logger.info(f"[OK] /generate category={category}, design_brief={is_design_brief}")
             else:
                 err = result.get("error", "Unknown") if isinstance(result, dict) else str(result)
                 cats = result.get("available_categories", []) if isinstance(result, dict) else []
