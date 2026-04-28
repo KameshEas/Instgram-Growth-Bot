@@ -279,16 +279,16 @@ PROMPTS = {
     # ─── NEW CATEGORY 6: PRINT DESIGN ────────────────────────────────────────
     "print_design": [
         # --- BEGINNER ---
-        {"level": "beginner", "prompt": "Simple A5 flyer for Indian restaurant, food photo centre, name at top, address at bottom, warm colours, easy to read, print-ready"},
-        {"level": "beginner", "prompt": "Basic event poster for Navratri festival, large title text, date and venue, decorative border, saffron and red colours, A4 size"},
-        {"level": "beginner", "prompt": "Simple business card, name and contact details, minimal design, white background, brand colour accent stripe, 90x55mm standard size"},
+        {"level": "beginner", "prompt": "Restaurant A5 flyer. Content: food photo centered. Layout: name top, address bottom. Colors: warm tones. Style: easy to read, print-ready"},
+        {"level": "beginner", "prompt": "Navratri festival event poster. Content: large title text, date, venue. Element: decorative border. Colors: saffron and red. Format: A4"},
+        {"level": "beginner", "prompt": "Business card. Content: name and contact details. Design: minimal white background with brand color accent stripe. Format: 90x55mm standard"},
         # --- PROFESSIONAL ---
-        {"level": "professional", "prompt": "Wedding invitation suite — laser-cut gate-fold card. Material: 400gsm deep burgundy paper. Typography: gold foil letterpress. Motifs: watercolour floral Indian patterns. Components: RSVP card + inner envelope. Size: 5x7 inch. Specs: 300dpi CMYK, 3mm bleed & crop marks."},
-        {"level": "professional", "prompt": "Magazine cover — Indian fashion monthly. Layout: full-bleed editorial portrait + masthead (custom display type). Cover lines: hierarchy (kicker/headline/deck). Specs: A4 bleed 216x303mm, 300dpi, ISO Coated v2 profile. Placement: barcode + price (newsstand-optimised contrast)."},
-        {"level": "professional", "prompt": "Corporate annual report spread — double-page layout. Content: infographic-led with elegant financial charts. Design: 12-column grid, brand type system, photography + illustration mix. Size: A4 landscape. Specs: 4mm bleed, Pantone spot colour, print-ready InDesign format."},
+        {"level": "professional", "prompt": "Wedding invitation suite — laser-cut gate-fold. Material: 400gsm deep burgundy paper. Typography: gold foil letterpress. Motifs: watercolor floral Indian patterns. Components: RSVP card + inner envelope. Size: 5x7 inch. Specs: 300dpi CMYK, 3mm bleed & crop"},
+        {"level": "professional", "prompt": "Magazine cover — Indian fashion monthly. Layout: full-bleed editorial portrait + custom masthead. Content: cover lines hierarchy (kicker/headline/deck). Specs: A4 bleed 216x303mm, 300dpi, ISO Coated v2. Placement: barcode + price for newsstand"},
+        {"level": "professional", "prompt": "Corporate annual report spread. Layout: double-page with infographic-led design. Content: elegant financial charts. Grid: 12-column, brand typography, photo + illustration mix. Format: A4 landscape. Specs: 4mm bleed, Pantone spot color, InDesign"},
         # --- EXPERT ---
-        {"level": "expert", "prompt": "Museum exhibition catalogue — 128-page art book. Grid: Swiss system. Typography: Futura + Caslon. Layout: full-bleed artwork reproductions opposite scholarly text. Features: running heads, footnotes, index, bibliography. Binding: perfect-bound 230x280mm. Specs: ICC-profiled FOGRA51 pre-press, ISBN barcode."},
-        {"level": "expert", "prompt": "Artisanal packaging system — premium Indian tea. Box: handmade paper with custom letterpress label. Details: heritage illustration, deboss lid pattern, tissue wrap with spot UV mark. Design: unboxing sequence. Features: eco material callouts, regulatory text hierarchy. Output: dieline for corrugated insert + production spec sheet."},
+        {"level": "expert", "prompt": "Museum exhibition catalogue — 128-page art book. Grid: Swiss system. Typography: Futura + Caslon. Layout: full-bleed artwork opposite scholarly text. Features: running heads, footnotes, index, bibliography. Binding: perfect-bound 230x280mm. Specs: ICC-profiled FOGRA51, ISBN"},
+        {"level": "expert", "prompt": "Artisanal tea packaging system. Box: handmade paper with custom letterpress label. Details: heritage illustration, deboss lid pattern, tissue wrap with spot UV. Design: premium unboxing sequence. Features: eco material callouts, regulatory hierarchy. Output: dieline + production spec"},
     ],
 
     # ─── NEW CATEGORY 7: 3D PRODUCT DESIGN ───────────────────────────────────
