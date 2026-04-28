@@ -6,142 +6,170 @@
 PROMPTS = {
     # CATEGORY A: GENERAL PHOTOGRAPHY
     "general_photography": [
-        "Ultra HD portrait photography of a young Indian professional, wearing traditional kurta with modern styling, soft natural lighting, bokeh background, professional headshot, 8k quality, shot on Canon 5D",
-        "Candid lifestyle photography of Indian family having chai on rooftop, golden hour lighting, warm tones, authentic moments, shot on Fujifilm, 8k quality, shallow depth of field",
-        "Street photography of Indian marketplace, vibrant colors, traditional vendors, authentic culture, natural lighting, 8k quality, shot on Leica, documentary style",
-        "Fashion photography of Indian woman wearing designer saree, traditional jewelry, studio lighting, professional model shot, 8k quality, high fashion magazine style",
-        "Travel photography of Indian temple architecture, ancient stone work, dramatic lighting, golden hour, 8k quality, architectural photography, wide angle lens",
+        "Subject: Young Indian professional in traditional kurta with modern styling. Lighting: soft natural window light with bokeh background. Pose: confident professional stance. Expression: direct engaging eye contact. Style: modern editorial photography. Camera: shallow depth of field, slightly above eye level.",
+        
+        "Subject: Indian family having chai on rooftop. Lighting: golden-hour warm glow. Pose: natural candid interaction, relaxed sitting. Expression: genuine moments, warm connection. Style: authentic lifestyle photography. Background: city skyline blurred softly. Camera: natural framing, soft warm tones.",
+        
+        "Subject: Indian marketplace with traditional vendors. Lighting: natural daylight, warm tones. Pose: vendors in natural work positions. Expression: authentic engagement. Style: documentary street photography. Background: vibrant marketplace stalls, colorful textiles. Camera: sharp detail with intentional depth.",
+        
+        "Subject: Indian woman in designer saree with traditional jewelry. Lighting: studio key-fill lighting, no harsh shadows. Pose: poised editorial stance. Expression: confident engaging gaze. Style: high-fashion editorial aesthetic. Camera: sharp focus, professional framing, flattering angle.",
+        
+        "Subject: Indian temple architecture with ancient stonework. Lighting: dramatic golden-hour illumination. Pose: architectural composition. Style: fine-art architectural photography. Background: intricate stone details in warm light. Camera: wide-angle composition emphasizing scale and detail.",
     ],
     
     # CATEGORY B: WOMEN'S PHOTOSHOOT
     "women_professional": [
-        "Professional Indian woman in modern office wear, confidence, natural lighting, studio background, corporate aesthetic, 8k quality, shot on Canon EOS",
-        "Indian woman in traditional saree, elegant pose, studio lighting, neutral background, professional jewelry, glamour photography, 8k quality",
-        "Young Indian woman in casual modern outfit, natural outdoor lighting, park/garden background, lifestyle photography, approachable vibe, 8k quality",
-        "Indian woman in fusion wear (saree + leather jacket), edgy modern aesthetic, urban background, fashion editorial style, 8k quality",
-        "Indian woman in traditional bridal wear, heavy jewelry, dramatic lighting, regal pose, wedding photography style, 8k quality",
-        "Indian woman in swimwear/beach outfit, tropical background, golden hour lighting, lifestyle photography, confident pose, 8k quality",
-        "Young Indian woman in gym/fitness wear, active pose, motivational lighting, athletic aesthetic, 8k quality",
-        "Indian woman in ethnic wear (anarkali suit, lehenga), traditional jewelry, festive lighting, celebration mood, 8k quality",
+        "Subject: Indian woman in modern office wear. Lighting: studio lighting, neutral background. Pose: confident professional stance, one hand on desk. Expression: direct eye contact, confident presence. Style: corporate aesthetic. Camera: professional headshot angle.",
+        
+        "Subject: Indian woman in elegant traditional saree with jewelry. Lighting: studio key-fill lighting. Pose: graceful stance with natural arm placement. Expression: serene sophisticated gaze. Style: glamour photography. Background: neutral clean backdrop.",
+        
+        "Subject: Young Indian woman in casual modern outfit. Lighting: natural outdoor light, garden setting. Pose: relaxed approachable stance. Expression: warm engaging smile. Style: lifestyle photography. Background: soft park/garden environment.",
+        
+        "Subject: Indian woman in fusion wear (saree + leather jacket). Lighting: urban natural light. Pose: edgy confident power stance. Expression: modern assured presence. Style: fashion editorial. Background: urban setting.",
+        
+        "Subject: Indian woman in traditional bridal wear with ornate jewelry. Lighting: dramatic warm studio lighting. Pose: regal seated or standing posture. Expression: radiant dignified presence. Style: wedding glamour photography. Camera: elevated composition.",
+        
+        "Subject: Indian woman in beach/tropical outfit. Lighting: golden-hour warm glow. Pose: confident relaxed stance. Expression: warm engaging smile. Style: lifestyle photography. Background: tropical/beach environment.",
+        
+        "Subject: Young Indian woman in fitness wear in active stance. Lighting: motivational studio lighting. Pose: dynamic athletic positioning. Expression: powerful energetic presence. Style: fitness aesthetic. Background: fitness environment.",
+        
+        "Subject: Indian woman in ethnic wear (anarkali/lehenga) with traditional jewelry. Lighting: festive warm lighting. Pose: celebratory graceful stance. Expression: joyful radiant smile. Style: traditional celebration aesthetic. Background: festive environment.",
     ],
     
     "women_transform": [
-        "Professional Indian woman in formal corporate office wear. Preserve recognizable facial features from reference image. Pose: standing tall with shoulders back, one hand on desk, head slightly tilted upward showing confidence. Setting: office environment with studio lighting. Expressions: confident, professional eye contact. Output: 8k quality, professional headshot aesthetic.",
+        "Subject: Indian woman in formal corporate office wear. Identity: Maintain natural likeness from reference image. Keep natural facial proportions. Pose: Standing tall with shoulders back, one hand on desk, head slightly tilted upward. Expression: Confident direct eye contact. Style: Corporate professional aesthetic. Lighting: Studio key-fill lighting. Background: Professional office environment. Camera: Confident headshot angle with shallow depth of field.",
         
-        "Indian woman in traditional silk saree. Preserve facial characteristics from reference image. Pose: standing gracefully with one shoulder forward, hand on chest, three-quarters body angle. Expressions: soft, serene, sophisticated. Lighting: studio lighting, glamour photography style. Output: 8k quality, elegant aesthetic.",
+        "Subject: Indian woman in elegant traditional silk saree. Identity: Maintain natural likeness from reference image. Pose: Standing gracefully with one shoulder forward, hand on chest, three-quarters body angle. Expression: Soft serene sophisticated gaze. Style: Glamour photography aesthetic. Lighting: Studio glamour lighting. Background: Neutral elegant backdrop. Camera: Professional pose with flattering angle.",
         
-        "Young Indian woman in modern fusion wear (traditional meets contemporary). Preserve facial features from reference image. Pose: dynamic power pose, one leg forward, confident stance. Setting: professional lighting, editorial fashion aesthetic. Expressions: confident, modern. Output: 8k quality, high-fashion magazine style.",
+        "Subject: Young Indian woman in modern fusion wear (traditional meets contemporary). Identity: Maintain natural likeness from reference image. Pose: Dynamic power pose, one leg forward, confident strong stance. Expression: Modern confident presence. Style: High-fashion editorial aesthetic. Lighting: Professional editorial lighting. Background: Professional lighting setup.",
         
-        "Indian bride in traditional bridal wear (ornate lehenga/saree). Preserve facial features from reference image. Pose: regal posture, one hand raised showing jewelry, seated or standing. Setting: dramatic warm lighting. Expressions: dignified, radiant. Output: 8k quality, wedding photography aesthetic.",
+        "Subject: Indian bride in traditional bridal wear (ornate lehenga/saree). Identity: Maintain natural likeness from reference image. Pose: Regal posture, one hand raised showing jewelry, seated or standing. Expression: Dignified radiant presence. Style: Wedding celebration aesthetic. Lighting: Dramatic warm studio lighting. Background: Wedding celebration environment.",
         
-        "Indian woman as lifestyle influencer. Preserve facial characteristics from reference image. Pose: candid walking pose with natural arm movement, relaxed confident stride, turning toward camera. Setting: natural lighting. Expressions: engaging smile, Instagram-worthy body language. Output: 8k quality, contemporary lifestyle.",
+        "Subject: Indian woman as lifestyle influencer. Identity: Maintain natural likeness from reference image. Pose: Candid walking pose with natural arm movement, confident stride. Expression: Engaging warm smile toward camera. Style: Contemporary lifestyle aesthetic. Lighting: Natural warm lighting. Background: Lifestyle environment with Instagram appeal.",
         
-        "Glamorous Indian woman with theatrical makeup. Preserve facial features from reference image. Pose: sitting or reclined in magazine cover pose, one arm extended gracefully. Setting: professional beauty lighting, dramatic glamorous setting. Expressions: confident, luxurious aesthetic. Output: 8k quality, luxury photography.",
+        "Subject: Indian woman with professional glamour aesthetic. Identity: Maintain natural likeness from reference image. Pose: Seated or reclined in magazine-worthy pose, one arm extended gracefully. Expression: Confident luxurious presence. Style: Luxury beauty photography. Lighting: Professional beauty studio lighting. Background: Dramatic professional setting.",
         
-        "Fit Indian woman in gym/fitness wear. Preserve facial features from reference image. Pose: dynamic athletic pose, one leg extended or lunging, arms flexed. Setting: motivational lighting, fitness environment. Expressions: powerful, energetic. Output: 8k quality, fitness model aesthetic.",
+        "Subject: Fit Indian woman in gym/fitness wear. Identity: Maintain natural likeness from reference image. Pose: Dynamic athletic pose, one leg extended, arms flexed. Expression: Powerful energetic presence. Style: Fitness model aesthetic. Lighting: Motivational studio lighting. Background: Fitness environment.",
         
-        "Indian woman in traditional wedding ceremony ethnic wear. Preserve facial characteristics from reference image. Pose: standing with hands in traditional position, celebratory posture. Setting: festive ceremonial lighting. Expressions: joyful, radiant smile. Output: 8k quality, traditional celebration.",
+        "Subject: Indian woman in traditional wedding ceremony ethnic wear. Identity: Maintain natural likeness from reference image. Pose: Standing with hands in traditional position, celebratory posture. Expression: Joyful radiant smile. Style: Traditional celebration aesthetic. Lighting: Festive warm ceremonial lighting. Background: Celebration environment.",
         
-        "Glamorous Indian woman as Bollywood celebrity. Preserve facial features from reference image. Pose: dramatic pose leaning against surface, one leg bent, theatrical hand placement. Setting: dramatic red carpet lighting. Expressions: expressive, confident posture. Output: 8k quality, cinema-quality photography.",
+        "Subject: Indian woman as Bollywood celebrity. Identity: Maintain natural likeness from reference image. Pose: Dramatic pose leaning against surface, one leg bent, theatrical hand placement. Expression: Expressive confident cinematic presence. Style: Cinema-quality photography. Lighting: Dramatic red carpet lighting. Background: Theatrical professional backdrop.",
         
-        "Indian woman as travel influencer. Preserve facial features from reference image. Pose: adventurous action pose (standing on cliff, hiking stance), looking toward horizon. Setting: exotic destination background. Expressions: adventurous body language. Output: 8k quality, wanderlust aesthetic.",
+        "Subject: Indian woman as travel influencer. Identity: Maintain natural likeness from reference image. Pose: Adventurous action pose (standing on viewpoint, exploring), looking toward horizon. Expression: Adventurous engaged presence. Style: Travel adventure aesthetic. Lighting: Natural golden-hour lighting. Background: Exotic destination landscape.",
     ],
     
     # CATEGORY C: MEN'S PHOTOSHOOT
     "men_professional": [
-        "Professional Indian man in formal business suit, confident pose, office environment, corporate photography, 8k quality, shot on Canon 5D Mark IV",
-        "Young Indian man in traditional ethnic wear (kurta pajama), studio lighting, traditional aesthetic, cultural photography, 8k quality",
-        "Indian man in casual smart wear (shirt + jeans), outdoor lighting, natural background, lifestyle photography, approachable vibe, 8k quality",
-        "Fit Indian man in gym wear/fitness clothing, athletic pose, gym environment or outdoor, fitness photography, motivational aesthetic, 8k quality",
-        "Indian man in traditional festival wear (dhoti, sherwani), golden lighting, celebration mood, traditional photography, 8k quality",
-        "Young Indian man in streetwear/urban fashion, trendy modern outfit, urban background, fashionable aesthetic, 8k quality",
-        "Indian man in semi-formal Indian ethnic wear (Nehru jacket with traditional elements), sophisticated pose, studio lighting, elegant aesthetic, 8k quality",
-        "Indian man in traditional South Indian wear (veshti, traditional top), cultural photography, temple background, authentic traditional style, 8k quality",
+        "Subject: Indian man in formal business suit. Lighting: studio professional lighting. Pose: confident professional stance, power positioning. Expression: direct eye contact, commanding presence. Style: corporate executive aesthetic. Camera: professional headshot angle.",
+        
+        "Subject: Young Indian man in traditional ethnic wear (kurta pajama). Lighting: studio warm lighting. Pose: dignified standing posture. Expression: focused sophisticated gaze. Style: cultural aesthetic. Background: clean professional backdrop.",
+        
+        "Subject: Indian man in casual smart wear (shirt + jeans). Lighting: natural outdoor lighting. Pose: relaxed approachable stance. Expression: warm engaging smile. Style: lifestyle photography. Background: natural environment.",
+        
+        "Subject: Fit Indian man in gym wear/fitness clothing. Lighting: motivational studio lighting. Pose: athletic power stance. Expression: strong energetic presence. Style: fitness model aesthetic. Background: fitness environment.",
+        
+        "Subject: Indian man in traditional festival wear (dhoti, sherwani). Lighting: golden warm festive lighting. Pose: celebratory dignified stance. Expression: proud warm presence. Style: traditional celebration aesthetic. Background: festive environment.",
+        
+        "Subject: Young Indian man in streetwear/urban fashion. Lighting: natural urban lighting. Pose: trendy confident stance. Expression: modern engaged presence. Style: contemporary fashion aesthetic. Background: urban setting.",
+        
+        "Subject: Indian man in semi-formal Indian ethnic wear (Nehru jacket with traditional elements). Lighting: studio professional lighting. Pose: sophisticated poised stance. Expression: elegant composed presence. Style: refined elegant aesthetic. Camera: professional flattering angle.",
+        
+        "Subject: Indian man in traditional South Indian wear (veshti, traditional top). Lighting: warm cultural lighting. Pose: cultural dignified posture. Expression: authentic cultural presence. Style: traditional authentic aesthetic. Background: cultural environment.",
     ],
     
     "men_transform": [
-        "Professional Indian man in formal business suit. Preserve recognizable facial features from reference image. Pose: standing tall with hands in power position, slight body angle showing confidence. Setting: office background with corporate lighting. Expressions: direct eye contact, commanding executive presence. Output: 8k quality, professional headshot aesthetic.",
+        "Subject: Indian man in formal business suit. Identity: Maintain natural likeness from reference image. Pose: Standing tall with hands in power position, commanding confidence. Expression: Direct eye contact, executive presence. Style: Corporate professional aesthetic. Lighting: Studio professional lighting. Background: Professional office environment.",
         
-        "Handsome Indian man in traditional kurta pajama. Preserve facial characteristics from reference image. Pose: standing gracefully with one hand on chest, dignified posture. Setting: studio lighting, elegant background. Expressions: soft, focused gaze, sophisticated. Output: 8k quality, cultural photography aesthetic.",
+        "Subject: Handsome Indian man in traditional kurta pajama. Identity: Maintain natural likeness from reference image. Pose: Standing gracefully with one hand on chest, dignified posture. Expression: Soft focused sophisticated gaze. Style: Cultural aesthetic. Lighting: Studio elegant lighting. Background: Professional backdrop.",
         
-        "Athletic Indian man in gym wear. Preserve facial features from reference image. Pose: dynamic power pose with arms flexed, strong confident stance. Setting: fitness environment with motivational lighting. Expressions: powerful, energetic. Output: 8k quality, fitness model aesthetic.",
+        "Subject: Athletic Indian man in gym wear. Identity: Maintain natural likeness from reference image. Pose: Dynamic power pose with arms flexed, strong confident stance. Expression: Powerful energetic presence. Style: Fitness model aesthetic. Lighting: Motivational fitness lighting. Background: Fitness environment.",
         
-        "Glamorous Indian man as Bollywood actor. Preserve facial features from reference image. Pose: dramatic pose leaning against surface, one hand raised. Setting: dramatic red carpet lighting, theatrical environment. Expressions: intense eye contact, confident posture. Output: 8k quality, cinema-quality photography.",
+        "Subject: Glamorous Indian man as Bollywood actor. Identity: Maintain natural likeness from reference image. Pose: Dramatic pose leaning against surface, one hand raised. Expression: Intense engaged eye contact, confident presence. Style: Cinema-quality photography. Lighting: Dramatic professional lighting. Background: Theatrical professional setting.",
         
-        "Trendy Indian man as lifestyle influencer. Preserve facial characteristics from reference image. Pose: relaxed confident standing pose, one hand in pocket. Setting: natural lighting. Expressions: engaging smile toward camera, Instagram aesthetic. Output: 8k quality, contemporary lifestyle.",
+        "Subject: Trendy Indian man as lifestyle influencer. Identity: Maintain natural likeness from reference image. Pose: Relaxed confident standing pose, one hand in pocket. Expression: Engaging warm smile toward camera. Style: Contemporary lifestyle aesthetic. Lighting: Natural warm lighting. Background: Instagram-worthy lifestyle environment.",
         
-        "Indian man in traditional festival wear (sherwani, ethnic). Preserve facial features from reference image. Pose: standing regal with hands gracefully placed. Setting: golden warm lighting. Expressions: celebratory, proud, warm. Output: 8k quality, festive aesthetic.",
+        "Subject: Indian man in traditional festival wear (sherwani, ethnic). Identity: Maintain natural likeness from reference image. Pose: Standing regal with hands gracefully placed. Expression: Celebratory proud warm presence. Style: Festive celebration aesthetic. Lighting: Golden warm festive lighting. Background: Celebration environment.",
         
-        "Indian man as travel influencer. Preserve facial features from reference image. Pose: adventurous action pose (standing on mountain, exploring), looking toward horizon. Setting: exotic location background. Expressions: adventurous body language, wanderlust vibe. Output: 8k quality, adventure aesthetic.",
+        "Subject: Indian man as travel influencer. Identity: Maintain natural likeness from reference image. Pose: Adventurous action pose (standing on mountain, exploring), looking toward horizon. Expression: Adventurous engaged presence. Style: Adventure aesthetic. Lighting: Natural golden-hour lighting. Background: Exotic destination landscape.",
         
-        "Artistic creative Indian man. Preserve facial characteristics from reference image. Pose: sophisticated pose leaning or seated artistically. Setting: artistic background, creative environment. Expressions: thoughtful, composed, cultured aesthetic. Output: 8k quality, creative professional.",
+        "Subject: Artistic creative Indian man. Identity: Maintain natural likeness from reference image. Pose: Sophisticated pose leaning or seated artistically. Expression: Thoughtful composed cultured presence. Style: Creative professional aesthetic. Lighting: Artistic professional lighting. Background: Creative artistic environment.",
         
-        "Luxury lifestyle Indian man. Preserve facial features from reference image. Pose: standing confidently in premium designer wear. Setting: high-end upscale background. Expressions: sophisticated, composed, elegant posture. Output: 8k quality, luxury aesthetic.",
+        "Subject: Luxury lifestyle Indian man. Identity: Maintain natural likeness from reference image. Pose: Standing confidently in premium designer wear. Expression: Sophisticated composed elegant presence. Style: Luxury aesthetic. Lighting: Sophisticated professional lighting. Background: High-end upscale environment.",
         
-        "Charismatic Indian man for dating profile. Preserve facial features from reference image. Pose: relaxed approachable pose with gentle smile. Setting: warm romantic lighting. Expressions: welcoming, engaging direct eye contact. Output: 8k quality, approachable romantic aesthetic.",
+        "Subject: Charismatic Indian man for dating profile. Identity: Maintain natural likeness from reference image. Pose: Relaxed approachable pose with gentle presence. Expression: Welcoming engaging direct eye contact. Style: Approachable romantic aesthetic. Lighting: Warm romantic lighting. Background: Warm professional backdrop.",
     ],
     
     # CATEGORY D: COUPLES
     "couples_general": [
-        "Indian couple pre-wedding photoshoot, romantic pose, outdoor garden setting, golden hour lighting, traditional jewelry, professional photography, 8k quality, shot on Canon 5D",
-        "Indian couple in traditional wedding wear (bride in lehenga, groom in sherwani), ornate jewelry, festive lighting, wedding photography style, regal aesthetic, 8k quality",
-        "Young Indian couple in casual modern outfit, candid romantic moment, outdoor park setting, natural lighting, lifestyle photography, authentic vibe, 8k quality",
-        "Indian couple in ethnic fusion wear, modern styling with traditional elements, studio lighting, contemporary photography, 8k quality",
-        "Couple in traditional festival outfit (Holi colors, celebration mood), playful energetic pose, festive lighting, joyful atmosphere, 8k quality",
-        "Indian couple in formal ethnic wear (woman in saree, man in formal kurta), elegant pose, studio lighting, sophisticated aesthetic, 8k quality",
-        "Young couple in beach/casual wear, romantic coastal setting, sunset lighting, vacation mood, lifestyle photography, intimate moment, 8k quality",
-        "Couple during Indian wedding ceremony, bride in bridal saree, groom in traditional sherwani, temple setting, ceremonial photography, 8k quality",
+        "Subject: Indian couple in pre-wedding romantic setting. Lighting: golden-hour warm glow. Pose: close comfortable stance, leaning toward each other. Expression: warm romantic connection. Style: pre-wedding aesthetic. Background: outdoor garden environment. Camera: shallow depth of field emphasizing couple.",
+        
+        "Subject: Indian couple in traditional wedding attire (bride in lehenga, groom in sherwani). Lighting: warm festive ceremonial lighting. Pose: regal close stance. Expression: joyful celebratory presence. Style: wedding celebration aesthetic. Background: traditional wedding environment.",
+        
+        "Subject: Young Indian couple in casual modern outfit. Lighting: natural warm lighting. Pose: candid relaxed stance, natural connection. Expression: genuine authentic smiles. Style: lifestyle photography. Background: park/garden environment.",
+        
+        "Subject: Indian couple in ethnic fusion wear (traditional meets contemporary). Lighting: natural professional lighting. Pose: comfortable close stance. Expression: modern confident presence. Style: contemporary fashion aesthetic. Background: professional setting.",
+        
+        "Subject: Couple in traditional festival outfit (Holi celebration). Lighting: bright festive lighting with colored powders. Pose: playful energetic close stance. Expression: joyful playful celebration. Style: festive celebration aesthetic. Background: festive environment.",
+        
+        "Subject: Indian couple in formal ethnic wear (woman in saree, man in formal kurta). Lighting: studio professional lighting. Pose: elegant close stance. Expression: sophisticated composed presence. Style: formal ethnic aesthetic. Background: professional backdrop.",
+        
+        "Subject: Young couple in beach/casual wear. Lighting: golden-hour sunset glow. Pose: romantic relaxed walking together. Expression: intimate connected presence. Style: vacation lifestyle aesthetic. Background: coastal landscape.",
+        
+        "Subject: Couple during Indian wedding ceremony (bride in bridal saree, groom in sherwani). Lighting: warm ceremonial lighting. Pose: ceremonial close connection. Expression: sacred joyful presence. Style: wedding ceremony aesthetic. Background: temple/ceremony setting.",
     ],
     
     "couples_transform": [
-        "Couple portrait transformation using two reference images. Preserve both individuals' recognizable facial features (face shape, eyes, nose, lips, skin tone) while keeping natural likeness. Couple standing close, slightly leaning toward each other. Hands: fingers intertwined, her right hand on his shoulder, his right hand gently holding hers. Head angle: soft tilt toward each other (~45°). Expressions: warm, subtle smiles. Style: 90s vintage fashion shoot. Outfits: pastel tones, soft textures, minimal patterns. Lighting: warm softbox with golden-hour glow. Background: blurred vintage cityscape or soft gradient. Camera: slightly above eye level, shallow depth of field. Output: high-resolution, cinematic, soft romantic aesthetic.",
+        "Subject: Couple portrait using two reference images. Identity: Maintain natural likeness of both individuals. Keep both identities distinct. Use both reference images equally weighted. Pose: Standing close, slightly leaning toward each other. Fingers intertwined. Her right hand on his shoulder, his right hand holding hers. Head: Soft tilt toward each other (~45°). Expression: Warm subtle romantic smiles. Style: 90s vintage fashion aesthetic. Lighting: Warm soft cinematic lighting with golden-hour tone. Background: Blurred vintage cityscape or soft gradient. Camera: Slightly above eye level, shallow depth of field.",
         
-        "Indian couple pre-wedding photoshoot. Preserve facial features from both reference images. Pose: bride facing forward, groom standing behind with arms around bride, both turning toward camera. Setting: outdoor garden with golden hour lighting. Traditional jewelry and elegant aesthetic. Expressions: warm, romantic connection. Lighting: softbox with golden hour glow. Camera: shallow depth of field emphasizing couple connection. Output: 8k quality, professional photography, romantic and intimate mood.",
+        "Subject: Indian couple pre-wedding photoshoot using two reference images. Identity: Maintain natural likeness of both individuals from reference images. Keep distinct facial characteristics. Pose: Bride facing forward, groom standing behind with arms around bride, both turning toward camera. Expression: Warm romantic connection and engagement. Style: Pre-wedding aesthetic. Lighting: Softbox with golden hour glow. Background: Outdoor garden with natural environment. Camera: Shallow depth of field emphasizing couple connection.",
         
-        "Indian wedding couple portrait. Preserve recognizable facial features for both subjects from reference images. Pose: bride and groom facing each other, joyful expressions, gentle body connection. Bride in bridal saree/lehenga, groom in traditional sherwani. Setting: temple or ceremonial backdrop. Lighting: warm, golden ceremonial lighting. Camera: centered composition, slight elevated angle. Output: high-resolution, wedding photography aesthetic, celebratory mood.",
+        "Subject: Indian wedding couple portrait using two reference images. Identity: Maintain natural likeness for both subjects from reference images. Preserve individual features. Pose: Bride and groom facing each other, joyful expressions, gentle body connection. Attire: Bride in bridal saree/lehenga, groom in traditional sherwani. Expression: Joyful romantic celebration. Style: Wedding celebration aesthetic. Lighting: Warm golden ceremonial lighting. Background: Temple or ceremonial backdrop. Camera: Centered composition, slight elevated angle.",
         
-        "Engaged Indian couple sitting close together. Preserve facial characteristics from both reference images. Pose: couple seated, hands intertwined, facing camera. Setting: studio environment with neutral background. Lighting: professional studio setup, soft directional light. Expressions: romantic, intimate connection. Outfits: formal elegant wear. Output: 8k quality, professional engagement photography, intimate moment.",
+        "Subject: Engaged Indian couple using two reference images. Identity: Maintain natural likeness of both individuals from references. Keep facial characteristics distinct. Pose: Couple seated close together, hands intertwined, facing camera. Expression: Romantic intimate connection. Style: Engagement photography aesthetic. Lighting: Professional studio setup with soft directional light. Background: Studio environment with neutral background. Attire: Formal elegant wear.",
         
-        "Indian couple celebrating anniversary. Preserve facial features from both reference images. Pose: standing facing each other with warm embrace. Setting: romantic dining environment with candlelight ambiance. Outfits: formal elegant wear. Expressions: joyful, celebratory connection. Lighting: warm candlelight with subtle key light. Camera: intimate framing. Output: high-resolution, romantic atmosphere, celebratory aesthetic.",
+        "Subject: Indian couple celebrating anniversary using two reference images. Identity: Maintain natural likeness of both individuals from reference images. Pose: Standing facing each other with warm embrace. Expression: Joyful celebratory connection. Style: Romantic celebration aesthetic. Lighting: Warm candlelight with subtle key light. Background: Romantic dining environment with candlelight ambiance. Attire: Formal elegant wear.",
         
-        "Couple on honeymoon vacation. Preserve facial features from both reference images. Pose: walking hand in hand toward horizon. Setting: exotic tropical background, sunset. Outfits: casual vacation wear. Expressions: relaxed, joyful. Lighting: golden-hour sunset glow. Camera: full-body composition with landscape. Output: high-resolution, wanderlust aesthetic, adventure mood.",
+        "Subject: Couple on honeymoon vacation using two reference images. Identity: Maintain natural likeness of both individuals from references. Pose: Walking hand in hand toward horizon. Expression: Relaxed joyful presence. Style: Travel adventure aesthetic. Lighting: Golden-hour sunset glow. Background: Exotic tropical landscape with sunset. Camera: Full-body composition with landscape context.",
         
-        "Indian couple celebrating Holi festival. Preserve facial characteristics from both reference images. Pose: playfully posing together with colored powder in air. Setting: outdoor festive environment. Outfits: colorful traditional festival clothes. Expressions: energetic, joyful, playful. Lighting: bright festive lighting, colorful powder dust. Camera: dynamic action shot. Output: high-resolution, celebration mood, vibrant energetic aesthetic.",
+        "Subject: Indian couple celebrating Holi festival using two reference images. Identity: Maintain natural likeness of both individuals from references. Pose: Playfully posing together with colored powder in air. Expression: Energetic joyful playful presence. Style: Festive celebration aesthetic. Lighting: Bright festive lighting with colored powder effects. Background: Outdoor festive environment. Camera: Dynamic action composition.",
         
-        "Couple on romantic dinner date. Preserve facial features from both reference images. Pose: seated at table, leaning toward each other, intimate eye contact. Setting: elegant restaurant with candlelight. Outfits: formal elegant wear. Expressions: warm, loving, connected. Lighting: candlelight with warm accent lighting. Camera: intimate medium shot. Output: high-resolution, intimate romantic aesthetic.",
+        "Subject: Couple on romantic dinner date using two reference images. Identity: Maintain natural likeness of both individuals from references. Pose: Seated at table, leaning toward each other, intimate eye contact. Expression: Warm loving connected presence. Style: Intimate romantic aesthetic. Lighting: Candlelight with warm accent lighting. Background: Elegant restaurant environment. Attire: Formal elegant wear.",
         
-        "Modern Indian couple as influencers. Preserve facial characteristics from both reference images. Pose: back-to-back, both looking toward camera with confident relaxed expressions. Setting: Instagram-worthy contemporary background. Outfits: contemporary stylish wear. Lighting: natural or bright studio lighting. Camera: full-body composition. Output: high-resolution, modern aesthetic, relatable and stylish mood.",
+        "Subject: Modern Indian couple as influencers using two reference images. Identity: Maintain natural likeness of both individuals from references. Pose: Back-to-back, both looking toward camera with confident relaxed expressions. Expression: Confident contemporary presence. Style: Modern lifestyle aesthetic. Lighting: Natural warm professional lighting. Background: Urban or contemporary setting. Camera: Full-body composition showing style.",
         
-        "Luxury lifestyle Indian couple. Preserve facial features from both reference images. Pose: standing together facing forward, confident elegant posture. Setting: high-end upscale background. Outfits: premium designer wear. Lighting: sophisticated professional lighting. Camera: full-body composition with refined framing. Output: high-resolution, sophisticated upscale aesthetic.",
+        
+        "Subject: Couple in travel adventure using two reference images. Identity: Maintain natural likeness of both individuals from references. Pose: Sitting together looking at landscape/destination, intimate connected pose. Expression: Adventurous joyful engaged presence. Style: Adventure lifestyle aesthetic. Lighting: Golden-hour natural lighting. Background: Exotic destination landscape. Camera: Landscape-oriented composition.",
+        
+        "Subject: Luxury lifestyle Indian couple using two reference images. Identity: Maintain natural likeness of both individuals from references. Pose: Standing together facing forward, confident elegant posture. Expression: Sophisticated composed presence. Style: Luxury upscale aesthetic. Lighting: Sophisticated professional lighting. Background: High-end upscale environment. Attire: Premium designer wear.",
     ],
     
     # CATEGORY F: DESIGN & POSTERS
     "design_posters": [
         # --- BEGINNER ---
-        {"level": "beginner", "prompt": "Motivational Instagram post, bold white text on dark gradient background, simple geometric shapes, clean modern layout, 1080x1080px"},
-        {"level": "beginner", "prompt": "Diwali festival graphic, gold and red colours, diya illustration, centered text, festive mood, Instagram square format 1080x1080"},
-        {"level": "beginner", "prompt": "Fitness quote poster, dark gym background, bright accent text, simple icon, bold sans-serif font, Instagram story 1080x1920"},
+        {"level": "beginner", "prompt": "Motivational Instagram post. Typography: bold white text on dark gradient. Elements: simple geometric shapes. Layout: clean modern centered. Format: 1080x1080px"},
+        {"level": "beginner", "prompt": "Diwali festival graphic. Colors: gold and red accents. Element: diya illustration centered. Text: festive typography. Format: Instagram square 1080x1080"},
+        {"level": "beginner", "prompt": "Fitness quote poster. Background: dark gym aesthetic. Text: bright accent typography, bold sans-serif. Icon: simple motivational graphic. Format: Instagram story 1080x1920"},
         # --- PROFESSIONAL ---
-        {"level": "professional", "prompt": "Minimalist motivational poster, bold typography, Indian cultural geometric patterns inspired by Rangoli, split-tone color palette (deep navy + saffron), modern flat design, grid-based composition, 1920x1080, 300dpi print-ready"},
-        {"level": "professional", "prompt": "Vibrant social media graphic, Holi festival theme, dynamic color splash (magenta, cyan, yellow), editorial-style photo overlay, modern sans-serif headline, rule-of-thirds layout, 1080x1350 Instagram portrait"},
-        {"level": "professional", "prompt": "Women empowerment poster, strong silhouette of Indian woman, duotone purple/gold colour scheme, editorial typography hierarchy, negative space composition, 1080x1350, Instagram-optimised"},
-        {"level": "professional", "prompt": "Travel destination carousel slide, golden-hour photography of Indian landmark, magazine-style layout, white space, elegant serif headline + body copy, Instagram carousel 1080x1080"},
+        {"level": "professional", "prompt": "Minimalist motivational poster. Layout: grid-based composition. Typography: bold sans-serif headline. Pattern: geometric Rangoli-inspired inspiration. Colors: deep navy + saffron contrast. Style: modern flat design. Format: 1920x1080 300dpi print"},
+        {"level": "professional", "prompt": "Holi festival social graphic. Colors: dynamic magenta, cyan, yellow splash. Layout: rule-of-thirds with photo overlay. Typography: editorial modern sans-serif. Style: vibrant motion aesthetic. Format: 1080x1350 Instagram portrait"},
+        {"level": "professional", "prompt": "Women empowerment poster. Subject: strong silhouette of Indian woman. Colors: duotone purple/gold palette. Layout: negative space composition. Typography: editorial hierarchy. Format: 1080x1350 Instagram optimized"},
+        {"level": "professional", "prompt": "Travel destination carousel. Content: golden-hour landmark photography. Layout: magazine-style with white space. Typography: elegant serif headline + body. Format: 1080x1080 carousel 300dpi"},
         # --- EXPERT ---
-        {"level": "expert", "prompt": "Avant-garde conceptual poster, surreal photomontage blending Mughal architecture with cyberpunk neon aesthetics, Glitch art texture overlay, chromatic aberration, brutalist grid, custom variable font headline, 4K 3840x2160, bleed-safe print"},
-        {"level": "expert", "prompt": "Luxury brand announcement poster, ultra-minimal layout, single hero product floating on marble texture, gold foil emboss simulation, Swiss typography system (Helvetica Neue), precise kerning, 5pt grid, A2 print 420x594mm 300dpi CMYK"},
-        {"level": "expert", "prompt": "Data-driven infographic poster, premium financial dashboard aesthetic, dark glass-morphism panels, neon accent data visualisations, custom icon set, hierarchical typographic scale, 1920x1080 UHD web + print dual output"},
+        {"level": "expert", "prompt": "Avant-garde conceptual poster. Concept: Mughal architecture + cyberpunk neon blend. Technique: glitch art with chromatic aberration. Grid: brutalist composition. Typography: custom variable font. Format: 4K 3840x2160 with bleed"},
+        {"level": "expert", "prompt": "Luxury brand announcement. Layout: ultra-minimal floating hero product. Material: marble texture background. Effect: gold foil emboss simulation. Typography: Swiss sans-serif precision. Grid: 5pt measurement. Format: A2 print 420x594mm 300dpi CMYK"},
+        {"level": "expert", "prompt": "Premium financial infographic. Style: dark glass-morphism panels with neon data visualizations. Data: interactive sortable elements. Typography: hierarchical sans-serif scale. Format: 1920x1080 UHD for web + print"},
     ],
 
     # CATEGORY G: REEL SCRIPTS
     "reel_scripts": [
-        {"level": "beginner", "prompt": "15-second Reel: morning routine, warm lighting, soft background music, 3 simple cuts, text overlay with steps"},
-        {"level": "beginner", "prompt": "30-second Reel: before/after transformation, split-screen effect, trending audio, motivational text overlay"},
-        {"level": "beginner", "prompt": "15-second POV Reel: relatable everyday Indian life moment, single location, trending sound, one text caption"},
-        {"level": "professional", "prompt": "30-second educational Reel: 'Did You Know' Indian history fact, kinetic text overlays, quick 4-cut edit, royalty-free upbeat audio, hook in first 2 seconds, end-screen CTA"},
-        {"level": "professional", "prompt": "45-second Day-in-life Reel: Indian entrepreneur morning routine, 6-cut sequence, golden-hour aesthetic, voiceover narration, lower-third labels, engagement CTA at end"},
-        {"level": "professional", "prompt": "30-second product showcase Reel: product reveal with dramatic lighting reveal, slow-motion detail shots, trending audio sync, logo sting at end, vertical 9:16 format"},
-        {"level": "expert", "prompt": "60-second cinematic brand story Reel: 4K footage, colour graded in warm film emulation LUT, seamless jump-cut rhythm synced to bass drops, motion-tracked typography, dynamic aspect-ratio transitions (16:9→9:16), brand-colour grade, professional colour science"},
-        {"level": "expert", "prompt": "45-second viral challenge Reel: original Indian cultural twist on global trend, multi-location shoot, drone intro shot, match-cut transitions, waveform-synced text animation, platform-native interactive sticker CTA"},
+        {"level": "beginner", "prompt": "15-second morning routine Reel. Hook: warm lighting establishing shot. Content: 3 simple sequential steps. Style: soft background music. Text: overlay labels for each step. Format: vertical 9:16"},
+        {"level": "beginner", "prompt": "30-second transformation Reel. Structure: before/after split-screen. Transition: smooth wipe effect. Audio: trending sound. Text: motivational overlay. Format: vertical 9:16"},
+        {"level": "beginner", "prompt": "15-second relatable POV Reel. Concept: everyday Indian life moment. Location: single continuous setting. Audio: trending sound. Text: one caption. Format: vertical 9:16"},
+        {"level": "professional", "prompt": "30-second educational Reel. Hook: attention-grabbing (0-2s). Content: 'Did You Know' Indian history fact. Visuals: kinetic text overlays with 4-cut sequence. Audio: royalty-free upbeat tempo. CTA: end-screen engagement. Format: vertical 9:16"},
+        {"level": "professional", "prompt": "45-second day-in-life Reel. Structure: Indian entrepreneur morning routine. Editing: 6-cut sequence with smooth transitions. Aesthetic: golden-hour warm color. Audio: voiceover narration. Labels: lower-third identifier text. Format: vertical 9:16"},
+        {"level": "professional", "prompt": "30-second product reveal Reel. Reveal: dramatic lighting reveal moment. Content: slow-motion product detail shots. Audio: trending sound matched to beat. Branding: logo sting at end. Format: vertical 9:16"},
+        {"level": "expert", "prompt": "60-second cinematic brand story Reel. Production: 4K footage with film emulation color grade. Editing: jump-cuts synced to bass drops. Typography: motion-tracked text animations. Aspect: dynamic ratio transitions (16:9→9:16). Grade: cohesive brand color science. Format: 4K for all platforms"},
+        {"level": "expert", "prompt": "45-second viral challenge Reel. Concept: original Indian cultural twist on global trend. Production: multi-location shoot with drone intro. Editing: match-cut rhythm transitions. Animation: waveform-synced text effects. CTA: interactive sticker engagement. Format: vertical 9:16 optimized"},
     ],
 
     # CATEGORY H: CAPTIONS
@@ -161,91 +189,91 @@ PROMPTS = {
         {"level": "beginner", "prompt": "3 quick wins for your content this week 🚀"},
         {"level": "professional", "prompt": "Indian Secret Productivity Hack (Borrowed from Ancient Texts) 📜"},
         {"level": "professional", "prompt": "How 15K Indian Creators Made $X This Year (Without Selling)"},
-        {"level": "professional", "prompt": "[First Name], Your Personalised Growth Plan Is Ready"},
-        {"level": "expert", "prompt": "The algorithm-proof content framework top 1% Indian creators use (never shared publicly)"},
+        {"level": "professional", "prompt": "[First Name], Your Personalized Growth Plan Is Ready"},
+        {"level": "expert", "prompt": "The algorithm-proof content framework top 1% creators use (never shared publicly)"},
         {"level": "expert", "prompt": "Why your reach dropped 40% last month — and the exact fix 3 creators used to bounce back"},
     ],
 
     # ─── NEW CATEGORY 1: UI/UX DESIGN ─────────────────────────────────────────
     "ui_ux_design": [
         # --- BEGINNER ---
-        {"level": "beginner", "prompt": "Clean mobile app login screen, white background, blue primary button, email and password fields, simple logo at top, iOS style, Figma mockup"},
-        {"level": "beginner", "prompt": "Simple dashboard UI, card-based layout, 4 stat tiles, light grey background, clean sans-serif font, mobile-first design"},
-        {"level": "beginner", "prompt": "E-commerce product page, product image left, details right, big 'Add to Cart' button, minimal design, responsive layout"},
+        {"level": "beginner", "prompt": "Mobile app login screen. Elements: email/password fields, login button. Style: clean white background, blue primary button, iOS-style. Format: Figma mockup"},
+        {"level": "beginner", "prompt": "Simple analytics dashboard. Layout: card-based stat tiles (4 cards). Background: light grey. Typography: clean sans-serif. Approach: mobile-first design"},
+        {"level": "beginner", "prompt": "E-commerce product page. Layout: product image left, details right. CTA: prominent 'Add to Cart' button. Style: minimal responsive design"},
         # --- PROFESSIONAL ---
-        {"level": "professional", "prompt": "Fitness tracking iOS app — onboarding screen 3/5: animated progress ring in saffron/teal accent, dark background, SF Pro Display typography, bottom sheet micro-interaction, safe-area-aware layout, WCAG AA contrast, 390x844px @3x export"},
-        {"level": "professional", "prompt": "SaaS analytics dashboard, glass-morphism sidebar, gradient area charts, data table with sortable columns, dark mode, Inter typeface, 8pt spacing grid, 1440px desktop breakpoint, Figma auto-layout components"},
-        {"level": "professional", "prompt": "Food delivery app home screen, card-based restaurant grid, sticky search bar, category pill filters, skeleton loading state, Material You colour scheme, 360x800 Android, 4dp corner radius system"},
-        {"level": "professional", "prompt": "FinTech wallet app — transaction history screen, timeline list with category icons, income/expense colour split (green/red), mini sparkline per entry, bottom nav bar, iOS Human Interface Guidelines compliant, SF Symbols icons"},
+        {"level": "professional", "prompt": "Fitness iOS app onboarding (screen 3/5). Feature: animated progress ring (saffron/teal). Layout: dark theme. Typography: SF Pro Display. Interaction: bottom sheet micro-animation. Specs: safe-area layout, WCAG AA contrast, 390x844px @3x"},
+        {"level": "professional", "prompt": "SaaS analytics dashboard. Layout: glass-morphism sidebar + gradient area charts. Content: sortable data table. Theme: dark mode. Typography: Inter. Grid: 8pt spacing. Breakpoint: 1440px desktop. Components: Figma auto-layout"},
+        {"level": "professional", "prompt": "Food delivery app home. Layout: card grid of restaurants, sticky search. Filters: category pills for browsing. Loading: skeleton state. Design: Material You colors. Specs: 360x800 Android, 4dp corner radius system"},
+        {"level": "professional", "prompt": "FinTech wallet app transaction history. Layout: timeline list with category icons. Colors: income green/expense red accent. Feature: mini sparkline chart per transaction. Navigation: bottom nav bar. Standard: iOS Human Interface Guidelines"},
         # --- EXPERT ---
-        {"level": "expert", "prompt": "AI-powered productivity app — command palette overlay, frosted glass blur (backdrop-filter 20px), animated type-ahead suggestions with confidence scores, keyboard shortcut badges, tokenised design system variables, dark/light theme adaptive, WCAG AAA, Figma variables + modes"},
-        {"level": "expert", "prompt": "Luxury real-estate web app — immersive full-bleed 3D property viewer, spatial UI floating controls, cinematic parallax scroll, editorial serif + geometric sans type pairing, 12-column 1920px grid, micro-animation system (Lottie + Framer Motion), design token documentation"},
-        {"level": "expert", "prompt": "B2B enterprise data platform — complex nested table with inline editing, multi-select bulk actions, contextual command bar, resizable column system, drag-to-reorder rows, advanced filter builder (AND/OR logic), accessibility: screen-reader ARIA live regions, focus trap management, Storybook component docs"},
+        {"level": "expert", "prompt": "AI productivity app command palette. Features: frosted glass blur (backdrop-filter 20px), animated type-ahead with confidence scoring, keyboard shortcuts. Design: tokenized system variables, dark/light adaptive. Accessibility: WCAG AAA. Tools: Figma variables + modes"},
+        {"level": "expert", "prompt": "Luxury real-estate web app. Hero: full-bleed 3D property viewer. UI: spatial floating controls, cinematic parallax scroll. Typography: editorial serif + geometric sans mix. Grid: 12-column 1920px. Animation: Lottie + Framer Motion micro-system"},
+        {"level": "expert", "prompt": "Enterprise B2B data platform complex table. Features: inline editing, multi-select bulk actions, contextual command bar, resizable columns, drag-to-reorder. Filters: advanced AND/OR logic builder. Accessibility: ARIA live regions, focus trap management. Docs: Storybook library"},
     ],
 
     # ─── NEW CATEGORY 2: BRAND IDENTITY ───────────────────────────────────────
     "brand_identity": [
         # --- BEGINNER ---
-        {"level": "beginner", "prompt": "Simple logo design for Indian food brand, round badge style, warm orange and brown colours, fork and leaf icon, clean sans-serif name"},
-        {"level": "beginner", "prompt": "Basic brand colour palette for wellness brand, 5 swatches, earthy greens and creams, hex codes labelled, Canva-style presentation"},
-        {"level": "beginner", "prompt": "Social media profile kit, matching profile picture + banner for Instagram, consistent colours and fonts, minimal aesthetic"},
+        {"level": "beginner", "prompt": "Indian food brand logo. Style: round badge. Colors: warm orange and brown. Element: fork and leaf icon. Typography: clean sans-serif"},
+        {"level": "beginner", "prompt": "Wellness brand color palette. Swatches: 5 colors. Colors: earthy greens and creams. Format: labeled hex codes"},
+        {"level": "beginner", "prompt": "Social media profile kit. Components: profile picture + banner. Style: consistent colors and fonts. Platform: Instagram"},
         # --- PROFESSIONAL ---
-        {"level": "professional", "prompt": "Premium ayurvedic wellness brand identity: wordmark in elegant serif (Garamond variant), lotus motif monogram, brand palette (ivory, forest green, burnished gold), primary + secondary logo lockups, minimum size rules, clear-space guidelines, A4 brand sheet"},
-        {"level": "professional", "prompt": "D2C Indian fashion brand — full visual identity: geometric batik-inspired pattern system, brand typeface pairing (display + body), 6-colour palette with usage ratios, logo on light/dark/pattern backgrounds, packaging mockup (garment tag + shopping bag), brand guidelines PDF"},
-        {"level": "professional", "prompt": "Tech startup brand kit: bold geometric wordmark, icon system (6 custom SVG icons), primary blue-violet palette + neutrals, Inter + Space Grotesk type system, business card + letterhead + email signature mockups, Figma brand token library"},
+        {"level": "professional", "prompt": "Premium ayurvedic wellness brand. Logo: elegant serif (Garamond) + lotus monogram. Palette: ivory, forest green, burnished gold. Lockups: primary + secondary. Guidelines: minimum size, clear-space. Format: A4 brand sheet"},
+        {"level": "professional", "prompt": "D2C Indian fashion brand identity. Pattern: geometric batik-inspired system. Typography: display + body typeface pair. Palette: 6 colors with usage ratios. Logos: light/dark/pattern versions. Packaging: garment tag + shopping bag mockups"},
+        {"level": "professional", "prompt": "Tech startup brand kit. Logo: bold geometric wordmark. Icons: 6 custom SVG set. Palette: blue-violet + neutrals. Typography: Inter + Space Grotesk. Stationery: business card, letterhead, email signature. Tools: Figma brand tokens"},
         # --- EXPERT ---
-        {"level": "expert", "prompt": "Heritage luxury jewellery brand identity overhaul: custom variable serif wordmark with optical weight compensation, micro-pattern inspired by historic Bidriware metalwork, 3-tier colour system (hero / supporting / accent), holographic foil simulation for print, adaptive logo for AR contexts, comprehensive 60-page brand book with do/don't examples"},
-        {"level": "expert", "prompt": "Global fintech brand system: responsive logo family (full / compact / icon / favicon), internationalisation-ready typeface (Latin + Devanagari + Arabic), semantic colour token architecture (global → alias → component), motion identity guidelines (easing curves, timing functions), accessibility audit for all brand applications, Figma Tokens JSON export"},
+        {"level": "expert", "prompt": "Heritage luxury jewellery brand rebrand. Logo: custom variable serif with optical weight. Pattern: micro-Bidriware metalwork inspired. Colors: 3-tier system (hero/supporting/accent). Print: holographic foil simulation. Innovation: adaptive logo for AR. Deliverable: 60-page brand book"},
+        {"level": "expert", "prompt": "Global fintech brand system. Logo: responsive family (full/compact/icon/favicon). Typography: multilingual (Latin + Devanagari + Arabic). Colors: semantic token architecture (global→alias→component). Motion: easing curves + timing. Audit: accessibility compliance. Export: Figma Tokens JSON"},
     ],
 
     # ─── NEW CATEGORY 3: ILLUSTRATION & DIGITAL ART ───────────────────────────
     "illustration_art": [
         # --- BEGINNER ---
-        {"level": "beginner", "prompt": "Cute flat illustration of Indian street food cart, bright colours, simple shapes, no shadows, vector style, white background"},
-        {"level": "beginner", "prompt": "Simple character illustration of Indian woman in saree, bold outline, flat colour fill, kawaii proportions, digital art"},
-        {"level": "beginner", "prompt": "Minimal line art of Indian city skyline, single colour, thin strokes, landmarks silhouetted, suitable for t-shirt print"},
+        {"level": "beginner", "prompt": "Cute flat illustration. Subject: Indian street food cart. Style: bright colors, simple shapes, no shadows, vector. Background: white"},
+        {"level": "beginner", "prompt": "Character illustration. Subject: Indian woman in saree. Style: bold outline, flat color fill, kawaii proportions. Technique: digital art"},
+        {"level": "beginner", "prompt": "Minimal line art. Subject: Indian city skyline. Style: single color, thin strokes, silhouetted landmarks. Use: t-shirt print"},
         # --- PROFESSIONAL ---
-        {"level": "professional", "prompt": "Editorial illustration — Indian woman coder. Style: holographic UI elements floating around, isometric perspective. Palette: vibrant jewel tones. Technique: Procreate digital painting with textured grain. Output: 2400x1600px editorial format."},
-        {"level": "professional", "prompt": "Children's book illustration — Indian village festival at night. Focus: Diwali lamps reflected in river. Style: warm painterly gouache, soft lighting. Composition: rich storytelling. Output: 3000x2000px, 300dpi."},
-        {"level": "professional", "prompt": "Concept art — Indian mythology character (Arjuna as modern archer hero). Pose: dynamic action, detailed Mahabharata-inspired armour. Lighting: dramatic rim-light. Technique: painterly rendering. Composition: cinematic. Output: 2K square format."},
-        {"level": "professional", "prompt": "Infographic illustration — Indian spice market. 8 spice icons with hand-drawn linework, watercolour texture. Labels: editorial serif fonts. Palette: warm earthy tones. Layout: A3 print format."},
+        {"level": "professional", "prompt": "Editorial illustration — Indian woman coder. Style: holographic UI elements, isometric perspective. Palette: vibrant jewel tones. Technique: Procreate digital with textured grain. Output: 2400x1600px"},
+        {"level": "professional", "prompt": "Children's book illustration. Scene: Indian village festival at night. Focus: Diwali lamps reflected in river. Technique: warm painterly gouache. Style: soft lighting, rich storytelling. Output: 3000x2000px 300dpi"},
+        {"level": "professional", "prompt": "Concept art — Indian mythology character (Arjuna as modern archer hero). Pose: dynamic action, detailed Mahabharata-inspired armor. Lighting: dramatic rim-light. Technique: painterly rendering. Output: 2K square"},
+        {"level": "professional", "prompt": "Infographic illustration — Indian spice market. Elements: 8 spice icons with hand-drawn linework + watercolor texture. Labels: editorial serif fonts. Palette: warm earthy tones. Format: A3 print"},
         # --- EXPERT ---
-        {"level": "expert", "prompt": "Surrealist digital painting — Indian classical dancer transforming into cosmic deity. Subject: body formed from micro-marigolds. Palette: terracotta → celestial indigo. Technique: individual petal rendering at Beeple-level detail. Output: 8K UHD."},
-        {"level": "expert", "prompt": "Graphic novel cover — dystopian Mumbai 2087. Palette: acid yellow / noir black / rust orange. Technique: ink-wash + digital hybrid with layered atmospheric haze. Composition: cyberpunk Indian characters (foreground) → broken architecture (mid-ground) → blood-red sky. Format: 210x297mm A4 bleed. Influence: Frank Miller."},
-        {"level": "expert", "prompt": "Generative mandala — algorithmically composed from Tamil Kolam patterns. Structure: parametric symmetry. Palette: 256-colour gradient HSL spectrum. Detail: ultra-fine linework at 0.1pt. Output: large-format canvas 120x120cm at 300dpi."},
+        {"level": "expert", "prompt": "Surrealist digital painting. Concept: Indian classical dancer transforming into cosmic deity. Details: body formed from micro-marigolds. Palette: terracotta→celestial indigo gradient. Technique: individual petal rendering (Beeple-level detail). Output: 8K UHD"},
+        {"level": "expert", "prompt": "Graphic novel cover — dystopian Mumbai 2087. Palette: acid yellow/noir black/rust orange. Technique: ink-wash + digital hybrid with atmospheric haze. Composition: cyberpunk characters (foreground)→broken architecture (midground)→blood-red sky. Format: 210x297mm A4 bleed. Style: Frank Miller influence"},
+        {"level": "expert", "prompt": "Generative mandala. Algorithm: parametric symmetry composed from Tamil Kolam patterns. Structure: 256-color HSL gradient spectrum. Detail: ultra-fine linework at 0.1pt. Output: large-format canvas 120x120cm at 300dpi"},
     ],
 
     # ─── NEW CATEGORY 4: ANIMATION & MOTION GRAPHICS ─────────────────────────
     "animation_motion": [
         # --- BEGINNER ---
-        {"level": "beginner", "prompt": "Simple logo reveal animation, fade-in with slight scale, 2 seconds, clean white background, ease-in-out timing, exported as GIF and MP4"},
-        {"level": "beginner", "prompt": "Instagram story animated text, bold headline types on screen word by word, colourful background, 5 seconds loop, After Effects template style"},
-        {"level": "beginner", "prompt": "Basic loading spinner animation, circular progress ring in brand colour, smooth 1-second loop, transparent background, Lottie JSON format"},
+        {"level": "beginner", "prompt": "Logo reveal animation. Effect: fade-in with subtle scale. Duration: 2 seconds. Background: white. Timing: ease-in-out. Output: GIF + MP4"},
+        {"level": "beginner", "prompt": "Instagram story text animation. Content: bold headline revealing word by word. Background: colorful. Duration: 5 seconds loop. Style: After Effects template"},
+        {"level": "beginner", "prompt": "Loading spinner. Element: circular progress ring in brand color. Timing: smooth 1-second loop. Background: transparent. Format: Lottie JSON"},
         # --- PROFESSIONAL ---
-        {"level": "professional", "prompt": "Brand intro sting (3-sec). Wordmark assembled by particle swarm. Background: deep blue. Lighting: subtle lens flare. Audio: synced to logo hit beat. Tool: After Effects. Output: 1920x1080 ProRes."},
-        {"level": "professional", "prompt": "Animated explainer (30-sec) — UPI payment flow. Style: flat 2D with smooth transitions, kinetic typography. Audio: royalty-free upbeat track. Context: Indian market. Output: 1080x1920 vertical + 1920x1080 horizontal."},
-        {"level": "professional", "prompt": "Social media carousel animation. 5-slide product launch sequence. Motion: consistent language (slide-in left, scale pop). Palette: brand colours. Export: GIF + MP4 auto-advancing. Format: 1080x1080, 24fps."},
+        {"level": "professional", "prompt": "Brand intro sting (3-sec). Animation: wordmark assembled by particle swarm. Background: deep blue. Effect: subtle lens flare. Audio: synced to logo hit beat. Tool: After Effects. Output: 1920x1080 ProRes"},
+        {"level": "professional", "prompt": "Animated explainer (30-sec) — UPI payment flow. Style: flat 2D with smooth transitions, kinetic typography. Audio: royalty-free upbeat. Market: India-focused. Output: 1080x1920 vertical + 1920x1080 horizontal"},
+        {"level": "professional", "prompt": "Social carousel animation. Content: 5-slide product launch sequence. Motion: consistent transitions (slide-in left, scale pop). Colors: brand palette. Export: GIF + MP4 auto-advancing. Format: 1080x1080 24fps"},
         # --- EXPERT ---
-        {"level": "expert", "prompt": "Cinematic title sequence — Indian web series. Technique: hand-drawn frame-by-frame. Content: mythological scenes → modern urban. Frame rate: 12fps artistic stagger. Texture: traditional miniature painting. Score: orchestral + electronic sync. Output: 4K 4096x2160, film grain, 45-sec."},
-        {"level": "expert", "prompt": "Real-time 3D motion graphics — Rangoli powder spreading. Technique: GPU particle system with physics-based colour mixing. Shader: custom GLSL blend modes. Render: 60fps WebGL with mouse-tracking interactivity + 4K pre-rendered social version. Loopable."},
-        {"level": "expert", "prompt": "Data visualisation animation — India population density choropleth (10-year time-lapse). Easing: custom per-state transitions. Camera: pan system across regions. Pipeline: d3.js + After Effects polish. Output: 1920x1080 broadcast-safe with synced lower-third annotations."},
+        {"level": "expert", "prompt": "Title sequence — Indian web series. Technique: hand-drawn frame-by-frame animation. Content: mythological→modern urban transition. Frame rate: 12fps artistic stagger. Texture: traditional miniature painting inspiration. Audio: orchestral + electronic blend. Output: 4K 4096x2160 with film grain, 45-sec"},
+        {"level": "expert", "prompt": "3D motion graphics — Rangoli powder spreading. Technique: GPU particle system with physics-based color mixing. Shader: custom GLSL blend modes. Render: 60fps WebGL with interactive mouse tracking + 4K pre-rendered version. Loopable"},
+        {"level": "expert", "prompt": "Data visualization — India population density choropleth (10-year time-lapse). Animation: custom per-state easing transitions. Camera: dynamic pan across regions. Tools: d3.js + After Effects. Output: 1920x1080 broadcast-safe with synced lower-third text"},
     ],
 
     # ─── NEW CATEGORY 5: PHOTOGRAPHY STYLES ──────────────────────────────────
     "photography_styles": [
         # --- BEGINNER ---
-        {"level": "beginner", "prompt": "Bright and airy portrait, Indian woman, natural window light, white background, soft shadows, clean Instagram aesthetic, shot on iPhone"},
-        {"level": "beginner", "prompt": "Warm golden-hour street photo, Indian marketplace, orange tone, candid people, shot on smartphone, lifestyle feel"},
-        {"level": "beginner", "prompt": "Flat lay product photo, Indian spices in small bowls, warm wood background, natural light, minimal props, overhead angle"},
+        {"level": "beginner", "prompt": "Bright airy portrait. Subject: Indian woman. Lighting: natural window light, soft shadows. Background: white. Aesthetic: clean Instagram style. Camera: shot on iPhone"},
+        {"level": "beginner", "prompt": "Golden-hour street photo. Subject: Indian marketplace. Lighting: warm orange tone. Style: candid people, lifestyle feel. Camera: shot on smartphone"},
+        {"level": "beginner", "prompt": "Flat lay product photo. Subject: Indian spices in small bowls. Background: warm wood. Lighting: natural light, minimal props. Angle: overhead"},
         # --- PROFESSIONAL ---
-        {"level": "professional", "prompt": "Noir portrait — 1950s Mumbai café setting. Subject: Indian man. Lighting: single overhead tungsten, deep shadow pools (70% black), wet-pavement reflections. Film: Kodak 5219 emulation, 800 ISO grain. Lens: 85mm f/1.4. Colour: desaturated mid-tones, punchy highlights."},
-        {"level": "professional", "prompt": "Surreal fine-art portrait — Indian woman + Ajanta fresco merge. Concept: skin painted with intricate fresco patterns. Lighting: soft ethereal. Palette: teal-terracotta-gold. Technique: double-exposure composite. Depth: dreamlike DOF. Format: medium-format aesthetic 4:3 crop, 8K."},
-        {"level": "professional", "prompt": "High-fashion editorial — Indian model in avant-garde silhouette. Setup: stark studio with large-format strobe (sharp octabox). Lighting: dramatic deep shadow. Composition: editorial negative space (Vogue India aesthetic). Sensor: Phase One 150MP. Format: 8x10 portrait."},
-        {"level": "professional", "prompt": "Documentary street — blue-hour chai stall, Old Delhi. Lighting: available light (fluorescent + fire). Texture: authentic gritty. Lens: 35mm f/2.8 wide-angle. Composition: photojournalism style with intentional motion blur on vendor hands. Film: Tri-X 400 B&W conversion."},
+        {"level": "professional", "prompt": "Noir portrait — 1950s Mumbai café. Subject: Indian man. Lighting: single overhead tungsten, deep shadow pools (70% black), wet pavement reflections. Film: Kodak 5219 emulation, 800 ISO grain. Lens: 85mm f/1.4. Palette: desaturated mid-tones, punchy highlights"},
+        {"level": "professional", "prompt": "Surreal fine-art portrait. Concept: Indian woman + Ajanta fresco merge with intricate fresco pattern painting on skin. Lighting: soft ethereal. Palette: teal-terracotta-gold. Technique: double-exposure composite. Depth: dreamlike DOF. Format: 4:3 medium-format crop, 8K"},
+        {"level": "professional", "prompt": "High-fashion editorial — Indian model in avant-garde silhouette. Setup: stark studio with large-format strobe. Lighting: dramatic deep shadow, negative space. Composition: Vogue India aesthetic. Sensor: Phase One 150MP. Format: 8x10 portrait"},
+        {"level": "professional", "prompt": "Documentary street — blue-hour chai stall, Old Delhi. Lighting: available light (fluorescent + fire), authentic gritty. Lens: 35mm f/2.8 wide-angle. Composition: photojournalism with intentional motion blur. Film: Tri-X 400 B&W"},
         # --- EXPERT ---
-        {"level": "expert", "prompt": "Architectural study — 19th-century Indo-Saracenic railway station. Camera: 4x5 view camera with perspective correction. Exposure: zone system (Zone III-VIII). Print: platinum-palladium emulation. Detail: ultra-sharp corner-to-corner. Composition: architectural symmetry (Ansel Adams style). Output: 8K scan."},
-        {"level": "expert", "prompt": "Multiple-exposure fine art — Indian classical dance (Bharatanatyam). Technique: 7-layer in-camera exposure with intentional colour-channel separation. Result: motion-spectrum rainbow body trail. Speed: 1/8000s per frame. Render: single raw file combined. Style: abstract-expressionist. Sensor: 100MP."},
-        {"level": "expert", "prompt": "Computational macro — Indian coin collection. Technique: 200-image focus-stack at 1:1 macro. Step: 0.02mm interval. Processing: zerene stacker. Detail: infinitely sharp surfaces. Resolution: 500MP effective output. Quality: scientific illustration, museum-archive standard."},
+        {"level": "expert", "prompt": "Architectural study — 19th-century Indo-Saracenic railway station. Camera: 4x5 view camera with perspective correction. Exposure: zone system (Zone III-VIII). Print: platinum-palladium emulation. Detail: ultra-sharp corner-to-corner. Composition: architectural symmetry (Ansel Adams). Output: 8K scan"},
+        {"level": "expert", "prompt": "Multiple-exposure fine art — Indian classical dance (Bharatanatyam). Technique: 7-layer in-camera exposure with color-channel separation. Effect: motion-spectrum rainbow body trail. Speed: 1/8000s per frame. Style: abstract-expressionist. Sensor: 100MP"},
+        {"level": "expert", "prompt": "Computational macro — Indian coin collection. Technique: 200-image focus-stack at 1:1 macro with 0.02mm interval. Processing: Zerene stacker. Detail: infinitely sharp surfaces. Resolution: 500MP effective output. Quality: scientific illustration, museum-archive standard"},
     ],
 
     # ─── NEW CATEGORY 6: PRINT DESIGN ────────────────────────────────────────
