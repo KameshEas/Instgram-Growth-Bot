@@ -6,6 +6,7 @@ from src.agents.engagement_agent import EngagementAgent
 from src.agents.monetization_agent import MonetizationAgent
 from src.agents.analytics_agent import AnalyticsAgent
 from src.agents.trends_agent import TrendsAgent
+from src.prompts.templates import get_category_meta
 
 if TYPE_CHECKING:
     from src.main import InstagramGrowthBot
@@ -133,11 +134,29 @@ class ContentOrchestratorAgent(BaseAgent):
                     })
                 elif custom_prompt and custom_prompt.strip() and self._groq_bot:
                     # Custom-concept path: delegate to Groq for AI enhancement
-                    result = self._groq_bot.image_generation_prompts(
+                    ai_result = self._groq_bot.image_generation_prompts(
                         category=category,
                         custom_prompt=custom_prompt,
                         level=level,
                     )
+                    # Normalize to the shape the telegram handler expects
+                    if ai_result and "error" not in ai_result:
+                        raw_prompts = ai_result.get("prompts", [])
+                        prompt_strings = [
+                            p["prompt"] if isinstance(p, dict) else p
+                            for p in raw_prompts
+                        ]
+                        result = {
+                            "status": "success",
+                            "category": category,
+                            "custom": True,
+                            "level": level or "mixed",
+                            "count": len(prompt_strings),
+                            "prompts": prompt_strings,
+                            "meta": get_category_meta(category) or {"emoji": "🎯", "tools": [], "best_for": ""},
+                        }
+                    else:
+                        result = ai_result
                 else:
                     # Library path: serve from static prompt templates via agent
                     agent_result = await self.agents["content_generator"].execute({
