@@ -434,241 +434,57 @@ Return JSON with:
             logger.info("[OK] Generated engagement strategy for %s account", account_size)
         return result
     
-    def image_generation_prompts(self, category: str, custom_prompt: str = None, level: str = None) -> dict:
-        """Get image generation prompts from library or enhance a custom prompt.
+    def image_generation_prompts(self, category: str = "general_photography", 
+                                  custom_prompt: str = None, level: str = None, 
+                                  niche: str = "", chat_id: int = None) -> dict:
+        """Enhance custom prompt or generate AI-only prompts.
+        
+        Architecture: Pure AI-generated prompts (no static library).
+        All prompt generation uses Groq AI — no library fallback.
         
         Args:
-            category: Prompt category name.
-            custom_prompt: Optional user-supplied concept to enhance via Groq.
-            level: Difficulty filter — 'beginner', 'professional', or 'expert'.
+            category: Content category (used for context only)
+            custom_prompt: Optional user-supplied concept to enhance via AI
+            level: Difficulty level (context for AI)
+            niche: Optional niche/brand context
+            chat_id: Optional chat ID for logging
+        
+        Returns:
+            Dict with generated prompts via AI
         """
         try:
-            from src.prompts.templates import (
-                get_category_prompts, get_prompts_by_level,
-                list_categories, get_category_meta, DIFFICULTY_EMOJI
-            )
-            import random
-
+            from src.prompts.templates import list_categories, get_category_meta
+            
             category = category.lower().replace(" ", "_").replace("-", "_")
             all_categories = list_categories()
-
+            
             if category not in all_categories:
-                return {
-                    "status": "error",
-                    "error": f"Category '{category}' not found",
-                    "available_categories": all_categories
-                }
-
+                category = "general_photography"
+            
             meta = get_category_meta(category)
-
-            # ── CUSTOM PROMPT PATH ───────────────────────────────────────────
+            
+            # If custom prompt provided, enhance it via AI
             if custom_prompt and custom_prompt.strip():
-                logger.info(f"[OK] Enhancing custom prompt — category={category}, level={level or 'auto'}")
-
-                # Build category-specific enhancement instructions
-                ENHANCE_CONFIGS = {
-                    "design_posters": {
-                        "task": "professional poster / social-media graphic design prompt",
-                        "fields": "Resolution · Style · Colour palette (3-4 colours) · Main visual elements · Typography · Composition · File format",
-                        "max_tokens": 350,
-                    },
-                    "ui_ux_design": {
-                        "task": "detailed UI/UX design specification prompt",
-                        "fields": "Platform (iOS/Android/Web) · Screen name · Key components · Colour system · Typography · Grid/spacing · Interactions · Accessibility note",
-                        "max_tokens": 380,
-                    },
-                    "brand_identity": {
-                        "task": "brand identity design prompt",
-                        "fields": "Brand name & industry · Logo style · Colour palette (3-5 colours + hex) · Typography pairing · Tone of voice · Key deliverables · Format",
-                        "max_tokens": 350,
-                    },
-                    "illustration_art": {
-                        "task": "digital illustration / concept art prompt",
-                        "fields": "Subject & scene · Art style · Colour palette · Lighting · Mood · Detail level · Canvas size · Tools/medium",
-                        "max_tokens": 320,
-                    },
-                    "animation_motion": {
-                        "task": "animation / motion graphics production prompt",
-                        "fields": "Duration · Frame rate · Style · Key scenes (3-4) · Transitions · Audio · Text overlays · Export format",
-                        "max_tokens": 320,
-                    },
-                    "photography_styles": {
-                        "task": "photography / fine-art image prompt",
-                        "fields": "Subject · Style (noir/surreal/editorial etc.) · Lighting setup · Colour grade · Lens & focal length · Mood · Resolution",
-                        "max_tokens": 300,
-                    },
-                    "print_design": {
-                        "task": "print design prompt",
-                        "fields": "Format & size (with bleed) · Colour mode (CMYK/RGB) · Typography · Key visuals · Finish (gloss/matte/foil) · DPI · Print-ready notes",
-                        "max_tokens": 320,
-                    },
-                    "product_3d": {
-                        "task": "3D product visualisation / render prompt",
-                        "fields": "Product type · Materials & shaders · Lighting rig · Background/environment · Camera angle · Render engine · Output resolution",
-                        "max_tokens": 320,
-                    },
-                    "reel_scripts": {
-                        "task": "Instagram Reel / short-form video script",
-                        "fields": "Duration · Scene breakdown (3-4 scenes) · Transitions · Audio · Text overlays · Camera movement · Call-to-action · Format (9:16)",
-                        "max_tokens": 300,
-                    },
-                    "women_transform": {
-                        "task": "woman portrait transformation image prompt",
-                        "fields": "Facial feature preservation (face shape, eye shape & colour, nose, lips, skin tone, complexion — must match reference) · Pose & body angle · Hand placement · Head angle & gaze · Expression · Outfit · Lighting · Background · Camera framing · Quality",
-                        "max_tokens": 320,
-                    },
-                    "men_transform": {
-                        "task": "man portrait transformation image prompt",
-                        "fields": "Facial feature preservation (face shape, jawline, eye shape & colour, nose, lips, skin tone, beard/facial hair — must match reference) · Pose & body angle · Hand placement · Head angle & gaze · Expression · Outfit · Lighting · Background · Camera framing · Quality",
-                        "max_tokens": 320,
-                    },
-                    "couples_transform": {
-                        "task": "couples portrait transformation image prompt",
-                        "fields": "Facial feature preservation for BOTH subjects (individual face shapes, eye shapes & colours, noses, lips, skin tones, complexions — must match reference images) · Couple connection pose · Face positions · Hand/arm placement · Expressions · Outfits · Lighting · Background · Camera framing · Quality",
-                        "max_tokens": 340,
-                    },
-                }
-
-                config = ENHANCE_CONFIGS.get(category)
-                level_instruction = ""
-                if level == "beginner":
-                    level_instruction = "Keep it simple — suitable for beginners using Canva, basic Photoshop, or free AI tools."
-                elif level == "professional":
-                    level_instruction = "Write at professional industry standard. Include tool-specific terminology."
-                elif level == "expert":
-                    level_instruction = "Write at expert/advanced level with technical precision, niche techniques, and production-ready specs."
-
-                if config:
-                    # Build mandatory facial preservation clause for transform categories
-                    transform_categories = {"women_transform", "men_transform", "couples_transform"}
-                    if category in transform_categories:
-                        if category == "couples_transform":
-                            facial_rule = """
-
-CRITICAL FOR 100% FACIAL PRESERVATION:
-1. Start prompt with: "EXACT FACE MATCH + IDENTITY PRESERVATION"
-2. Specify facial features TWICE in the prompt
-3. End with: "— USE FACE_ID FROM REFERENCE IMAGE. PRESERVE every facial detail: both subjects' unique face shapes, eye shapes & colors, nose structure, lips, skin tones, complexions, jawlines, facial characteristics. Match 100% exactly. Do NOT vary faces. Apply identity-consistency technique. Keep original facial anatomy intact."
-4. Add: "- Maintain exact facial geometry - No face modifications - Identity-locked to reference - Facial structure immutable"
-"""
-                        elif category == "men_transform":
-                            facial_rule = """
-
-CRITICAL FOR 100% FACIAL PRESERVATION:
-1. Start prompt with: "EXACT FACE MATCH + IDENTITY PRESERVATION"
-2. Specify facial features TWICE in the prompt
-3. End with: "— USE FACE_ID FROM REFERENCE IMAGE. Preserve subject's exact facial features: face shape, jawline, eye shape & color, nose structure, lips, skin tone, beard/facial hair, complexion, facial characteristics. Match 100% exactly. Do NOT vary face. Apply identity-consistency technique. Keep original facial anatomy intact."
-4. Add: "- Maintain exact facial geometry - No face modifications - Identity-locked to reference - Facial structure immutable"
-"""
-                        else:  # women_transform
-                            facial_rule = """
-
-CRITICAL FOR 100% FACIAL PRESERVATION:
-1. Start prompt with: "EXACT FACE MATCH + IDENTITY PRESERVATION"
-2. Specify facial features TWICE in the prompt
-3. End with: "— USE FACE_ID FROM REFERENCE IMAGE. Preserve subject's exact facial features: face shape, eye shape & color, nose structure, lips, skin tone, complexion, facial characteristics. Match 100% exactly. Do NOT vary face. Apply identity-consistency technique. Keep original facial anatomy intact."
-4. Add: "- Maintain exact facial geometry - No face modifications - Identity-locked to reference - Facial structure immutable"
-"""
-                    else:
-                        facial_rule = ""
-
-                    enhancement_prompt = f"""Create a {config['task']} from this concept. Be CRISP and CONCISE.
-{level_instruction}
-
-Concept: {custom_prompt}
-
-Include ONLY these essential details:
-{config['fields']}
-
-IMPORTANT: Return ONLY the prompt/spec itself — no explanations. Max 250 words.{facial_rule}"""
-
-                    try:
-                        response = self.client.chat.completions.create(
-                            model=self.model,
-                            messages=[{"role": "user", "content": enhancement_prompt}],
-                            temperature=0.7,
-                            max_tokens=config["max_tokens"],
-                        )
-                        enhanced = response.choices[0].message.content.strip()
-                        logger.info(f"[OK] Enhanced custom prompt for {category}")
-                        return {
-                            "status": "success",
-                            "category": category,
-                            "custom": True,
-                            "enhanced": True,
-                            "level": level or "professional",
-                            "count": 1,
-                            "prompts": [enhanced],
-                            "meta": meta,
-                            "available_categories": all_categories,
-                        }
-                    except Exception as e:
-                        logger.warning(f"Enhancement failed, returning original: {e}")
-
-                # Fallback: return as-is
-                return {
-                    "status": "success",
-                    "category": category,
-                    "custom": True,
-                    "enhanced": False,
-                    "level": level or "",
-                    "count": 1,
-                    "prompts": [custom_prompt.strip()],
-                    "meta": meta,
-                    "available_categories": all_categories,
-                }
-
-            # ── LIBRARY PATH ─────────────────────────────────────────────────
-            if level and level in ("beginner", "professional", "expert"):
-                prompt_strings = get_prompts_by_level(category, level)
-            else:
-                # Mix all levels — pick one from each if possible
-                beg = get_prompts_by_level(category, "beginner")
-                pro = get_prompts_by_level(category, "professional")
-                exp = get_prompts_by_level(category, "expert")
-                # Fall back to legacy plain-string list
-                if not beg and not pro and not exp:
-                    raw = get_category_prompts(category)
-                    prompt_strings = [p if isinstance(p, str) else p["prompt"] for p in raw]
-                else:
-                    pool = []
-                    if beg:
-                        pool.append(random.choice(beg))
-                    if pro:
-                        pool.append(random.choice(pro))
-                    if exp:
-                        pool.append(random.choice(exp))
-                    prompt_strings = pool
-
-            if not prompt_strings:
-                return {"status": "error", "error": f"No prompts found for '{category}'"}
-
-            selected = random.sample(prompt_strings, min(3, len(prompt_strings)))
-            logger.info(f"[OK] Serving {len(selected)} library prompts — category={category}, level={level or 'mixed'}")
-
-            return {
-                "status": "success",
-                "category": category,
-                "custom": False,
-                "level": level or "mixed",
-                "count": len(selected),
-                "prompts": selected,
-                "meta": meta,
-                "available_categories": all_categories,
-            }
-
+                logger.info(f"[AI] Enhancing custom prompt — category={category}")
+                return self.generate_image_prompts(
+                    category=category,
+                    niche=custom_prompt,  # Pass as context
+                    count=1,
+                    user_context=custom_prompt,
+                    chat_id=chat_id
+                )
+            
+            # Otherwise, generate via AI
+            return self.generate_image_prompts(
+                category=category,
+                niche=niche,
+                count=3,
+                user_context="",
+                chat_id=chat_id
+            )
+        
         except Exception as e:
             logger.error(f"image_generation_prompts error: {e}")
-            return {"status": "error", "error": str(e)}
-
-
-    def search_prompts(self, keyword: str) -> dict:
-        """Search all prompt categories for a keyword."""
-        try:
-            from src.prompts.templates import search_prompts as _search
-            results = _search(keyword)
-            return {"status": "success", "keyword": keyword, "count": len(results), "results": results[:10]}
-        except Exception as e:
             return {"status": "error", "error": str(e)}
 
     def generate_image_prompts(

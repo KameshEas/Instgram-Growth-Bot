@@ -32,6 +32,9 @@ os.makedirs("data", exist_ok=True)
 
 def escape_md(text: str) -> str:
     """Escape special characters for Telegram legacy Markdown v1."""
+    # Handle non-string inputs gracefully
+    if not isinstance(text, str):
+        text = str(text)
     for ch in ("*", "_", "`", "["):
         text = text.replace(ch, "\\" + ch)
     return text
@@ -991,10 +994,20 @@ class TelegramBotHandler:
                 # Color Palette
                 if brief.get("color_palette"):
                     msg += "*🎨 Color Palette:*\n"
-                    for color in brief["color_palette"]:
-                        color_name = color.get("name", "Color")
-                        color_hex = color.get("hex", "#000000")
-                        msg += f"  • {color_name} ({color_hex})\n"
+                    palette = brief["color_palette"]
+                    if isinstance(palette, list):
+                        for color in palette:
+                            if isinstance(color, dict):
+                                color_name = color.get("name", "Color")
+                                color_hex = color.get("hex", "#000000")
+                            else:
+                                # Handle non-dict items
+                                color_name = str(color) if color else "Color"
+                                color_hex = "#000000"
+                            msg += f"  • {color_name} ({color_hex})\n"
+                    else:
+                        # If palette itself is not a list, convert to string
+                        msg += f"  {escape_md(str(palette))}\n"
                     msg += "\n"
                 
                 # Typography
@@ -1004,8 +1017,12 @@ class TelegramBotHandler:
                 # Key Elements
                 if brief.get("key_elements"):
                     msg += "*🔑 Key Design Elements:*\n"
-                    for elem in brief["key_elements"]:
-                        msg += f"  • {escape_md(elem)}\n"
+                    elements = brief["key_elements"]
+                    if isinstance(elements, list):
+                        for elem in elements:
+                            msg += f"  • {escape_md(elem)}\n"
+                    else:
+                        msg += f"  {escape_md(str(elements))}\n"
                     msg += "\n"
                 
                 # Composition
@@ -1019,8 +1036,12 @@ class TelegramBotHandler:
                 # Tools
                 if brief.get("tools"):
                     msg += "*🛠 Recommended Tools:*\n"
-                    for tool in brief["tools"]:
-                        msg += f"  • {escape_md(tool)}\n"
+                    tools = brief["tools"]
+                    if isinstance(tools, list):
+                        for tool in tools:
+                            msg += f"  • {escape_md(tool)}\n"
+                    else:
+                        msg += f"  {escape_md(str(tools))}\n"
                     msg += "\n"
                 
                 # Send brief in chunks if needed
