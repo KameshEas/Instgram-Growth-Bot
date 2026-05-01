@@ -7,6 +7,9 @@ from src.prompts.templates import (
     get_gift_product_meta,
     get_all_tones,
     get_tone_description,
+    list_professional_roles,
+    get_role_metadata,
+    get_role_guidance,
 )
 
 if TYPE_CHECKING:
@@ -19,9 +22,10 @@ class GiftDesignAgent(BaseAgent):
     def __init__(self, groq_bot: "InstagramGrowthBot | None" = None):
         super().__init__("GiftDesign")
         self._groq_bot = groq_bot
-        # Cache product types and tones for quick access
+        # Cache product types, tones, and roles for quick access
         self.products = list_gift_products()
         self.tones = get_all_tones()
+        self.roles = list_professional_roles()
 
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Main execution handler for gift design operations"""
@@ -36,6 +40,10 @@ class GiftDesignAgent(BaseAgent):
                 return await self._list_tones(input_data)
             elif action == "get_product_specs":
                 return await self._get_product_specs(input_data)
+            elif action == "list_roles":
+                return await self._list_roles(input_data)
+            elif action == "get_role_info":
+                return await self._get_role_info(input_data)
             else:
                 return {"status": "error", "message": f"Unknown action: {action}"}
 
@@ -52,6 +60,7 @@ class GiftDesignAgent(BaseAgent):
             tone = data.get("tone", "").lower()  # Design tone (minimalist, playful, etc.)
             occasion = data.get("occasion", "").lower()  # birthday, anniversary, etc.
             recipient_type = data.get("recipient_type", "").lower()  # friend, family, etc.
+            user_role = data.get("user_role", "").lower()  # Professional role (ui_ux_designer, developer, etc.)
             chat_id = data.get("chat_id")
             niche = data.get("niche", "")
 
@@ -87,6 +96,8 @@ class GiftDesignAgent(BaseAgent):
                 "tone_description": get_tone_description(tone) if tone in self.tones else None,
                 "occasion": occasion,
                 "recipient_type": recipient_type,
+                "user_role": user_role if user_role in self.roles else None,
+                "user_role_guidance": get_role_guidance(user_role) if user_role in self.roles else None,
                 "product_specs": {
                     "printable_area": product_meta.get("printable_area"),
                     "constraints": product_meta.get("constraints"),
@@ -219,4 +230,56 @@ class GiftDesignAgent(BaseAgent):
 
         except Exception as e:
             self.logger.error(f"Product specs error: {str(e)}")
+            return {"status": "error", "error": str(e)}
+
+    async def _list_roles(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """List all available professional roles"""
+        try:
+            roles_info = []
+            for role_key in self.roles:
+                role_meta = get_role_metadata(role_key)
+                roles_info.append({
+                    "key": role_key,
+                    "emoji": role_meta.get("emoji"),
+                    "display_name": role_meta.get("display_name"),
+                    "expertise": role_meta.get("expertise", []),
+                })
+
+            return {
+                "status": "success",
+                "action": "list_roles",
+                "roles": roles_info,
+                "total_roles": len(self.roles),
+                "usage": "Use user_role with generate_concepts action to personalize designs for specific professionals",
+                "example_roles": roles_info[:3] if len(roles_info) > 3 else roles_info,
+            }
+
+        except Exception as e:
+            self.logger.error(f"Role list error: {str(e)}")
+            return {"status": "error", "error": str(e)}
+
+    async def _get_role_info(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Get detailed information for a specific professional role"""
+        try:
+            role = data.get("user_role", "").lower()
+
+            if not role or role not in self.roles:
+                return {
+                    "status": "error",
+                    "message": f"Unknown role: {role}",
+                    "available_roles": self.roles,
+                }
+
+            role_meta = get_role_metadata(role)
+
+            return {
+                "status": "success",
+                "action": "get_role_info",
+                "role": role,
+                "role_info": role_meta,
+                "how_to_use": f"Include user_role='{role}' in your generate_concepts request to get designs tailored for {role_meta.get('display_name')}",
+            }
+
+        except Exception as e:
+            self.logger.error(f"Role info error: {str(e)}")
             return {"status": "error", "error": str(e)}

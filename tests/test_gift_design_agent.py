@@ -7,8 +7,12 @@ from src.prompts.templates import (
     list_gift_products,
     get_gift_product_meta,
     get_all_tones,
+    list_professional_roles,
+    get_role_metadata,
+    get_role_guidance,
     GIFT_PRODUCTS,
     GIFT_DESIGN_TONES,
+    PROFESSIONAL_ROLES,
 )
 
 
@@ -197,6 +201,131 @@ class TestProductSpecifications:
             # Should support at least DALL-E 3 or Midjourney
             tools_str = " ".join(meta["tools"]).lower()
             assert "dall-e" in tools_str or "midjourney" in tools_str
+
+
+class TestProfessionalRoles:
+    """Test professional roles and role metadata"""
+
+    def test_roles_available(self):
+        """Test all professional roles are loaded"""
+        roles = list_professional_roles()
+        assert len(roles) >= 10
+        assert "ui_ux_designer" in roles
+        assert "graphic_designer" in roles
+        assert "developer" in roles
+        assert "marketer" in roles
+
+    def test_get_role_metadata(self):
+        """Test getting metadata for each role"""
+        for role in list_professional_roles():
+            meta = get_role_metadata(role)
+            assert meta is not None
+            assert "emoji" in meta
+            assert "display_name" in meta
+            assert "expertise" in meta
+            assert "guidance" in meta
+            assert "tools" in meta
+            assert "design_focus" in meta
+
+    def test_role_guidance(self):
+        """Test getting guidance for specific roles"""
+        ui_guidance = get_role_guidance("ui_ux_designer")
+        assert ui_guidance is not None
+        assert len(ui_guidance) > 0
+        assert "user" in ui_guidance.lower() or "interface" in ui_guidance.lower()
+
+        dev_guidance = get_role_guidance("developer")
+        assert dev_guidance is not None
+        assert "code" in dev_guidance.lower() or "technical" in dev_guidance.lower()
+
+    def test_unknown_role_returns_default(self):
+        """Test unknown role returns sensible defaults"""
+        meta = get_role_metadata("unknown_role")
+        assert meta["emoji"] == "👤"
+        assert meta["display_name"] == "Creative Professional"
+        assert "tools" in meta
+
+
+@pytest.mark.asyncio
+async def test_list_roles_action(agent):
+    """Test list_roles action"""
+    result = await agent._list_roles({})
+    assert result["status"] == "success"
+    assert "roles" in result
+    assert len(result["roles"]) >= 10
+    assert result["action"] == "list_roles"
+    
+    # Verify all roles have required info
+    for role in result["roles"]:
+        assert "key" in role
+        assert "display_name" in role
+        assert "expertise" in role
+
+
+@pytest.mark.asyncio
+async def test_get_role_info_action(agent):
+    """Test get_role_info action"""
+    result = await agent._get_role_info({
+        "user_role": "graphic_designer"
+    })
+    assert result["status"] == "success"
+    assert result["role"] == "graphic_designer"
+    assert "role_info" in result
+    assert "how_to_use" in result
+
+
+@pytest.mark.asyncio
+async def test_invalid_role_info(agent):
+    """Test error handling for invalid role"""
+    result = await agent._get_role_info({
+        "user_role": "invalid_role"
+    })
+    assert result["status"] == "error"
+    assert "Unknown role" in result["message"]
+    assert "available_roles" in result
+
+
+@pytest.mark.asyncio
+async def test_generate_with_role(agent):
+    """Test that role parameter is accepted in generate_concepts"""
+    result = await agent._generate_design_concepts({
+        "product_type": "t_shirt",
+        "concept_idea": "Motivational gym design",
+        "user_role": "graphic_designer"
+    })
+    # Should fail due to no groq_bot, but role should be validated
+    # If it gets to personalization, role would be included
+    assert "status" in result
+
+
+class TestRoleExpertise:
+    """Test role expertise areas"""
+
+    def test_all_roles_have_expertise(self):
+        """Test all roles have defined expertise areas"""
+        for role in list_professional_roles():
+            meta = get_role_metadata(role)
+            expertise = meta.get("expertise", [])
+            assert isinstance(expertise, list)
+            assert len(expertise) > 0
+
+    def test_ui_ux_designer_expertise(self):
+        """Test UI/UX designer has correct expertise"""
+        meta = get_role_metadata("ui_ux_designer")
+        expertise = meta.get("expertise", [])
+        assert "user experience" in expertise or "interface design" in expertise
+
+    def test_developer_expertise(self):
+        """Test developer has correct expertise"""
+        meta = get_role_metadata("developer")
+        expertise = meta.get("expertise", [])
+        assert "code" in expertise or "frontend development" in expertise
+
+    def test_marketer_expertise(self):
+        """Test marketer has correct expertise"""
+        meta = get_role_metadata("marketer")
+        expertise = meta.get("expertise", [])
+        assert any("market" in e.lower() or "campaign" in e.lower() for e in expertise)
 
 
 if __name__ == "__main__":

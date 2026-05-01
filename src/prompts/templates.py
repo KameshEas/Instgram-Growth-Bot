@@ -256,6 +256,98 @@ GIFT_DESIGN_TONES = {
     "romantic": "Love-focused, dreamy, soft colors, flowing shapes, hearts/decorative elements",
 }
 
+# --- PROFESSIONAL ROLES TAXONOMY ------------------------------------------------
+PROFESSIONAL_ROLES = {
+    "ui_ux_designer": {
+        "emoji": "🎨",
+        "display_name": "UI/UX Designer",
+        "expertise": ["user experience", "interface design", "accessibility", "wireframing", "prototyping"],
+        "guidance": "Focus on user-centered design principles, accessibility compliance, and intuitive interactions. Consider usability patterns and information architecture.",
+        "tools": ["Figma", "Adobe XD", "Sketch", "DALL-E 3", "Midjourney"],
+        "design_focus": "Interface-ready, pixel-perfect, accessibility-compliant"
+    },
+    "graphic_designer": {
+        "emoji": "✏️",
+        "display_name": "Graphic Designer",
+        "expertise": ["visual design", "typography", "color theory", "composition", "branding"],
+        "guidance": "Emphasize typography, color harmony, composition rules, and visual hierarchy. Consider print-ready specifications and design principles.",
+        "tools": ["Adobe Creative Suite", "Illustrator", "Photoshop", "DALL-E 3", "Midjourney"],
+        "design_focus": "Print-ready, color-harmonious, typographically-rich"
+    },
+    "developer": {
+        "emoji": "💻",
+        "display_name": "Developer",
+        "expertise": ["code", "frontend development", "responsive design", "web standards", "performance"],
+        "guidance": "Include technical specifications, responsive breakpoints, and implementation considerations. Focus on clean, implementable designs.",
+        "tools": ["Figma", "CSS", "SVG", "DALL-E 3", "Midjourney"],
+        "design_focus": "Web-optimized, responsive, CSS-friendly"
+    },
+    "content_creator": {
+        "emoji": "📹",
+        "display_name": "Content Creator",
+        "expertise": ["social media", "video content", "storytelling", "engagement", "trending topics"],
+        "guidance": "Focus on viral-worthy visuals, trending aesthetics, emotional resonance, and platform-specific optimization (Instagram, TikTok, YouTube).",
+        "tools": ["Canva", "Adobe Premiere", "DALL-E 3", "Midjourney", "CapCut"],
+        "design_focus": "Trend-aware, platform-optimized, engagement-focused"
+    },
+    "marketer": {
+        "emoji": "📊",
+        "display_name": "Marketer",
+        "expertise": ["brand messaging", "campaign strategy", "target audience", "conversion optimization", "analytics"],
+        "guidance": "Prioritize message clarity, audience targeting, call-to-action effectiveness, and brand consistency. Include conversion-optimized layouts.",
+        "tools": ["Canva", "Adobe Creative Suite", "DALL-E 3", "Midjourney"],
+        "design_focus": "Message-driven, conversion-optimized, audience-targeted"
+    },
+    "social_media_manager": {
+        "emoji": "📱",
+        "display_name": "Social Media Manager",
+        "expertise": ["social platforms", "engagement metrics", "audience growth", "scheduling", "community management"],
+        "guidance": "Design for specific platform dimensions, trending sounds/hashtags, optimal posting times. Focus on engagement and shareability.",
+        "tools": ["Buffer", "Later", "Hootsuite", "Canva", "DALL-E 3", "Midjourney"],
+        "design_focus": "Platform-native, engagement-optimized, on-trend"
+    },
+    "photographer": {
+        "emoji": "📸",
+        "display_name": "Photographer",
+        "expertise": ["composition", "lighting", "color grading", "visual narrative", "post-processing"],
+        "guidance": "Emphasize composition techniques, lighting setups, color grading possibilities, and visual storytelling. Consider depth of field and framing.",
+        "tools": ["Lightroom", "Adobe Photoshop", "Capture One", "DALL-E 3", "Midjourney"],
+        "design_focus": "Photographic, compositionally-strong, lighting-aware"
+    },
+    "brand_strategist": {
+        "emoji": "🎯",
+        "display_name": "Brand Strategist",
+        "expertise": ["brand identity", "positioning", "messaging", "visual language", "market differentiation"],
+        "guidance": "Focus on brand consistency, competitive differentiation, target market positioning, and long-term brand building. Include brand values in design.",
+        "tools": ["Brand guidelines", "Adobe Creative Suite", "DALL-E 3", "Midjourney"],
+        "design_focus": "Brand-aligned, market-differentiated, strategically-positioned"
+    },
+    "product_manager": {
+        "emoji": "🛍️",
+        "display_name": "Product Manager",
+        "expertise": ["product strategy", "user needs", "feature prioritization", "roadmap", "metrics"],
+        "guidance": "Include user value proposition, feature highlights, benefit-driven messaging, and measurable outcomes. Focus on product differentiation.",
+        "tools": ["Figma", "ProductBoard", "DALL-E 3", "Midjourney"],
+        "design_focus": "Value-driven, feature-highlighting, user-benefit-focused"
+    },
+    "illustrator": {
+        "emoji": "🖼️",
+        "display_name": "Illustrator",
+        "expertise": ["illustration", "character design", "artistic style", "storytelling", "custom artwork"],
+        "guidance": "Emphasize artistic style, character consistency, narrative elements, and illustrative techniques. Focus on custom artwork and unique perspectives.",
+        "tools": ["Procreate", "Adobe Illustrator", "Clip Studio Paint", "DALL-E 3", "Midjourney"],
+        "design_focus": "Artistically-driven, character-rich, illustratively-unique"
+    },
+    "motion_designer": {
+        "emoji": "🎬",
+        "display_name": "Motion Designer",
+        "expertise": ["animation", "motion graphics", "transitions", "timing", "visual effects"],
+        "guidance": "Include animation possibilities, timing cues, motion paths, and dynamic elements. Focus on movement and temporal aspects of design.",
+        "tools": ["After Effects", "Cinema 4D", "Blender", "DALL-E 3", "Midjourney"],
+        "design_focus": "Animation-capable, motion-aware, dynamic-element-rich"
+    },
+}
+
 # --- HELPER FUNCTIONS -----------------------------------------------------------
 def list_categories() -> list:
     """Return all available content categories for AI generation.
@@ -329,3 +421,61 @@ def get_all_tones() -> list:
         List of tone keys available for gift designs
     """
     return list(GIFT_DESIGN_TONES.keys())
+
+
+# --- ROLE HELPER FUNCTIONS ---------------------------------------------------
+def list_professional_roles() -> list:
+    """Return all available professional roles.
+    
+    Returns:
+        List of role keys (e.g., ['ui_ux_designer', 'developer', 'marketer', ...])
+    """
+    return list(PROFESSIONAL_ROLES.keys())
+
+
+def get_role_metadata(role: str) -> dict:
+    """Return metadata for a professional role.
+    
+    Args:
+        role: Role key (e.g., 'ui_ux_designer', 'graphic_designer', 'developer')
+    
+    Returns:
+        Dictionary with emoji, display_name, expertise, guidance, tools, design_focus
+    """
+    return PROFESSIONAL_ROLES.get(
+        role,
+        {
+            "emoji": "👤",
+            "display_name": "Creative Professional",
+            "expertise": ["design", "creativity", "visual thinking"],
+            "guidance": "Apply professional design principles and best practices for quality output.",
+            "tools": ["DALL-E 3", "Midjourney"],
+            "design_focus": "Professional-grade design"
+        },
+    )
+
+
+def get_role_guidance(role: str) -> str:
+    """Return design guidance for a specific professional role.
+    
+    Args:
+        role: Role key (e.g., 'ui_ux_designer', 'graphic_designer')
+    
+    Returns:
+        Guidance text tailored to the role's expertise
+    """
+    metadata = get_role_metadata(role)
+    return metadata.get("guidance", "Apply professional design principles and best practices.")
+
+
+def get_role_expertise(role: str) -> list:
+    """Return expertise areas for a specific professional role.
+    
+    Args:
+        role: Role key (e.g., 'ui_ux_designer', 'marketer')
+    
+    Returns:
+        List of expertise keywords for the role
+    """
+    metadata = get_role_metadata(role)
+    return metadata.get("expertise", [])

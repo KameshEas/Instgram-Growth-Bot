@@ -58,14 +58,20 @@ def init_groq():
 
 # Utility function for robust JSON parsing
 def parse_json_response(text: str) -> dict:
-    """Parse JSON from response, handling markdown code blocks and incomplete JSON"""
+    """Parse JSON from response, handling markdown code blocks, incomplete JSON, and embedded JSON"""
     text = text.strip()
+    
+    if not text:
+        logger.warning("[WARN] Empty response text")
+        return {}
     
     logger.debug(f"[DEBUG] Parsing response (length={len(text)})...")
     
     try:
         # Try direct parsing first
-        return json.loads(text)
+        result = json.loads(text)
+        if isinstance(result, dict):
+            return result
     except json.JSONDecodeError:
         pass
     
@@ -77,97 +83,131 @@ def parse_json_response(text: str) -> dict:
             start = text.find(start_marker)
             if start != -1:
                 start += len(start_marker)
-                # Find the LAST occurrence of closing ``` to get complete JSON
                 end = text.rfind(end_marker)
                 if end > start:
                     json_str = text[start:end].strip()
                     if json_str:
-                        logger.debug(f"[DEBUG] Found json block, length={len(json_str)}")
+                        logger.debug(f"[DEBUG] Found ```json block, length={len(json_str)}")
                         try:
-                            return json.loads(json_str)
+                            result = json.loads(json_str)
+                            if isinstance(result, dict):
+                                return result
                         except json.JSONDecodeError as e:
-                            # Try to fix incomplete JSON by adding closing braces
-                            logger.debug(f"[DEBUG] JSON incomplete, trying to fix...")
-                            json_str = json_str.rstrip()
-                            # Count opening and closing braces
-                            open_count = json_str.count('{')
-                            close_count = json_str.count('}')
+                            logger.debug(f"[DEBUG] ```json block failed to parse: {e}")
+                            # Try to fix incomplete JSON
+                            json_str = json_str.rstrip().rstrip(",")
+                            open_count = json_str.count('{') + json_str.count('[')
+                            close_count = json_str.count('}') + json_str.count(']')
                             if open_count > close_count:
-                                json_str += '}' * (open_count - close_count)
-                                logger.debug(f"[DEBUG] Added {open_count - close_count} closing braces")
+                                json_str += '}' * (json_str.count('{') - json_str.count('}'))
+                                logger.debug(f"[DEBUG] Attempting to fix missing braces...")
                                 try:
-                                    return json.loads(json_str)
-                                except json.JSONDecodeError:
+                                    result = json.loads(json_str)
+                                    if isinstance(result, dict):
+                                        return result
+                                except:
                                     pass
         except Exception as e:
-            logger.debug(f"[DEBUG] Failed to parse markdown json block: {e}")
+            logger.debug(f"[DEBUG] Failed to parse ```json block: {e}")
     
     # Try extracting from generic markdown code block with ```
-    if "```" in text:
+    if "```" in text and "```json" not in text:
         try:
             start_marker = "```"
             end_marker = "```"
             start = text.find(start_marker)
             if start != -1:
                 start += len(start_marker)
-                # Skip any language specifier (e.g., "python", "json")
                 newline_pos = text.find("\n", start)
                 if newline_pos != -1:
                     start = newline_pos + 1
                 
-                # Find the LAST occurrence of closing ``` to get complete JSON
                 end = text.rfind(end_marker)
                 if end > start:
                     json_str = text[start:end].strip()
                     if json_str:
-                        logger.debug(f"[DEBUG] Found generic block, length={len(json_str)}")
+                        logger.debug(f"[DEBUG] Found generic ``` block, length={len(json_str)}")
                         try:
-                            return json.loads(json_str)
-                        except json.JSONDecodeError as e:
-                            # Try to fix incomplete JSON
-                            json_str = json_str.rstrip()
-                            open_count = json_str.count('{')
-                            close_count = json_str.count('}')
-                            if open_count > close_count:
-                                json_str += '}' * (open_count - close_count)
-                                try:
-                                    return json.loads(json_str)
-                                except json.JSONDecodeError:
-                                    pass
-        except Exception as e:
-            logger.debug(f"[DEBUG] Failed to parse generic markdown block: {e}")
-    
-    # Try to find and parse any JSON object in the text
-    try:
-        # Look for {  ... } pattern
-        start = text.find("{")
-        if start != -1:
-            # Try to find matching closing brace from the end
-            end = text.rfind("}")
-            if end > start:
-                json_str = text[start:end+1]
-                logger.debug(f"[DEBUG] Found raw JSON, length={len(json_str)}")
-                try:
-                    return json.loads(json_str)
-                except json.JSONDecodeError:
-                    # Try to fix incomplete JSON
-                    open_count = json_str.count('{')
-                    close_count = json_str.count('}')
-                    if open_count > close_count:
-                        json_str += '}' * (open_count - close_count)
-                        try:
-                            return json.loads(json_str)
-                        except:
+                            result = json.loads(json_str)
+                            if isinstance(result, dict):
+                                return result
+                        except json.JSONDecodeError:
                             pass
+        except Exception as e:
+            logger.debug(f"[DEBUG] Failed to parse generic ``` block: {e}")
+    
+    # Try to find and parse JSON (objects or arrays)
+    try:
+        # Find both opening characters to determine which to parse
+        obj_start = text.find("{")
+        arr_start = text.find("[")
+        
+        # Determine which JSON structure to parse
+        start = None
+        is_array = False
+        
+        if obj_start != -1 and arr_start != -1:
+            # Both present, use whichever comes first
+            if arr_start < obj_start:
+                start = arr_start
+                is_array = True
+            else:
+                start = obj_start
+                is_array = False
+        elif arr_start != -1:
+            # Only array
+            start = arr_start
+            is_array = True
+        elif obj_start != -1:
+            # Only object
+            start = obj_start
+            is_array = False
+        
+        if start != -1:
+            if is_array:
+                end = text.rfind("]")
+                if end > start:
+                    json_str = text[start:end+1]
+                    logger.debug(f"[DEBUG] Found JSON array, length={len(json_str)}")
+                    try:
+                        result = json.loads(json_str)
+                        if isinstance(result, list) and result:
+                            return {"prompts": result}  # Wrap array in dict
+                    except json.JSONDecodeError:
+                        pass
+            else:
+                end = text.rfind("}")
+                if end > start:
+                    json_str = text[start:end+1]
+                    logger.debug(f"[DEBUG] Found raw JSON object, length={len(json_str)}")
+                    try:
+                        result = json.loads(json_str)
+                        if isinstance(result, dict) and result:
+                            return result
+                    except json.JSONDecodeError as e:
+                        logger.debug(f"[DEBUG] Raw JSON parse failed: {e}")
+                        # Try to fix incomplete JSON
+                        json_str_fixed = json_str.rstrip().rstrip(",")
+                        open_braces = json_str_fixed.count('{')
+                        close_braces = json_str_fixed.count('}')
+                        if open_braces > close_braces:
+                            json_str_fixed += '}' * (open_braces - close_braces)
+                            logger.debug(f"[DEBUG] Attempting fix: added {open_braces - close_braces} closing braces")
+                            try:
+                                result = json.loads(json_str_fixed)
+                                if isinstance(result, dict) and result:
+                                    return result
+                            except:
+                                pass
     except Exception as e:
-        logger.debug(f"[DEBUG] Failed to parse raw JSON: {e}")
+        logger.debug(f"[DEBUG] Failed to parse JSON: {e}")
     
     # Log failed parsing for debugging
-    preview = text[:500] if len(text) > 500 else text
-    logger.warning(f"[WARN] JSON parsing failed. Response (first 500 chars): {preview}")
+    preview = text[:300] if len(text) > 300 else text
+    logger.warning(f"[WARN] JSON parsing failed. Response preview:\n{preview}\n...")
     
-    # Return empty error dict if all parsing fails
-    return {}
+    # Return empty dict with error indicator
+    return {"error": "Failed to parse JSON response"}
 
 # AI Agent implementations
 class InstagramGrowthBot:
@@ -516,8 +556,13 @@ Return JSON with:
 
         transform_categories = {"women_transform", "men_transform", "couples_transform"}
         category_desc = CATEGORY_DESC.get(category, category.replace("_", " "))
-        niche_line = f"\nNiche/brand: {niche}" if niche else ""
-        context_line = f"\nContext: {user_context}" if user_context else ""
+        
+        # Sanitize niche and user_context to prevent quote/JSON breaking
+        niche_safe = (niche or "").replace('"', "'").replace("\n", " ").strip()[:100]
+        user_context_safe = (user_context or "").replace('"', "'").replace("\n", " ").strip()[:200]
+        
+        niche_line = f"\nNiche/brand: {niche_safe}" if niche_safe else ""
+        context_line = f"\nUser requirement: {user_context_safe}" if user_context_safe else ""
 
         if category in transform_categories:
             facial_rule = "\n\nIMPORTANT: Keep the EXACT 100% facial features and skin tone from reference image. No variations."
@@ -536,7 +581,7 @@ Instructions:
 
 IMPORTANT: Keep prompts CONCISE. Say "woman with oval face, almond eyes, full lips" NOT the full description repeated 3 times.
 
-Return ONLY valid JSON:
+Return ONLY valid JSON (no markdown, no extra text):
 {{
   "prompts": [
     {{"prompt": "<full ready-to-use prompt, 100-150 words>", "scene": "<3-5 word scene label>"}}

@@ -970,11 +970,15 @@ class TelegramBotHandler:
                 "Supported Products:\n"
                 "  • t_shirt • mug • hoodie • pillow • poster\n"
                 "  • hat • notebook • water_bottle • phone_case • sweater\n\n"
+                "Professional Roles (optional):\n"
+                "  • ui_ux_designer • graphic_designer • developer • content_creator\n"
+                "  • marketer • social_media_manager • photographer • brand_strategist\n"
+                "  • product_manager • illustrator • motion_designer\n\n"
                 "Examples:\n"
                 "• `/design_gift t_shirt \"Motivational quote for gym enthusiasts\"`\n"
                 "• `/design_gift mug \"Coffee lover, minimalist style\"`\n"
                 "• `/design_gift pillow \"Birthday gift for my best friend\"`\n\n"
-                "_Tip: Provide more details for better designs (e.g., recipient, occasion, style preference)_",
+                "_Tip: Set your role with `/set_role [role]` to get personalized design guidance!_",
                 parse_mode="Markdown",
             )
             return
@@ -1007,6 +1011,7 @@ class TelegramBotHandler:
             # Get user profile for context
             profile = self._get_profile(update.message.chat_id)
             niche = profile.get("niche", "")
+            user_role = profile.get("user_role", "")  # Get saved professional role
 
             result = await self.orchestrator.execute({
                 "command": "/design_gift",
@@ -1017,6 +1022,7 @@ class TelegramBotHandler:
                 "tone": profile.get("design_tone", ""),
                 "occasion": "",
                 "recipient_type": "",
+                "user_role": user_role,
                 "chat_id": update.message.chat_id,
                 "niche": niche,
             })
@@ -1031,6 +1037,74 @@ class TelegramBotHandler:
         except Exception as e:
             await update.message.reply_text(f"❌ Error generating design concepts: {e}")
             logger.error(f"design_gift_command error: {e}")
+
+    async def set_role_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /set_role — Set user's professional role for personalized designs."""
+        text_after_cmd = update.message.text.replace("/set_role", "", 1).strip().lower()
+
+        if not text_after_cmd:
+            await update.message.reply_text(
+                "👤 *Set Your Professional Role*\n\n"
+                "Usage: `/set_role [role]`\n\n"
+                "Available Roles:\n"
+                "• `ui_ux_designer` — UI/UX Design\n"
+                "• `graphic_designer` — Graphic Design\n"
+                "• `developer` — Web/Software Development\n"
+                "• `content_creator` — Content Creation\n"
+                "• `marketer` — Marketing\n"
+                "• `social_media_manager` — Social Media\n"
+                "• `photographer` — Photography\n"
+                "• `brand_strategist` — Brand Strategy\n"
+                "• `product_manager` — Product Management\n"
+                "• `illustrator` — Illustration\n"
+                "• `motion_designer` — Motion Design\n\n"
+                "Example: `/set_role graphic_designer`\n\n"
+                "_Your role personalizes design concepts and recommendations!_",
+                parse_mode="Markdown",
+            )
+            return
+
+        role = text_after_cmd.split()[0].lower()
+
+        # Validate role from the orchestrator
+        result = await self.orchestrator.execute({
+            "command": "/list_roles",
+            "action": "list_roles",
+        })
+
+        available_roles = []
+        if result and result.get("status") == "success":
+            available_roles = [r["key"] for r in result.get("roles", [])]
+
+        if role not in available_roles:
+            available_str = ", ".join(available_roles) if available_roles else "ui_ux_designer, graphic_designer, developer..."
+            await update.message.reply_text(
+                f"❌ Unknown role: `{role}`\n\nAvailable roles: {available_str}",
+                parse_mode="Markdown",
+            )
+            return
+
+        # Get role info and save
+        role_result = await self.orchestrator.execute({
+            "command": "/design_gift",
+            "action": "get_role_info",
+            "user_role": role,
+        })
+
+        if role_result and role_result.get("status") == "success":
+            role_info = role_result.get("role_info", {})
+            profile = self._get_profile(update.message.chat_id)
+            profile["user_role"] = role
+            self._save_profile(update.message.chat_id, profile)
+
+            await update.message.reply_text(
+                f"✅ *Role Set: {role_info.get('display_name')}*\n\n"
+                f"{role_info.get('emoji')} {role_info.get('guidance')}\n\n"
+                f"_Your designs will now be tailored to your {role_info.get('display_name')} expertise!_",
+                parse_mode="Markdown",
+            )
+        else:
+            await update.message.reply_text(f"❌ Error setting role. Please try again.")
 
     # ── Design Brief Response Handler ────────────────────────────────────────
 
@@ -1611,6 +1685,7 @@ def _build_app(handler: "TelegramBotHandler") -> "Application":
     app.add_handler(CommandHandler("stories", handler.stories_command))
     app.add_handler(CommandHandler("audit", handler.audit_command))
     app.add_handler(CommandHandler("design_gift", handler.design_gift_command))
+    app.add_handler(CommandHandler("set_role", handler.set_role_command))
     app.add_handler(CommandHandler("content", handler.content_command))
     app.add_handler(CommandHandler("trends", handler.trends_command))
     app.add_handler(CommandHandler("engagement", handler.engagement_command))

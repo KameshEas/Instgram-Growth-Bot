@@ -90,12 +90,20 @@ class ContentGeneratorAgent(BaseAgent):
                 await self.log_execution(data, result, "success")
                 return result
             
-            # If AI returns error
+            # If AI returns error - provide better error message
+            error_msg = ai_result.get("error") if isinstance(ai_result, dict) else str(ai_result)
+            
+            # More specific error handling
+            if "parse" in error_msg.lower():
+                help_text = "The AI response couldn't be parsed. Try simplifying your custom prompt or try again in a moment."
+            else:
+                help_text = "Try again in a moment or provide more context (niche, goal, etc.)"
+            
             return {
                 "status": "error",
-                "message": "AI prompt generation failed",
-                "details": ai_result.get("error") if isinstance(ai_result, dict) else str(ai_result),
-                "help": "Try again in a moment or provide more context (niche, goal, etc.)",
+                "message": f"AI prompt generation failed",
+                "details": error_msg,
+                "help": help_text,
             }
 
         except Exception as e:
