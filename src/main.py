@@ -515,15 +515,22 @@ Return JSON with:
             if custom_prompt and custom_prompt.strip():
                 logger.info(f"[AI] Enhancing custom prompt — category={category}")
                 
-                # For design_gifts with reference images, generate multiple outfit variations
-                # Otherwise, generate single enhanced prompt
-                prompt_count = 3 if (category == "design_gifts" and reference_image_text) else 1
+                # For transformations and design_gifts, generate multiple variations
+                # Transformations: 3 variants to show different scenes/styles with same identity
+                # Design_gifts with reference: 3-4 outfit variations
+                # Others: single prompt
+                if category in {"women_transform", "men_transform", "couples_transform"}:
+                    prompt_count = 3  # Multiple transformation variants to show variation while preserving identity
+                elif category == "design_gifts" and reference_image_text:
+                    prompt_count = 3  # Multiple outfit variations
+                else:
+                    prompt_count = 1
                 
                 return self.generate_image_prompts(
                     category=category,
-                    niche=custom_prompt,  # Pass as context
+                    niche="",  # Not a niche context - custom_prompt is the transformation directive
                     count=prompt_count,
-                    user_context=custom_prompt,
+                    user_context=custom_prompt,  # Pass custom_prompt as the actual user requirement
                     chat_id=chat_id,
                     reference_image_text=reference_image_text
                 )
@@ -585,19 +592,39 @@ Return JSON with:
         
         niche_line = f"\nNiche/brand: {niche_safe}" if niche_safe else ""
         context_line = f"\nUser requirement: {user_context_safe}" if user_context_safe else ""
+        
+        # Build reference image context for transformations
+        reference_line = ""
+        if category in transform_categories and reference_image_text:
+            reference_line = f"\n\nREFERENCE IMAGE PROVIDED: {reference_image_text}\nUse this description to anchor facial identity preservation across all variants."
 
         # Use specialized prompt template for transformation tasks
         if category in transform_categories:
+            # For transformation with custom prompt, use it to define the scene
+            # Otherwise use category-based approach
+            transformation_directive = ""
+            artistic_style_emphasis = ""
+            if user_context_safe and user_context_safe.strip():
+                transformation_directive = f"\n\nTRANSFORMATION DIRECTIVE: Apply this specific transformation to the reference image:\n{user_context_safe}\n\nThis user-specified transformation takes priority over all category defaults."
+                
+                # Extract artistic style if mentioned (e.g., illustration, watercolor, digital art, 3D, photorealistic, etc.)
+                user_lower = user_context_safe.lower()
+                artistic_keywords = ["illustration", "watercolor", "digital art", "3d", "oil painting", "acrylic", "sketch", "photorealistic", "cartoon", "anime", "comic", "vector", "painting", "art style", "artistic"]
+                detected_styles = [kw for kw in artistic_keywords if kw in user_lower]
+                if detected_styles:
+                    artistic_style_emphasis = f"\n\n**ARTISTIC STYLE PRIORITY**: The user has specified an artistic direction: {', '.join(detected_styles)}. This MUST be honored throughout the transformation. This artistic style takes priority over default photorealism."
+            
             prompt = f"""You are an expert AI image generation prompt engineer specializing in identity-preserving portrait transformations.
 
-Category: {category_desc}{niche_line}{context_line}
+Category: {category_desc}{niche_line}{context_line}{reference_line}{transformation_directive}{artistic_style_emphasis}
 
 CRITICAL FOR TRANSFORMATIONS - Priority Hierarchy:
 1. Identity Preservation (MOST IMPORTANT - facial features, proportions, skin tone, unique characteristics)
 2. Face Clarity & Detail (sharp, sharpest element, no distortion)
 3. Hands & Body Accuracy (especially if henna, jewelry, or specific actions mentioned)
-4. Lighting & Atmosphere
-5. Background/Scene (should complement, not dominate)
+4. Artistic Style (if specified by user - must be honored)
+5. Lighting & Atmosphere
+6. Background/Scene (should complement, not dominate)
 
 REFERENCE IMAGE REQUIREMENT:
 - Use the provided reference image as the primary subject (anchor point for all transforms)
@@ -625,15 +652,14 @@ LAYER 2 - COMPOSITION CONTROL (HOW FRAMED - technical control):
 - Depth: shallow depth of field to isolate face from background
 
 LAYER 3 - SCENE TRANSFORMATION (WHAT CHANGES - the context):
-- Specific transformation type (e.g., "bride in garden", "in formal attire", "professional styling")
-- COSTUME/ATTIRE FOR SCENE: Use the best, most appropriate costume/attire/makeup for this specific transformation scene
-  * If bride transformation: wedding dress, bridal makeup, wedding jewelry (NOT reference image's clothing)
-  * If professional: business attire, professional styling appropriate for role (NOT reference image's clothing)
-  * If cultural event: traditional clothing, cultural styling authentic to that culture (NOT reference image's clothing)
-  * Each scene should have its own optimal costume choice
-- Cultural accuracy: [if applicable] subtle cultural detailing, accurate styling (avoid stereotypes)
+- Apply the transformation specified in the user's requirement above
+- COSTUME/ATTIRE FOR SCENE: Use the best, most appropriate costume/attire/makeup for the specific transformation requested
+  * Choose styling that authentically fits the transformation context
+  * NOT from reference image's clothing - create completely new appropriate attire
+  * Each transformation should have its own optimal costume/styling choice
+- Artistic style: Honor any specific artistic direction mentioned (illustration, watercolor, digital art, etc.)
 - Details that enhance but don't dominate: attire, accessories, scene context - all optimized for this transformation
-- Remember: Scene with appropriate costume complements the preserved face identity, not competes with it
+- Remember: Scene with appropriate costume/styling complements the preserved face identity, not competes with it
 
 LAYER 4 - CONSTRAINT SYSTEM (WHAT NOT TO BREAK - strict safeguards):
 
@@ -655,19 +681,21 @@ STYLING CONSTRAINTS (all NEW, not from reference):
 - Jewelry/Accessories: Scene-appropriate and elegant (NOT from reference)
 - Styling: Completely new styling to match the transformation context
 
-HAIRSTYLE GUIDANCE (scene-specific, NEW):
-- Bridal: elegant bridal hairstyle with flowers or jewelry, maintaining original hairline and face framing
-- Professional: polished professional hairstyle, preserving natural face framing
-- Cultural event: traditional hairstyle authentic to culture, keeping original face boundaries
-- Casual: natural, scene-appropriate hairstyle, different from reference but respecting face shape
+HAIRSTYLE GUIDANCE (scene-specific, NEW, NOT from reference):
+- Create a completely new hairstyle appropriate to the transformation scene/character/style
+- MAINTAIN original hairline and face framing (never alter face boundaries)
+- Adapt hairstyle to transformation theme: if formal/professional → polished; if casual/street → natural; if character/fantasy → thematic
+- Preserve natural face framing so identity remains recognizable despite new hairstyle
+- Examples: bridal scenes → elegant hairstyle with flowers; professional → polished business style; fantasy → character-appropriate style
+- The key: NEW hairstyle every time, but always preserves original hairline boundaries
 
-MAKEUP GUIDANCE (identity-safe enhancement, NEW):
-- Bridal: Enhanced bridal makeup (warm tones, defined eyes) subtly without altering facial structure
-- Professional: Polished professional makeup (neutral tones) that enhances without distorting
-- Formal events: Elegant event makeup with appropriate colors, maintaining natural facial proportions
-- Casual: Natural everyday makeup that complements without transforming
-
-CRITICAL: Makeup must enhance WITHOUT altering perceived facial features or identity
+MAKEUP GUIDANCE (identity-safe enhancement, NEW, NOT from reference):
+- Enhance makeup subtly to match the transformation scene without altering perceived facial structure
+- Adapt makeup to scene: formal events → elegant with defined features; casual → natural; character transformation → scene-appropriate colors
+- CRITICAL: Makeup must enhance WITHOUT altering perceived facial features or identity
+- Never apply heavy makeup that obscures facial structure or distorts feature recognition
+- Examples: bridal → warm tones/defined eyes; professional → neutral/polished; casual → minimal/natural
+- The key: New makeup for each scene, but always preserves facial feature recognition
 
 HANDS:
 - Prominently visible in foreground (if scene requires hands-focus like henna application)
@@ -736,7 +764,10 @@ For each design prompt, include:
 Instructions:
 - Create {count} DISTINCT personalized gift design prompts (each ~140-200 words)
 - Emphasize reference facial identity preservation with VARIED costumes and creative styling
-- Each prompt MUST have different costume/styling/clothing (never repeat the same outfit across prompts)
+- **COSTUME DIFFERENTIATION (MANDATORY)**: Prompt 1 costume style MUST be completely different from Prompt 2, which MUST be different from Prompt 3, etc.
+  * Example: If Prompt 1 uses formal/elegant attire → Prompt 2 must use casual/relaxed clothing → Prompt 3 must use traditional/cultural or themed clothing
+  * NEVER repeat similar outfit styles, color schemes, or clothing types across different prompts
+  * Each design gets its own distinct costume identity
 - Facial features, appearance, and identity MUST remain consistent and recognizable across all prompts
 - Each must be production-ready for print on demand with high resolution
 - Vary design themes, scenes, outfits, text placements, and decorative approaches creatively
@@ -812,7 +843,7 @@ Return ONLY valid JSON (no markdown, no extra text):
             "generate_image_prompts",
             niche=niche,
             action=category,
-            topic=str(count),
+            topic=user_context_safe[:50] if user_context_safe else str(count),  # Include custom prompt content to prevent cache collision
         )
         return self._call_groq_with_fallback(
             command="generate_image_prompts",
