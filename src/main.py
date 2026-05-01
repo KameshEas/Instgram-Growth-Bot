@@ -572,55 +572,74 @@ Category: {category_desc}{niche_line}{context_line}
 
 CRITICAL FOR TRANSFORMATIONS - Priority Hierarchy:
 1. Identity Preservation (MOST IMPORTANT - facial features, proportions, skin tone, unique characteristics)
-2. Face Clarity & Detail (sharp, no distortion)
+2. Face Clarity & Detail (sharp, sharpest element, no distortion)
 3. Hands & Body Accuracy (especially if henna, jewelry, or specific actions mentioned)
 4. Lighting & Atmosphere
 5. Background/Scene (should complement, not dominate)
 
 REFERENCE IMAGE REQUIREMENT:
-- Use the provided reference image as the primary subject
-- Preserve 100% accurate facial identity - do NOT alter, beautify, or stylize the face
-- Match facial structure, proportions, skin tone, and unique features exactly
-- Maintain original facial expression (or specify if slight variation is acceptable)
+- Use the provided reference image as the primary subject (anchor point for all transforms)
+- The face must remain identical to the reference image with no alterations whatsoever
+- Preserve 100% accurate facial identity: facial structure, proportions, skin tone, unique characteristics exactly
+- DO NOT alter, beautify, stylize, or change the face in any way
+- Maintain original facial expression from reference (or specify if only slight softening acceptable)
 
-For each transformation prompt, include:
+For each transformation prompt, include these 4 layers:
 
-1. Scene Description: What transformation is being applied (e.g., "bride in garden", "in formal attire", "with specific styling")
+LAYER 1 - IDENTITY LOCK (WHO - the person):
+- "Use reference image as primary subject"
+- "Face must remain identical to reference image"
+- "Preserve exact facial identity: [repeat identity constraints]"
+- "No facial feature changes, no identity alteration whatsoever"
 
-2. Composition & Framing (CRITICAL): Specify exact camera framing to keep face as focal point
-   - Example: "Medium close-up portrait (waist-up), face must be sharp and highly detailed"
-   - Add: "Face remains focal point" - this ensures identity is preserved
+LAYER 2 - COMPOSITION CONTROL (HOW FRAMED - technical control):
+- Camera angle: eye-level, slight angle for dimension
+- Distance: medium close-up portrait (waist-up)
+- Focus: Face must be the sharpest and most detailed element in the image
+- Lens aesthetic: 50mm portrait lens look (natural proportions, sharp face)
+- Hands: clearly visible in foreground if relevant to scene, naturally positioned, anatomically correct
+- Depth: shallow depth of field to isolate face from background
 
-3. Lighting: Be specific (golden hour, soft diffused, warm, cool, etc.) but NOT at expense of face clarity
+LAYER 3 - SCENE TRANSFORMATION (WHAT CHANGES - the context):
+- Specific transformation type (e.g., "bride in garden", "in formal attire", "professional styling")
+- Cultural accuracy: [if applicable] subtle cultural detailing, minimal jewelry, accurate styling (avoid stereotypes)
+- Details that enhance but don't dominate: attire, accessories, scene context
+- Remember: Scene complements identity, not competes with it
 
-4. Skin & Details:
-   - "Natural skin texture (no smoothing, no artificial glow)"
-   - "No heavy makeup unless present in reference"
-   - If relevant: "Realistic hands with accurate proportions and detail"
+LAYER 4 - CONSTRAINT SYSTEM (WHAT NOT TO BREAK - strict safeguards):
+IDENTITY CONSTRAINTS (redundant for strength):
+- No face distortion, no facial feature alterations, no identity change
+- Face must remain identical to reference image with zero modification
+- Preserve skin tone, face shape, eye structure, all unique features exactly
 
-5. NEGATIVE Constraints (CRITICAL - prevents artifacts):
-   - "No face distortion"
-   - "No change in facial features or facial structure"
-   - "No extra fingers or hand deformation"
-   - "No cartoonish or stylized rendering"
-   - "No extreme editing or facial beautification"
-   - "No blur on face"
-   - "No identity change"
+REALISM CONSTRAINTS:
+- Natural skin texture with visible pores, no smoothing or artificial glow
+- Soft warm lighting with natural shadows, preserving skin detail and depth
+- No heavy makeup, no extreme styling unless present in reference
+- Realistic hands: anatomically correct, no extra fingers, natural proportions
+- No cartoonish or stylized rendering, strict photorealism
+
+BACKGROUND/FOCUS CONSTRAINTS:
+- Minimal, softly blurred background with gentle bokeh
+- No distracting elements competing for attention
+- Background serves as supporting context only
 
 Instructions:
-- Create {count} DISTINCT transformation prompts (each ~120-180 words)
+- Create {count} DISTINCT transformation prompts (each ~150-200 words)
 - Each prompt must work directly in DALL-E 3, Midjourney, or Stable Diffusion
-- Each prompt must emphasize reference image preservation FIRST, then scene details
-- DO NOT describe facial features (oval face, almond eyes, etc.) - instead say "preserve exact facial identity from reference"
-- Order content: Identity > Face Detail > Composition > Lighting > Scene > Negative Constraints
-- Vary the transformations/scenes across prompts, but keep identity preservation paramount
+- Each prompt must emphasize reference image preservation FIRST, then scene transformation
+- Order content: Identity Lock → Composition Control → Scene Transformation → Constraint System
+- Use redundant identity language (repeat identity anchors in different forms for strength)
+- Group constraints by category (Identity, Realism, Background) for clarity
+- Vary the transformations/scenes across prompts, but ALWAYS keep identity preservation paramount
+- DO NOT describe facial features manually (say "preserve exact facial identity from reference" instead)
 
 Return ONLY valid JSON (no markdown, no extra text):
 {{
   "prompts": [
-    {{"prompt": "<transformation prompt emphasizing identity preservation, composition, and constraints>", "scene": "<transformation type>"}}
+    {{"prompt": "<transformation prompt using 4-layer structure: Identity Lock → Composition Control → Scene Transformation → Constraint System>", "scene": "<transformation type>"}}
   ],
-  "tip": "<one actionable tip for maximum identity preservation and realism>"
+  "tip": "<actionable tip emphasizing reference image anchoring and composition for identity preservation>"
 }}"""
         else:
             # Standard template for non-transformation categories
