@@ -514,10 +514,15 @@ Return JSON with:
             # If custom prompt provided, enhance it via AI
             if custom_prompt and custom_prompt.strip():
                 logger.info(f"[AI] Enhancing custom prompt — category={category}")
+                
+                # For design_gifts with reference images, generate multiple outfit variations
+                # Otherwise, generate single enhanced prompt
+                prompt_count = 3 if (category == "design_gifts" and reference_image_text) else 1
+                
                 return self.generate_image_prompts(
                     category=category,
                     niche=custom_prompt,  # Pass as context
-                    count=1,
+                    count=prompt_count,
                     user_context=custom_prompt,
                     chat_id=chat_id,
                     reference_image_text=reference_image_text
@@ -715,40 +720,35 @@ Gift Design with Reference Requirements:
 - Create {count} distinct, creative gift design concepts incorporating the reference image
 - Each prompt should be optimized for DALL-E 3, Midjourney, or Stable Diffusion
 - Designs should be printable on merchandise (mugs, t-shirts, posters, art prints, etc.)
-- Preserve facial identity while varying costumes/styling for each design variation
-- CRITICAL: DO NOT use the same costume/clothing across prompts — each design needs DIFFERENT outfits
+- Preserve facial identity while varying costumes/styling creatively for each design variation
+- CRITICAL: DO NOT use the same costume/clothing across prompts — each design needs DIFFERENT outfits and styles
 
 For each design prompt, include:
 1. CONCEPT: Design theme and emotional appeal with reference integration
 2. VISUAL STYLE: Specific artistic direction (watercolor, digital illustration, modern vector, etc.)
 3. COMPOSITION: How reference people integrate with design elements
-4. COLOR SCHEME: Specific colors or palettes suited for the gift, outfit color, and reference
+4. COLOR SCHEME: Specific colors or palettes suited for the gift and reference
 5. TEXT/TYPOGRAPHY: Personalized text, calligraphy, or messaging integrated elegantly
-6. COSTUME/STYLING: UNIQUE outfit, clothing style, and accessories (MUST VARY across prompts — NOT from reference)
+6. COSTUME/STYLING: UNIQUE outfit and styling appropriate to the design concept (NOT from reference, DIFFERENT in each prompt)
 7. DECORATIVE ELEMENTS: Supporting design elements that complement reference and costume
 8. CONTEXT: Where/how this design would be used (mug, t-shirt, poster, canvas print, etc.)
 
-STYLING VARIATION GUIDANCE:
-- Prompt 1: Formal attire (elegant outfits, sophisticated styling)
-- Prompt 2: Casual/casual-romantic (relaxed clothing, natural styling)
-- Prompt 3: Traditional/cultural attire (region-appropriate, festive clothing)
-- Prompt 4: Themed outfit (matching theme with custom styling if applicable)
-
 Instructions:
 - Create {count} DISTINCT personalized gift design prompts (each ~140-200 words)
-- Emphasize reference facial identity preservation with VARIED costumes
-- Each prompt MUST have different costume/styling/clothing (not from reference)
-- Facial features, appearance, and identity MUST remain consistent across prompts
+- Emphasize reference facial identity preservation with VARIED costumes and creative styling
+- Each prompt MUST have different costume/styling/clothing (never repeat the same outfit across prompts)
+- Facial features, appearance, and identity MUST remain consistent and recognizable across all prompts
 - Each must be production-ready for print on demand with high resolution
-- Vary design styles, text placements, decorative approaches, AND OUTFITS across prompts
-- Ensure reference people remain clearly identifiable in all prompts
+- Vary design themes, scenes, outfits, text placements, and decorative approaches creatively
+- Ensure reference people remain clearly identifiable in all prompts despite outfit changes
+- Choose outfit styles that naturally fit each design's unique theme and context
 
 Return ONLY valid JSON (no markdown, no extra text):
 {{
   "prompts": [
-    {{"prompt": "<design prompt with reference integration and UNIQUE OUTFIT for each, 140-200 words>", "scene": "<gift type/outfit style>"}}
+    {{"prompt": "<design prompt with reference integration and UNIQUE creative OUTFIT for each, 140-200 words>", "scene": "<design theme>"}}
   ],
-  "tip": "<actionable tip for personalized gift designs with consistent identity but varied styling>"
+  "tip": "<actionable tip for personalized gift designs with consistent identity but varied creative styling>"
 }}"""
             else:
                 # Standard text-based gift design (no reference image)
