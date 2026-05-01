@@ -10,7 +10,9 @@ from src.prompts.templates import (
     list_professional_roles,
     get_role_metadata,
     get_role_guidance,
+    GIFT_DESIGN_SYSTEM_PROMPT,
 )
+from src.services.agent_evaluation_integration import EvaluationHookFactory
 
 if TYPE_CHECKING:
     from src.main import InstagramGrowthBot
@@ -26,6 +28,8 @@ class GiftDesignAgent(BaseAgent):
         self.products = list_gift_products()
         self.tones = get_all_tones()
         self.roles = list_professional_roles()
+        # Initialize evaluation hook for quality monitoring
+        self.eval_hook = EvaluationHookFactory.get_hook("GiftDesignAgent")
 
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Main execution handler for gift design operations"""
@@ -137,6 +141,18 @@ class GiftDesignAgent(BaseAgent):
                     },
                 }
                 await self.log_execution(data, result, "success")
+                
+                # 🎯 EVALUATE OUTPUT QUALITY
+                try:
+                    await self.eval_hook.evaluate_execution(
+                        user_request=data,
+                        agent_output=result,
+                        model_used="Groq",
+                        system_prompt=GIFT_DESIGN_SYSTEM_PROMPT,
+                    )
+                except Exception as e:
+                    self.logger.warning(f"Quality evaluation skipped: {str(e)}")
+                
                 return result
 
             # If AI returns error

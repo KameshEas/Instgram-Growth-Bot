@@ -1,6 +1,7 @@
 from typing import Dict, Any, List, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from src.prompts.templates import list_categories
+from src.services.agent_evaluation_integration import EvaluationHookFactory
 
 if TYPE_CHECKING:
     from src.main import InstagramGrowthBot
@@ -14,6 +15,8 @@ class ContentGeneratorAgent(BaseAgent):
         self._groq_bot = groq_bot
         # Cache categories for quick access
         self.categories = list_categories()
+        # Initialize evaluation hook for quality monitoring
+        self.eval_hook = EvaluationHookFactory.get_hook("ContentGeneratorAgent")
     
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Generate content prompts based on category"""
@@ -88,6 +91,18 @@ class ContentGeneratorAgent(BaseAgent):
                     },
                 }
                 await self.log_execution(data, result, "success")
+                
+                # 🎯 EVALUATE OUTPUT QUALITY
+                try:
+                    await self.eval_hook.evaluate_execution(
+                        user_request=data,
+                        agent_output=result,
+                        model_used="Groq",
+                        system_prompt="Generate viral-optimized image generation prompts",
+                    )
+                except Exception as e:
+                    self.logger.warning(f"Quality evaluation skipped: {str(e)}")
+                
                 return result
             
             # If AI returns error - provide better error message
