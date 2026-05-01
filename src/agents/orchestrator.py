@@ -136,10 +136,14 @@ class ContentOrchestratorAgent(BaseAgent):
                     })
                 elif custom_prompt and custom_prompt.strip() and self._groq_bot:
                     # Custom-concept path: delegate to Groq for AI enhancement
+                    # For design_gifts, check if reference image description is provided
+                    reference_image_desc = input_data.get("reference_image_text") if category == "design_gifts" else None
+                    
                     ai_result = self._groq_bot.image_generation_prompts(
                         category=category,
                         custom_prompt=custom_prompt,
                         level=level,
+                        reference_image_text=reference_image_desc,
                     )
                     # Normalize to the shape the telegram handler expects
                     if ai_result and "error" not in ai_result:
