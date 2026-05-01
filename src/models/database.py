@@ -46,3 +46,24 @@ class AgentLog(SQLModel, table=True):
     execution_time_ms: int = 0
     error_details: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class GiftDesign(SQLModel, table=True):
+    __tablename__ = "gift_designs"
+    
+    design_id: int = Field(primary_key=True)
+    user_id: int
+    product_type: str  # 't_shirt', 'mug', 'hoodie', etc.
+    concept_idea: str  # Original user concept
+    design_concepts: Optional[str] = None  # JSON string with 3 concepts + prompts
+    brand_colors: Optional[str] = None  # JSON string with hex codes
+    design_tone: Optional[str] = None  # minimalist, playful, elegant, etc.
+    occasion: Optional[str] = None  # birthday, anniversary, corporate, etc.
+    recipient_type: Optional[str] = None  # friend, family, coworker, etc.
+    design_hash: Optional[str] = None  # SHA-256 hash for caching
+    cached_result: Optional[str] = None  # Cached JSON response from Groq
+    cache_ttl_hours: int = 24  # Cache time-to-live
+    cache_created_at: Optional[datetime] = None  # When cache was created
+    rating: Optional[int] = None  # User rating (1-5)
+    notes: Optional[str] = None  # User notes/feedback
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

@@ -622,6 +622,86 @@ Each variation should be a complete, ready-to-brief design brief that a designer
         
         return result
 
+    def generate_gift_design_concepts(
+        self,
+        product_type: str,
+        concept_idea: str,
+        personalization: dict = None,
+        chat_id: int = None,
+        niche: str = "",
+    ) -> dict:
+        """Generate 3 gift design concepts with briefs + AI image generation prompts."""
+        from src.prompts.templates import GIFT_DESIGN_SYSTEM_PROMPT, get_gift_product_meta
+
+        if personalization is None:
+            personalization = {}
+
+        product_meta = get_gift_product_meta(product_type)
+        
+        # Build personalization context
+        brand_colors_str = ""
+        if personalization.get("brand_colors"):
+            brand_colors_str = f"\nBrand colors: {', '.join(personalization['brand_colors'])}"
+        
+        tone_str = ""
+        if personalization.get("tone"):
+            tone = personalization["tone"]
+            tone_desc = personalization.get("tone_description", "")
+            tone_str = f"\nDesign tone: {tone.title()} ({tone_desc})" if tone_desc else f"\nDesign tone: {tone.title()}"
+        
+        occasion_str = f"\nOccasion: {personalization.get('occasion', '').title()}" if personalization.get("occasion") else ""
+        recipient_str = f"\nRecipient type: {personalization.get('recipient_type', '').title()}" if personalization.get("recipient_type") else ""
+
+        # Build combined prompt
+        prompt = f"""{GIFT_DESIGN_SYSTEM_PROMPT}
+
+---
+
+PRODUCT: {product_type.replace("_", " ").title()}
+Specifications:
+- Printable Area: {product_meta.get("printable_area")}
+- Constraints: {product_meta.get("constraints")}
+
+USER'S CONCEPT: {concept_idea}{brand_colors_str}{tone_str}{occasion_str}{recipient_str}
+
+Create 3 DISTINCT, production-ready gift design concepts that incorporate ALL of the user's messaging and preferences.
+Each concept should include a design brief and 2 image generation prompts (DALL-E 3 + Midjourney optimized).
+All prompts must be ready to paste directly into image generation tools."""
+
+        cache_key = self._make_cache_key(
+            "generate_gift_design",
+            product_type=product_type,
+            tone=personalization.get("tone", ""),
+            occasion=personalization.get("occasion", ""),
+            niche=niche,
+        )
+
+        result = self._call_groq_with_fallback(
+            command="generate_gift_design_concepts",
+            cache_key=cache_key,
+            prompt=prompt,
+            chat_id=chat_id,
+            temperature=0.85,
+            ttl_hours=24,
+        )
+
+        # Parse and structure response
+        if result and isinstance(result, dict):
+            if "error" in result:
+                return result
+
+            concepts = result.get("concepts", [])
+            if concepts:
+                return {
+                    "status": "success",
+                    "concepts": concepts,
+                    "concept_count": len(concepts),
+                    "product_type": product_type,
+                    "design_tip": "Each concept includes a design brief and two image generation prompts ready for DALL-E 3 or Midjourney.",
+                }
+
+        return result
+
     def monetization_ideas(
         self,
         niche: str,

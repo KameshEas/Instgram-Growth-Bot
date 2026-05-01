@@ -2,6 +2,7 @@ from typing import Dict, Any, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from src.agents.content_generator import ContentGeneratorAgent
 from src.agents.design_enhancer import DesignPromptEnhancerAgent
+from src.agents.gift_design_agent import GiftDesignAgent
 from src.agents.engagement_agent import EngagementAgent
 from src.agents.monetization_agent import MonetizationAgent
 from src.agents.analytics_agent import AnalyticsAgent
@@ -26,6 +27,7 @@ class ContentOrchestratorAgent(BaseAgent):
         self.agents = {
             "content_generator": ContentGeneratorAgent(groq_bot=groq_bot),
             "design_enhancer": DesignPromptEnhancerAgent(groq_bot=groq_bot),
+            "gift_design": GiftDesignAgent(groq_bot=groq_bot),
             "engagement": EngagementAgent(groq_bot=groq_bot),
             "monetization": MonetizationAgent(groq_bot=groq_bot),
             "analytics": AnalyticsAgent(groq_bot=groq_bot),
@@ -197,6 +199,38 @@ class ContentOrchestratorAgent(BaseAgent):
                     "keyword": input_data.get("keyword", ""),
                 })
 
+            # ── Gift Design commands ──────────────────────────────────────────
+            elif command == "/design_gift":
+                action = input_data.get("action", "generate_concepts")
+                
+                if action == "list_products":
+                    result = await self.agents["gift_design"].execute({
+                        **input_data,
+                        "action": "list_products",
+                    })
+                elif action == "list_tones":
+                    result = await self.agents["gift_design"].execute({
+                        **input_data,
+                        "action": "list_tones",
+                    })
+                elif action == "get_product_specs":
+                    result = await self.agents["gift_design"].execute({
+                        **input_data,
+                        "action": "get_product_specs",
+                        "product_type": input_data.get("product_type", ""),
+                    })
+                else:  # generate_concepts (default)
+                    result = await self.agents["gift_design"].execute({
+                        **input_data,
+                        "action": "generate_concepts",
+                        "product_type": input_data.get("product_type", ""),
+                        "concept_idea": input_data.get("concept_idea", ""),
+                        "brand_colors": input_data.get("brand_colors", []),
+                        "tone": input_data.get("tone", ""),
+                        "occasion": input_data.get("occasion", ""),
+                        "recipient_type": input_data.get("recipient_type", ""),
+                    })
+
             # ── Caption / content generation (Groq direct — no agent covers it) ──
             elif command == "/content":
                 if self._groq_bot:
@@ -273,11 +307,15 @@ class ContentOrchestratorAgent(BaseAgent):
         """Return the list of available commands mapped to their active agents."""
         return {
             "status": "success",
-            "available_agents": 5,
+            "available_agents": 6,
             "commands": {
                 "Content Library": {
                     "commands": ["/generate", "/categories", "/search"],
                     "agent": "ContentGeneratorAgent",
+                },
+                "Gift Design": {
+                    "commands": ["/design_gift"],
+                    "agent": "GiftDesignAgent",
                 },
                 "Caption Generation": {
                     "commands": ["/content"],

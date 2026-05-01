@@ -955,6 +955,191 @@ class TelegramBotHandler:
             await update.message.reply_text(f"❌ Error: {e}")
             logger.error(f"audit_command error: {e}")
 
+    # ── /design_gift ──────────────────────────────────────────────────────────
+
+    async def design_gift_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /design_gift — Generate personalized gift design concepts."""
+        full_text = update.message.text
+        text_after_cmd = full_text.replace("/design_gift", "", 1).strip()
+
+        if not text_after_cmd:
+            await update.message.reply_text(
+                "🎁 *Generate Custom Gift Design Concepts*\n\n"
+                "Usage:\n"
+                "  `/design_gift [product] \"[concept idea]\"`\n\n"
+                "Supported Products:\n"
+                "  • t_shirt • mug • hoodie • pillow • poster\n"
+                "  • hat • notebook • water_bottle • phone_case • sweater\n\n"
+                "Examples:\n"
+                "• `/design_gift t_shirt \"Motivational quote for gym enthusiasts\"`\n"
+                "• `/design_gift mug \"Coffee lover, minimalist style\"`\n"
+                "• `/design_gift pillow \"Birthday gift for my best friend\"`\n\n"
+                "_Tip: Provide more details for better designs (e.g., recipient, occasion, style preference)_",
+                parse_mode="Markdown",
+            )
+            return
+
+        # Parse input: product type and concept
+        parts = text_after_cmd.split(" ", 1)
+        if len(parts) < 2:
+            await update.message.reply_text(
+                "❌ Please provide: product type and concept idea\n"
+                "Example: `/design_gift t_shirt \"Motivational quote for my gym\"`",
+                parse_mode="Markdown",
+            )
+            return
+
+        product_type = parts[0].strip().lower()
+        concept_text = parts[1].strip().strip("\"'")
+
+        if len(concept_text) < 5:
+            await update.message.reply_text(
+                "❌ Concept idea too short. Please provide a more descriptive concept (min 5 characters)"
+            )
+            return
+
+        await update.message.reply_text(
+            f"✨ Generating 3 design concepts for *{product_type}*...\n_(This may take 10-15 seconds)_",
+            parse_mode="Markdown",
+        )
+
+        try:
+            # Get user profile for context
+            profile = self._get_profile(update.message.chat_id)
+            niche = profile.get("niche", "")
+
+            result = await self.orchestrator.execute({
+                "command": "/design_gift",
+                "action": "generate_concepts",
+                "product_type": product_type,
+                "concept_idea": concept_text,
+                "brand_colors": profile.get("brand_colors", []),
+                "tone": profile.get("design_tone", ""),
+                "occasion": "",
+                "recipient_type": "",
+                "chat_id": update.message.chat_id,
+                "niche": niche,
+            })
+
+            if result and result.get("status") == "success":
+                await self._handle_gift_design_response(update, result)
+            else:
+                error_msg = result.get("message") if isinstance(result, dict) else str(result)
+                await update.message.reply_text(f"❌ Error: {error_msg}")
+                logger.error(f"Gift design failed: {result}")
+
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error generating design concepts: {e}")
+            logger.error(f"design_gift_command error: {e}")
+
+    # ── Design Brief Response Handler ────────────────────────────────────────
+
+    async def _handle_gift_design_response(self, update: Update, result: dict):
+        """Format and send gift design concept response with briefs + image prompts."""
+        try:
+            concepts = result.get("concepts", [])
+            product_type = result.get("product_type", "")
+            product_display = result.get("product_display_name", product_type.replace("_", " ").title())
+            product_emoji = result.get("product_emoji", "🎁")
+
+            if not concepts:
+                await update.message.reply_text("❌ No design concepts generated. Try again.")
+                return
+
+            header = f"{product_emoji} *Gift Design Concepts — {product_display}*\n\n"
+            header += "✨ *3 Creative Variations with Image Prompts*\n"
+            header += "─────────────────────────────────────\n\n"
+            await update.message.reply_text(header, parse_mode="Markdown")
+
+            # Send each concept as separate messages
+            for idx, concept in enumerate(concepts, 1):
+                msg = f"*🎨 Option {idx}: {concept.get('title', 'Design ' + str(idx))}*\n"
+                msg += "─────────────────────────────────────\n\n"
+
+                # Design Brief
+                brief = concept.get("design_brief", {})
+                if brief.get("core_message"):
+                    msg += f"*📝 Concept:*\n{escape_md(brief.get('core_message', ''))}\n\n"
+
+                if brief.get("visual_style"):
+                    msg += f"*🎨 Visual Style:*\n{escape_md(brief.get('visual_style', ''))}\n\n"
+
+                # Color Palette
+                palette = brief.get("color_palette", [])
+                if palette:
+                    msg += "*🎨 Color Palette:*\n"
+                    if isinstance(palette, list):
+                        for color in palette[:4]:  # Limit to 4 colors
+                            if isinstance(color, dict):
+                                color_name = color.get("name", "Color")
+                                color_hex = color.get("hex", "#000000")
+                            else:
+                                color_name = str(color)
+                                color_hex = "#000000"
+                            msg += f"  • {color_name} ({color_hex})\n"
+                    msg += "\n"
+
+                # Typography
+                if brief.get("typography"):
+                    msg += f"*✍️ Typography:*\n{escape_md(brief.get('typography', ''))}\n\n"
+
+                # Key Elements
+                elements = brief.get("key_elements", [])
+                if elements:
+                    msg += "*🔑 Key Elements:*\n"
+                    if isinstance(elements, list):
+                        for elem in elements[:5]:
+                            msg += f"  • {escape_md(str(elem))}\n"
+                    msg += "\n"
+
+                # Design Tip
+                if brief.get("design_tip"):
+                    msg += f"💡 *Tip:* {escape_md(brief.get('design_tip', ''))}\n\n"
+
+                # Send brief
+                for chunk in self._send_long(msg):
+                    await update.message.reply_text(chunk, parse_mode="Markdown")
+
+                # Image Prompts
+                prompts = concept.get("image_prompts", {})
+                dalle_prompt = prompts.get("dalle3", "")
+                mj_prompt = prompts.get("midjourney", "")
+
+                if dalle_prompt or mj_prompt:
+                    prompt_msg = "🖼️ *Image Generation Prompts:*\n"
+                    prompt_msg += "─────────────────────────────────────\n\n"
+
+                    if dalle_prompt:
+                        prompt_msg += "*📸 DALL-E 3:*\n"
+                        prompt_msg += f"`{dalle_prompt}`\n\n"
+
+                    if mj_prompt:
+                        prompt_msg += "*🎨 Midjourney:*\n"
+                        prompt_msg += f"`{mj_prompt}`\n\n"
+
+                    prompt_msg += "_Copy either prompt and paste it into DALL-E 3 or Midjourney to generate your design!_\n"
+
+                    for chunk in self._send_long(prompt_msg):
+                        await update.message.reply_text(chunk, parse_mode="Markdown")
+
+                # Separator
+                if idx < len(concepts):
+                    await update.message.reply_text("─────────────────────────────────────")
+
+            # Final message
+            summary = f"✅ Generated {len(concepts)} design concepts for your {product_display}!\n\n"
+            summary += "🚀 *Next Steps:*\n"
+            summary += "1. Copy a prompt from above\n"
+            summary += "2. Paste into DALL-E 3 or Midjourney\n"
+            summary += "3. Generate and customize your design\n"
+            summary += "4. Use for print-on-demand services!\n\n"
+            summary += "_Pro tip: Try variations of the concepts to find your perfect design._"
+            await update.message.reply_text(summary, parse_mode="Markdown")
+
+        except Exception as e:
+            logger.error(f"Gift design formatting error: {e}")
+            await update.message.reply_text(f"❌ Error formatting design concepts: {e}")
+
     # ── Design Brief Response Handler ────────────────────────────────────────
 
     async def _handle_design_brief_response(self, update: Update, result: dict, category: str):
@@ -1425,6 +1610,7 @@ def _build_app(handler: "TelegramBotHandler") -> "Application":
     app.add_handler(CommandHandler("schedule", handler.schedule_command))
     app.add_handler(CommandHandler("stories", handler.stories_command))
     app.add_handler(CommandHandler("audit", handler.audit_command))
+    app.add_handler(CommandHandler("design_gift", handler.design_gift_command))
     app.add_handler(CommandHandler("content", handler.content_command))
     app.add_handler(CommandHandler("trends", handler.trends_command))
     app.add_handler(CommandHandler("engagement", handler.engagement_command))
