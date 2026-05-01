@@ -564,12 +564,67 @@ Return JSON with:
         niche_line = f"\nNiche/brand: {niche_safe}" if niche_safe else ""
         context_line = f"\nUser requirement: {user_context_safe}" if user_context_safe else ""
 
+        # Use specialized prompt template for transformation tasks
         if category in transform_categories:
-            facial_rule = "\n\nIMPORTANT: Keep the EXACT 100% facial features and skin tone from reference image. No variations."
-        else:
-            facial_rule = ""
+            prompt = f"""You are an expert AI image generation prompt engineer specializing in identity-preserving portrait transformations.
 
-        prompt = f"""You are an expert AI image generation prompt engineer creating CONCISE, ready-to-use prompts.
+Category: {category_desc}{niche_line}{context_line}
+
+CRITICAL FOR TRANSFORMATIONS - Priority Hierarchy:
+1. Identity Preservation (MOST IMPORTANT - facial features, proportions, skin tone, unique characteristics)
+2. Face Clarity & Detail (sharp, no distortion)
+3. Hands & Body Accuracy (especially if henna, jewelry, or specific actions mentioned)
+4. Lighting & Atmosphere
+5. Background/Scene (should complement, not dominate)
+
+REFERENCE IMAGE REQUIREMENT:
+- Use the provided reference image as the primary subject
+- Preserve 100% accurate facial identity - do NOT alter, beautify, or stylize the face
+- Match facial structure, proportions, skin tone, and unique features exactly
+- Maintain original facial expression (or specify if slight variation is acceptable)
+
+For each transformation prompt, include:
+
+1. Scene Description: What transformation is being applied (e.g., "bride in garden", "in formal attire", "with specific styling")
+
+2. Composition & Framing (CRITICAL): Specify exact camera framing to keep face as focal point
+   - Example: "Medium close-up portrait (waist-up), face must be sharp and highly detailed"
+   - Add: "Face remains focal point" - this ensures identity is preserved
+
+3. Lighting: Be specific (golden hour, soft diffused, warm, cool, etc.) but NOT at expense of face clarity
+
+4. Skin & Details:
+   - "Natural skin texture (no smoothing, no artificial glow)"
+   - "No heavy makeup unless present in reference"
+   - If relevant: "Realistic hands with accurate proportions and detail"
+
+5. NEGATIVE Constraints (CRITICAL - prevents artifacts):
+   - "No face distortion"
+   - "No change in facial features or facial structure"
+   - "No extra fingers or hand deformation"
+   - "No cartoonish or stylized rendering"
+   - "No extreme editing or facial beautification"
+   - "No blur on face"
+   - "No identity change"
+
+Instructions:
+- Create {count} DISTINCT transformation prompts (each ~120-180 words)
+- Each prompt must work directly in DALL-E 3, Midjourney, or Stable Diffusion
+- Each prompt must emphasize reference image preservation FIRST, then scene details
+- DO NOT describe facial features (oval face, almond eyes, etc.) - instead say "preserve exact facial identity from reference"
+- Order content: Identity > Face Detail > Composition > Lighting > Scene > Negative Constraints
+- Vary the transformations/scenes across prompts, but keep identity preservation paramount
+
+Return ONLY valid JSON (no markdown, no extra text):
+{{
+  "prompts": [
+    {{"prompt": "<transformation prompt emphasizing identity preservation, composition, and constraints>", "scene": "<transformation type>"}}
+  ],
+  "tip": "<one actionable tip for maximum identity preservation and realism>"
+}}"""
+        else:
+            # Standard template for non-transformation categories
+            prompt = f"""You are an expert AI image generation prompt engineer creating CONCISE, ready-to-use prompts.
 
 Category: {category_desc}{niche_line}{context_line}
 
@@ -577,9 +632,9 @@ Instructions:
 - Create {count} distinct, complementary prompts (each ~100-150 words max)
 - Each must work directly in DALL-E 3, Midjourney, or Stable Diffusion
 - NO generic filler — be specific about scene, mood, lighting, style
-- Vary settings/angles across prompts{facial_rule}
+- Vary settings/angles across prompts
 
-IMPORTANT: Keep prompts CONCISE. Say "woman with oval face, almond eyes, full lips" NOT the full description repeated 3 times.
+IMPORTANT: Keep prompts CONCISE and focused on visual elements.
 
 Return ONLY valid JSON (no markdown, no extra text):
 {{
