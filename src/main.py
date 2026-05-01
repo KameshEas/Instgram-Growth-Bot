@@ -602,22 +602,39 @@ LAYER 2 - COMPOSITION CONTROL (HOW FRAMED - technical control):
 
 LAYER 3 - SCENE TRANSFORMATION (WHAT CHANGES - the context):
 - Specific transformation type (e.g., "bride in garden", "in formal attire", "professional styling")
-- Cultural accuracy: [if applicable] subtle cultural detailing, minimal jewelry, accurate styling (avoid stereotypes)
-- Details that enhance but don't dominate: attire, accessories, scene context
-- Remember: Scene complements identity, not competes with it
+- COSTUME/ATTIRE FOR SCENE: Use the best, most appropriate costume/attire/makeup for this specific transformation scene
+  * If bride transformation: wedding dress, bridal makeup, wedding jewelry (NOT reference image's clothing)
+  * If professional: business attire, professional styling appropriate for role (NOT reference image's clothing)
+  * If cultural event: traditional clothing, cultural styling authentic to that culture (NOT reference image's clothing)
+  * Each scene should have its own optimal costume choice
+- Cultural accuracy: [if applicable] subtle cultural detailing, accurate styling (avoid stereotypes)
+- Details that enhance but don't dominate: attire, accessories, scene context - all optimized for this transformation
+- Remember: Scene with appropriate costume complements the preserved face identity, not competes with it
 
 LAYER 4 - CONSTRAINT SYSTEM (WHAT NOT TO BREAK - strict safeguards):
+
+CRITICAL DISTINCTION:
+- PRESERVE (must stay identical to reference image): Face shape, facial features, proportions, skin tone, eye structure, unique characteristics, expression
+- CHANGE (should match the transformation scene): Costume, attire, makeup, jewelry, hairstyle, accessories, styling - choose the BEST for this scene
+
 IDENTITY CONSTRAINTS (redundant for strength):
 - No face distortion, no facial feature alterations, no identity change
 - Face must remain identical to reference image with zero modification
 - Preserve skin tone, face shape, eye structure, all unique features exactly
+- Costume/attire/makeup must NOT be copied from reference image - instead use scene-appropriate options
 
 REALISM CONSTRAINTS:
 - Natural skin texture with visible pores, no smoothing or artificial glow
 - Soft warm lighting with natural shadows, preserving skin detail and depth
-- No heavy makeup, no extreme styling unless present in reference
+- Makeup appropriate for the transformation scene (NOT from reference image): 
+  * Bridal transformations: full bridal makeup
+  * Professional transformations: polished professional makeup
+  * Formal events: elegant event makeup
+  * Casual transformations: natural everyday makeup
+- Clothing/attire optimal for the transformation scene (NOT from reference image): choose best costume choice
 - Realistic hands: anatomically correct, no extra fingers, natural proportions
 - No cartoonish or stylized rendering, strict photorealism
+- Lighting and styling should make the person look their absolute best for the chosen transformation scene
 
 BACKGROUND/FOCUS CONSTRAINTS:
 - Minimal, softly blurred background with gentle bokeh
