@@ -65,14 +65,16 @@ def parse_json_response(text: str) -> dict:
         logger.warning("[WARN] Empty response text")
         return {}
     
-    logger.debug(f"[DEBUG] Parsing response (length={len(text)})...")
+    logger.debug(f"[DEBUG] Parsing response (length={len(text)}, first 200 chars: {text[:200]})...")
     
     try:
         # Try direct parsing first
         result = json.loads(text)
         if isinstance(result, dict):
+            logger.debug("[DEBUG] Successfully parsed as direct JSON")
             return result
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        logger.debug(f"[DEBUG] Direct JSON parse failed: {e}")
         pass
     
     # Try extracting from markdown code block with ```json
@@ -292,6 +294,10 @@ class InstagramGrowthBot:
                     )
                 return result
 
+            # Parse failure — log what we got
+            raw_response = response.choices[0].message.content[:500]  # First 500 chars
+            logger.error(f"[ERROR] Parse failed for {command}. Response: {raw_response}")
+            
             # Parse failure — try stale cache as fallback
             if PROMPT_LOG_ENABLED:
                 _plog.log_prompt_response(
@@ -544,6 +550,7 @@ Return JSON with:
             "men_transform":        "male portrait transformation (strict facial feature preservation required)",
             "couples_transform":    "couples portrait transformation (facial preservation for both subjects)",
             "design_posters":       "social media poster and graphic design",
+            "design_gifts":         "personalized gift design and custom merchandise",
             "ui_ux_design":         "UI/UX screen and interface design",
             "brand_identity":       "brand identity and logo design",
             "illustration_art":     "digital illustration and concept art",
@@ -570,96 +577,109 @@ Return JSON with:
 
 Category: {category_desc}{niche_line}{context_line}
 
-CRITICAL FOR TRANSFORMATIONS - Priority Hierarchy:
-1. Identity Preservation (MOST IMPORTANT - facial features, proportions, skin tone, unique characteristics)
-2. Face Clarity & Detail (sharp, sharpest element, no distortion)
-3. Hands & Body Accuracy (especially if henna, jewelry, or specific actions mentioned)
-4. Lighting & Atmosphere
-5. Background/Scene (should complement, not dominate)
+PRIORITY HIERARCHY (strict order):
+1. Identity Preservation (facial features, structure, proportions, skin tone - MUST NOT change)
+2. Face Clarity (sharp, detailed, fully visible, unobstructed)
+3. Hands/Action (anatomically correct, prominent if action-based like henna)
+4. Pose & Expression (natural adaptation to scene/action)
+5. Styling (hair, makeup, clothing - scene-appropriate but identity-safe)
+6. Lighting (warm, directional, preserves texture)
+7. Background (minimal, blurred, non-distracting)
 
-REFERENCE IMAGE REQUIREMENT:
-- Use the provided reference image as the primary subject (anchor point for all transforms)
-- The face must remain identical to the reference image with no alterations whatsoever
-- Preserve 100% accurate facial identity: facial structure, proportions, skin tone, unique characteristics exactly
-- DO NOT alter, beautify, stylize, or change the face in any way
-- Maintain original facial expression from reference (or specify if only slight softening acceptable)
+IDENTITY LOCK (ABSOLUTE PRIORITY):
+Preserve 100% exact facial identity from reference image - facial structure, proportions, skin tone, eye structure, unique characteristics. NO structural or feature alterations whatsoever.
 
-For each transformation prompt, include these 4 layers:
+COMPOSITION CONTROL:
+- Camera angle: Eye-level or slightly angled, optimized for scene (not locked to reference)
+- Distance: Medium close-up portrait (waist-up)
+- Focus: Face is sharpest and most detailed element
+- Face must remain fully visible and unobstructed at all times
+- Lens: 50mm portrait lens aesthetic (natural proportions)
+- Depth: Shallow depth of field with face in sharp focus
 
-LAYER 1 - IDENTITY LOCK (WHO - the person):
-- "Use reference image as primary subject"
-- "Face must remain identical to reference image"
-- "Preserve exact facial identity: [repeat identity constraints]"
-- "No facial feature changes, no identity alteration whatsoever"
+SCENE TRANSFORMATION:
+Transform the subject into the specified scene context while preserving identity above all else.
 
-LAYER 2 - COMPOSITION CONTROL (HOW FRAMED - technical control):
-- Camera angle: eye-level, slight angle for dimension
-- Distance: medium close-up portrait (waist-up)
-- Focus: Face must be the sharpest and most detailed element in the image
-- Lens aesthetic: 50mm portrait lens look (natural proportions, sharp face)
-- Hands: clearly visible in foreground if relevant to scene, naturally positioned, anatomically correct
-- Depth: shallow depth of field to isolate face from background
+HANDS (if action-relevant like henna application):
+Hands prominently visible in foreground, actively engaged in scene action, anatomically correct with realistic proportions and detail. No extra fingers or distortions.
 
-LAYER 3 - SCENE TRANSFORMATION (WHAT CHANGES - the context):
-- Specific transformation type (e.g., "bride in garden", "in formal attire", "professional styling")
-- COSTUME/ATTIRE FOR SCENE: Use the best, most appropriate costume/attire/makeup for this specific transformation scene
-  * If bride transformation: wedding dress, bridal makeup, wedding jewelry (NOT reference image's clothing)
-  * If professional: business attire, professional styling appropriate for role (NOT reference image's clothing)
-  * If cultural event: traditional clothing, cultural styling authentic to that culture (NOT reference image's clothing)
-  * Each scene should have its own optimal costume choice
-- Cultural accuracy: [if applicable] subtle cultural detailing, accurate styling (avoid stereotypes)
-- Details that enhance but don't dominate: attire, accessories, scene context - all optimized for this transformation
-- Remember: Scene with appropriate costume complements the preserved face identity, not competes with it
+STYLING (identity-safe):
+- Hairstyle: New scene-appropriate style, but preserve original hairline and face framing to maintain identity
+- Makeup: Scene-appropriate makeup applied subtly without altering perceived facial structure - enhance but do not distort identity
+- Clothing: New scene-appropriate attire (not copied from reference)
+- Jewelry: Scene-appropriate and elegant (not from reference)
 
-LAYER 4 - CONSTRAINT SYSTEM (WHAT NOT TO BREAK - strict safeguards):
+LIGHTING:
+Soft warm directional light with shadows that preserve skin texture and facial detail. No excessive smoothing or artificiality.
 
-CRITICAL DISTINCTION:
-- PRESERVE (must stay identical to reference image): Face shape, facial features, proportions, skin tone, eye structure, unique characteristics, expression
-- CHANGE (should match the transformation scene): Costume, attire, makeup, jewelry, hairstyle, accessories, styling - choose the BEST for this scene
+EXPRESSION:
+Maintain core identity; allow natural micro-expression changes appropriate to the scene action (e.g., gentle smile while concentrating, peaceful gaze).
 
-IDENTITY CONSTRAINTS (redundant for strength):
-- No face distortion, no facial feature alterations, no identity change
-- Face must remain identical to reference image with zero modification
-- Preserve skin tone, face shape, eye structure, all unique features exactly
-- Costume/attire/makeup must NOT be copied from reference image - instead use scene-appropriate options
+BACKGROUND:
+Minimal, softly blurred garden/environment with light scene elements and gentle bokeh. No distracting dense elements competing for attention.
 
-REALISM CONSTRAINTS:
-- Natural skin texture with visible pores, no smoothing or artificial glow
-- Soft warm lighting with natural shadows, preserving skin detail and depth
-- Makeup appropriate for the transformation scene (NOT from reference image): 
-  * Bridal transformations: full bridal makeup
-  * Professional transformations: polished professional makeup
-  * Formal events: elegant event makeup
-  * Casual transformations: natural everyday makeup
-- Clothing/attire optimal for the transformation scene (NOT from reference image): choose best costume choice
-- Realistic hands: anatomically correct, no extra fingers, natural proportions
-- No cartoonish or stylized rendering, strict photorealism
-- Lighting and styling should make the person look their absolute best for the chosen transformation scene
-
-BACKGROUND/FOCUS CONSTRAINTS:
-- Minimal, softly blurred background with gentle bokeh
-- No distracting elements competing for attention
-- Background serves as supporting context only
+CONSTRAINTS:
+- Strict photorealism (no stylization, no distortion)
+- No facial alterations or beautification that changes perceived features
+- No identity change whatsoever
+- No extra fingers, no anatomical errors
+- Face must remain the focal point
 
 Instructions:
-- Create {count} DISTINCT transformation prompts (each ~150-200 words)
+- Create {count} DISTINCT transformation prompts (each ~120-160 words)
+- Each must be concise and conflict-free (no contradictions in constraints)
+- Maintain priority hierarchy: Identity > Face clarity > Action > Pose > Styling > Lighting > Background
 - Each prompt must work directly in DALL-E 3, Midjourney, or Stable Diffusion
-- Each prompt must emphasize reference image preservation FIRST, then scene transformation
-- Order content: Identity Lock → Composition Control → Scene Transformation → Constraint System
-- Use redundant identity language (repeat identity anchors in different forms for strength)
-- Group constraints by category (Identity, Realism, Background) for clarity
-- Vary the transformations/scenes across prompts, but ALWAYS keep identity preservation paramount
-- DO NOT describe facial features manually (say "preserve exact facial identity from reference" instead)
+- Start with identity anchor, then add scene context, then refine with styling
+- Use ONE coherent voice (not fragmented lists)
+- Vary transformations across prompts
+- NEVER compromise identity preservation for other effects
 
 Return ONLY valid JSON (no markdown, no extra text):
 {{
   "prompts": [
-    {{"prompt": "<transformation prompt using 4-layer structure: Identity Lock → Composition Control → Scene Transformation → Constraint System>", "scene": "<transformation type>"}}
+    {{"prompt": "<single cohesive transformation prompt following priority hierarchy>", "scene": "<transformation type>"}}
   ],
-  "tip": "<actionable tip emphasizing reference image anchoring and composition for identity preservation>"
+  "tip": "<actionable insight on maintaining identity while transforming scene>"
+}}"""
+        elif category == "design_gifts":
+            # Specialized template for gift design
+            prompt = f"""You are an expert AI design prompt engineer specializing in personalized gift designs and merchandise.
+
+Category: {category_desc}{niche_line}{context_line}
+
+Gift Design Requirements:
+- Create {count} distinct, creative gift design concepts
+- Each prompt should be optimized for DALL-E 3, Midjourney, or Stable Diffusion
+- Designs should be printable on merchandise (mugs, t-shirts, posters, etc.)
+- Include specific style guidance (modern, vintage, minimalist, ornate, etc.)
+- Consider personalization elements that make the gift unique and meaningful
+
+For each design prompt, include:
+1. CONCEPT: What the design represents and its emotional appeal
+2. VISUAL STYLE: Specific artistic direction (e.g., watercolor, digital illustration, 3D render)
+3. COMPOSITION: Layout, focal point, use of space
+4. COLOR SCHEME: Specific colors or palettes suited for the gift
+5. DETAILS: Specific elements, patterns, typography, or decorative features
+6. CONTEXT: Where/how this design would be used (mug, shirt, poster, etc.)
+7. PERSONALIZATION: How it could be customized for the recipient
+
+Instructions:
+- Create {count} DISTINCT gift design prompts (each ~100-150 words)
+- Each must be production-ready for print on demand
+- Include quality indicators (high resolution, professional finish)
+- Consider both aesthetic appeal and printability
+- Vary designs across prompts to offer different style options
+
+Return ONLY valid JSON (no markdown, no extra text):
+{{
+  "prompts": [
+    {{"prompt": "<design prompt optimized for image generation>", "scene": "<gift type/style>"}}
+  ],
+  "tip": "<actionable tip for best gift design results>"
 }}"""
         else:
-            # Standard template for non-transformation categories
+            # Standard template for non-transformation, non-gift categories
             prompt = f"""You are an expert AI image generation prompt engineer creating CONCISE, ready-to-use prompts.
 
 Category: {category_desc}{niche_line}{context_line}

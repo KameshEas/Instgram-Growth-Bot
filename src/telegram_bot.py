@@ -1389,7 +1389,7 @@ class TelegramBotHandler:
             return
 
         LEVELS = {"beginner", "professional", "expert"}
-        DESIGN_CATEGORIES = {"design_posters", "ui_ux_design", "brand_identity"}
+        DESIGN_CATEGORIES = {"design_posters", "ui_ux_design", "brand_identity", "design_gifts"}
         
         category = text_after_cmd.split()[0].strip().lower()
         remaining = text_after_cmd[len(category):].strip()
