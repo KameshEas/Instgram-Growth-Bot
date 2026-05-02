@@ -661,21 +661,163 @@ Layer 2 (Composition): "[Scene-specific camera angle], 50mm portrait aesthetic, 
 Layer 3 (Transformation): "[Scene-specific costume/styling/action] with accessories coordinated to outfit colors and style"
 Layer 4 (Prohibitions): "Negative prompt: avoid beautification, avoid smoothing, avoid retouching, avoid feature alteration"
 
+SCENE VARIATION MANDATE (CRITICAL FOR DIVERSITY):
+⚠️ YOU MUST CREATE {count} PROMPTS WITH COMPLETELY DIFFERENT SCENARIOS
+- Each prompt MUST use a different transformation scenario from the list below
+- Scenario rotation example (for 3 prompts): Prompt 1=Bride, Prompt 2=Professional, Prompt 3=Casual
+- If fewer scenarios needed, cycle through: Bride → Professional → Casual → Party → Cultural → Artistic → Outdoor → Minimalist
+- ENFORCE DIVERSITY: Each scenario must have distinct pose, body position, environment, and styling
+- VALIDATE BEFORE OUTPUT: Confirm each prompt is visually distinct (different scene context)
+
+SCENE-SPECIFIC TRANSFORMATION SCENARIOS (CHOOSE DIFFERENT ONE FOR EACH PROMPT):
+
+1️⃣ BRIDE/FORMAL WEDDING:
+   - Setting: Luxurious wedding venue (bridal suite, garden, hall, decorated space)
+   - Pose: Standing confident with deliberate positioning (hand on hip, hand on dress, crossed arms, or elegant hand placement)
+   - Body Position: Upright, poised, formal stance showing confidence and elegance
+   - Face Angle: Direct to camera with gentle head tilt, or profile/3-quarter angle looking thoughtful
+   - Makeup: Full bridal makeup (enhanced eyes, defined brows, lip color, luminous skin)
+   - Attire: Wedding dress/bridal wear, embellished/elegant (saree, lehenga, gown, traditional bridal, etc.)
+   - Jewelry: Statement bridal jewelry (earrings, necklace, bangles, coordinated with outfit)
+   - Hair: Bridal hairstyle (updo, half-up, braided, or with bridal accessories like flowers/tiara)
+   - Expression: Radiant, joyful, confident, gentle, romantic
+   - Lighting: Warm flattering light, romantic golden hour feel, soft directional light
+   - Background: Decorated, elegant, complementary to bridal theme (venue details softly blurred)
+
+2️⃣ PROFESSIONAL/CORPORATE:
+   - Setting: Professional environment (office interior, glass background, corporate space, studio)
+   - Pose: Power pose or confident seated (leaning on desk, hand on chest, arms crossed confidently, or seated at desk)
+   - Body Position: Upright, commanding, formal professional posture
+   - Face Angle: Direct eye contact with camera (confident direct gaze) or slight angle showing approachability
+   - Makeup: Professional polished makeup (minimal but refined, matte finish, professional colors)
+   - Attire: Business formal wear (blazer, suit, professional dress, business casual), well-tailored
+   - Jewelry: Minimal professional jewelry (simple earrings, professional watch/bracelet, understated)
+   - Hair: Professional neat styling (bun, sleek waves, professional cut, salon-finished)
+   - Expression: Confident, professional, commanding, approachable yet authoritative
+   - Lighting: Corporate studio lighting (bright, neutral, even, professional headshot aesthetic)
+   - Background: Corporate/office elements softly blurred, professional backdrop
+
+3️⃣ CASUAL/RELAXED:
+   - Setting: Casual environment (cafe, park bench, relaxed indoor space, casual cafe ambiance)
+   - Pose: Relaxed comfortable positioning (leaning against wall, casual seated, relaxed standing, natural arm placement)
+   - Body Position: Relaxed, at-ease posture, comfortable and approachable
+   - Face Angle: Natural over-shoulder look, slight head tilt, soft angle showing approachability
+   - Makeup: Natural minimal makeup (enhanced but fresh-faced, natural tones, effortless look)
+   - Attire: Casual comfortable clothing (jeans, casual dress, sweater, relaxed fit, approachable style)
+   - Jewelry: Simple casual accessories (minimal earrings, simple bracelet, casual watch if any)
+   - Hair: Natural styled hair (loose waves, casual bun, natural texture, undone elegance)
+   - Expression: Warm, friendly, genuine smile, relaxed, approachable, natural
+   - Lighting: Soft natural or cafe lighting, warm tones, soft shadows, intimate feel
+   - Background: Casual setting elements (cafe interior, park, relaxed background slightly blurred)
+
+4️⃣ PARTY/GLAMOROUS EVENT:
+   - Setting: Upscale party/event venue (cocktail party, gala, nightclub, celebration space, elegant event)
+   - Pose: Dynamic energetic positioning (standing with attitude, hand gesture, confident stance, engaging pose)
+   - Body Position: Confident, expressive, dynamic posture showing energy and presence
+   - Face Angle: Engaging angle (slightly turned with eye contact over shoulder, or frontal with direct gaze)
+   - Makeup: Glamorous bold makeup (dramatic eyes, defined lips, luminous glow, statement makeup)
+   - Attire: Evening formal wear (cocktail dress, designer dress, saree, formal gown, glamorous outfit)
+   - Jewelry: Statement jewelry (chandelier earrings, bold necklace, multiple bracelets, coordinated ensemble)
+   - Hair: Glamorous styling (loose curls, voluminous waves, elegant updo, salon-quality shine)
+   - Expression: Confident, radiant, engaging, fun, social, glowing
+   - Lighting: Warm flattering light, evening/event lighting with subtle glow, mood lighting
+   - Background: Event venue elements (elegant decor, venue details, sophisticated background)
+
+5️⃣ CULTURAL/TRADITIONAL:
+   - Setting: Cultural/traditional setting (temple, cultural space, traditional backdrop, culturally appropriate environment)
+   - Pose: Respectful traditional positioning (standing gracefully, culturally appropriate gesture, traditional pose elements)
+   - Body Position: Graceful, dignified, respectful posture honoring cultural context
+   - Face Angle: Direct frontal or slight profile angle, serene and composed expression angle
+   - Makeup: Traditional makeup (cultural-appropriate colors, traditional cosmetics, authentic styling)
+   - Attire: Traditional cultural dress (authentic regional clothing, cultural attire, traditional styling)
+   - Jewelry: Traditional jewelry (cultural-appropriate metals and designs, authentic cultural jewelry, coordinated)
+   - Hair: Traditional styling (cultural-appropriate hairstyle, traditional accessories, authentic styling)
+   - Expression: Serene, dignified, respectful, culturally-aligned, graceful
+   - Lighting: Warm respectful lighting, honoring cultural aesthetics, soft authentic feel
+   - Background: Culturally appropriate background (traditional elements, respectful cultural setting)
+
+6️⃣ ARTISTIC/CREATIVE:
+   - Setting: Artistic environment (artist studio, creative space, artistic backdrop, gallery-like setting)
+   - Pose: Creative expressive positioning (artistic gesture, unique angle, unconventional but flattering pose)
+   - Body Position: Expressive, creative posture, artistic and unique positioning
+   - Face Angle: Unconventional flattering angle (profile, dramatic angle, artistic angle that showcases creativity)
+   - Makeup: Creative artistic makeup (subtle artistic elements, creative colors or techniques, artist-inspired)
+   - Attire: Artistic/creative clothing (bohemian wear, artistic style, creative fashion, expressive clothing)
+   - Jewelry: Artistic accessories (bohemian jewelry, artistic pieces, creative jewelry, curated collection)
+   - Hair: Creative styling (artistic arrangement, textured, unique but flattering, creative hair direction)
+   - Expression: Creative, thoughtful, artistic, inspired, unique
+   - Lighting: Artistic lighting (dramatic, mood lighting, studio lights creating artistic effect)
+   - Background: Artistic elements (studio details, creative backdrop, artistic environment)
+
+7️⃣ OUTDOOR/ADVENTURE:
+   - Setting: Outdoor natural setting (garden, nature, outdoor landscape, park, natural backdrop)
+   - Pose: Active comfortable outdoor positioning (standing naturally in landscape, active engaged pose, adventure-ready)
+   - Body Position: Relaxed active posture, at-ease in natural environment, engaged with setting
+   - Face Angle: Natural angle with setting (looking toward landscape, engaged with environment, natural outdoor angle)
+   - Makeup: Natural outdoor makeup (fresh-faced, sun-kissed, natural look appropriate for outdoors)
+   - Attire: Casual outdoor wear (outdoor clothing, adventure-appropriate, casual sporty or relaxed casual)
+   - Jewelry: Minimal nature-friendly accessories (simple jewelry, adventure-appropriate, minimal metal)
+   - Hair: Natural outdoor styling (loose, windswept, natural texture, outdoor-appropriate)
+   - Expression: Fresh, energized, connection to nature, genuine, outdoor-friendly
+   - Lighting: Natural sunlight (golden hour, soft natural light, outdoor natural lighting)
+   - Background: Natural outdoor scenery (landscape elements, nature, outdoor environment)
+
+8️⃣ MINIMALIST/MODERN CONTEMPORARY:
+   - Setting: Modern minimalist space (clean background, contemporary setting, modern studio, sleek space)
+   - Pose: Clean modern positioning (simple elegant stance, contemporary pose, minimal but striking)
+   - Body Position: Refined, minimalist posture, clean lines, contemporary elegance
+   - Face Angle: Direct contemporary angle (frontal or slight angle, modern portrait aesthetic)
+   - Makeup: Minimalist refined makeup (clean lines, modern tones, refined simplicity)
+   - Attire: Modern contemporary clothing (minimalist fashion, contemporary outfit, clean lines, modern aesthetic)
+   - Jewelry: Minimal modern jewelry (geometric, minimalist pieces, contemporary jewelry, or no jewelry)
+   - Hair: Clean modern styling (sleek, minimalist, contemporary cut, modern aesthetic)
+   - Expression: Composed, modern, confident, refined, contemporary
+   - Lighting: Clean modern lighting (studio light, bright contemporary, clean shadows)
+   - Background: Minimalist backdrop (plain or subtle, contemporary, clean modern space)
+
+POSE DIVERSITY ENFORCEMENT:
+✓ MANDATORY: Each of {count} prompts MUST have:
+  - DIFFERENT body position type (standing vs seated vs leaning vs dynamic)
+  - DIFFERENT face angle (frontal vs profile vs 3/4 angle vs over-shoulder)
+  - DIFFERENT hand/arm positioning (hands down vs hands active vs hands placed vs arm gesture)
+  - DIFFERENT environmental context (indoor vs outdoor, venue type, background style)
+  - DIFFERENT pose intent (confident vs relaxed vs energetic vs composed vs graceful)
+  - DIFFERENT body language (formal vs casual vs creative vs active vs traditional)
+
+SPECIAL SCENE ROTATION RULE (if {count}=3):
+- Prompt 1: Use Bride/Formal Wedding scenario
+- Prompt 2: Use Professional/Corporate scenario  
+- Prompt 3: Use Casual/Relaxed scenario
+
+SPECIAL SCENE ROTATION RULE (if {count}=6):
+- Prompt 1: Bride/Formal Wedding
+- Prompt 2: Professional/Corporate
+- Prompt 3: Casual/Relaxed
+- Prompt 4: Party/Glamorous Event
+- Prompt 5: Cultural/Traditional
+- Prompt 6: Artistic/Creative
+
 INSTRUCTIONS FOR PROMPT GENERATION:
 - Create {count} DISTINCT transformation prompts (each 100-160 words, compressed/dense)
+- ENFORCE THE SCENE ROTATION (mandatory scenario assignment per prompt above)
 - EACH PROMPT MUST START with explicit facial feature preservation statement
+- EACH PROMPT MUST SPECIFY THE SCENE SCENARIO being used (e.g., "Bride Scenario: wedding formal attire")
 - EACH PROMPT MUST INCLUDE accessory-outfit coordination specifics
+- EACH PROMPT MUST SPECIFY different pose, body position, and face angle than other prompts
+- EACH PROMPT MUST SPECIFY different environmental context than other prompts
 - EACH PROMPT MUST END with explicit "Negative: [forbidden list]"
 - Use direct language, minimize explanation, maximize clarity
 - Repeat identity anchors 2-3 times in different forms for redundancy
 - Order: Facial Preservation (most emphasized) → Composition → Scene → Negatives
 - Test prompts work on DALL-E 3, Midjourney, Stable Diffusion
+- CRITICAL VALIDATION: Before returning JSON, verify each prompt uses a different scenario and has distinct pose/position/environment
 
 SPECIAL INSTRUCTION FOR REFERENCE-BASED TRANSFORMATIONS:
-- Every transformation shares the EXACT SAME FACE
-- Face angle/pose/expression: OPTIMIZE per scene (never locked)
-- Everything else: Completely new per scene
+- Every transformation shares the EXACT SAME FACE (facial features immutable)
+- Face angle/pose/expression: OPTIMIZE per scene (never locked, varies by scenario)
+- Body position/clothing/environment/styling: COMPLETELY NEW AND UNIQUE per scene
 - The person must be recognizable across all transformations by facial features alone
+- But the scenes, poses, environments, and styling must be VISUALLY DISTINCT and different
 
 Return ONLY valid JSON (no markdown, no text before/after):
 {{
