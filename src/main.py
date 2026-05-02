@@ -614,122 +614,64 @@ Return JSON with:
                 if detected_styles:
                     artistic_style_emphasis = f"\n\n**ARTISTIC STYLE PRIORITY**: The user has specified an artistic direction: {', '.join(detected_styles)}. This MUST be honored throughout the transformation. This artistic style takes priority over default photorealism."
             
-            prompt = f"""You are an expert AI image generation prompt engineer specializing in identity-preserving portrait transformations.
+            prompt = f"""You are an expert AI image generation prompt engineer for identity-locked portrait transformations.
 
 Category: {category_desc}{niche_line}{context_line}{reference_line}{transformation_directive}{artistic_style_emphasis}
 
-CRITICAL FOR TRANSFORMATIONS - Priority Hierarchy:
-1. Identity Preservation (MOST IMPORTANT - facial features, proportions, skin tone, unique characteristics)
-2. Face Clarity & Detail (sharp, sharpest element, no distortion)
-3. Hands & Body Accuracy (especially if henna, jewelry, or specific actions mentioned)
-4. Artistic Style (if specified by user - must be honored)
-5. Lighting & Atmosphere
-6. Background/Scene (should complement, not dominate)
+ABSOLUTE PRIORITY: IDENTITY LOCK (NO EXCEPTIONS)
+- IDENTITY MUST BE PIXEL-PERFECT IDENTICAL TO REFERENCE IMAGE
+- Face direction/angle/pose/expression: CAN CHANGE per scene
+- Everything else about the face: CANNOT CHANGE (not even 1% alteration)
 
-REFERENCE IMAGE REQUIREMENT:
-- Use the provided reference image as the primary subject (anchor point for all transforms)
-- The FACIAL FEATURES must remain identical to the reference image with no alterations whatsoever
-- Preserve 100% accurate facial identity: facial structure, proportions, skin tone, eye structure, unique characteristics exactly
-- DO NOT alter, beautify, stylize, or change the facial features in any way
-- Face direction/angle/pose: CAN BE DIFFERENT and optimized for each transformation scene
-- Expression: Can be adjusted to match the transformation scene (e.g., smiling for celebratory, serene for peaceful)
+FACIAL FEATURE PRESERVATION (DO NOT ALTER EVEN SLIGHTLY):
+✓ PRESERVE EXACTLY: Eye shape, size, spacing, iris color, pupil shape | Nose structure, tip, nostrils, width | Mouth shape, lip fullness, corners | Cheekbone height and prominence | Jawline shape and definition | Face shape (oval/round/square) | Skin tone (exact match, no warming/cooling) | Skin texture (pores, natural blemishes, texture patterns) | Forehead width and height | Chin structure and projection | Face proportions (distance between features) | Unique facial characteristics, birthmarks, asymmetries | Eyebrow shape, thickness, arch, spacing | Hairline position and shape
 
-For each transformation prompt, include these 4 layers:
+✗ ABSOLUTELY FORBIDDEN: Any skin smoothing or artificial enhancement | Any beautification or retouching | Any feature adjustment (bigger eyes, smaller nose, fuller lips, etc.) | Any facial structure alteration | Any skin tone warming, cooling, or lightening | Any feature reshaping or refinement | Any asymmetry correction | Filters, effects, or stylization that change facial appearance | Any micro-alterations that change identity perception
 
-LAYER 1 - IDENTITY LOCK (WHO - the person):
-- "Use reference image as primary subject for facial features"
-- "Facial features must remain identical to reference image (structure, skin tone, proportions)"
-- "Preserve exact facial identity: facial structure, proportions, skin tone, eye structure"
-- "Face direction/angle/pose: CAN BE DIFFERENT for each transformation scene"
-- "No facial feature changes, no identity alteration whatsoever"
+SCENE TRANSFORMATION (WHAT CAN CHANGE):
+- Hair direction, style, color (completely new - NOT from reference) | Makeup type and intensity (NEW - NOT from reference) | Clothing/costume (completely new scene-appropriate attire) | Accessories, jewelry, styling (all new, scene-appropriate) | Face direction, angle, pose (optimize for scene) | Expression, micro-expressions (appropriate to scene action) | Lighting intensity and direction (preserve skin texture while enhancing mood) | Background elements (soft, blurred, non-distracting)
 
-LAYER 2 - COMPOSITION CONTROL (HOW FRAMED - technical control):
-- Camera angle: Can be eye-level, slight angle, or optimized for the transformation scene (NOT locked to reference angle)
-- Distance: medium close-up portrait (waist-up), can vary based on scene requirements
-- Focus: Face must be the sharpest and most detailed element in the image, fully visible and unobstructed
-- Lens aesthetic: 50mm portrait lens look (natural proportions, sharp face)
-- Hands: Prominently visible if relevant to the scene action (e.g., henna, jewelry placement), anatomically correct, naturally positioned
-- Depth: shallow depth of field to isolate face from background
+TECHNICAL REQUIREMENTS:
+Composition: Medium close-up (waist-up), 50mm portrait lens style, eye-level or slight angle
+Face Clarity: Sharpest element, fully visible, unobstructed, most detailed
+Hands: Anatomically correct, naturally positioned, properly detailed (if visible)
+Lighting: Directional but soft, preserving skin texture detail (avoid over-smoothing)
+Background: Minimal, blurred, supporting (never competing with face)
+Depth: Shallow depth of field isolating face
+Skin Texture: Natural with visible pores, no artificial smoothing
+Realism: Strict photorealism, no cartoon/stylization
 
-LAYER 3 - SCENE TRANSFORMATION (WHAT CHANGES - the context):
-- Apply the transformation specified in the user's requirement above
-- COSTUME/ATTIRE FOR SCENE: Use the best, most appropriate costume/attire/makeup for the specific transformation requested
-  * Choose styling that authentically fits the transformation context
-  * NOT from reference image's clothing - create completely new appropriate attire
-  * Each transformation should have its own optimal costume/styling choice
-- Artistic style: Honor any specific artistic direction mentioned (illustration, watercolor, digital art, etc.)
-- Details that enhance but don't dominate: attire, accessories, scene context - all optimized for this transformation
-- Remember: Scene with appropriate costume/styling complements the preserved face identity, not competes with it
+NEGATION INSTRUCTIONS (Critical for AI models):
+- Negative: "avoid beautification, avoid face smoothing, avoid skin enhancement, avoid retouching, avoid feature alteration, avoid plastic surgery effects, avoid artificial perfection, avoid Photoshop effects, avoid feature reshaping, avoid identity change"
 
-LAYER 4 - CONSTRAINT SYSTEM (WHAT NOT TO BREAK - strict safeguards):
+4-LAYER STRUCTURE FOR EACH PROMPT:
+Layer 1 (Identity Lock): "Preserve [specific facial feature list] identically from reference image. Do not alter facial structure in any way."
+Layer 2 (Composition): "[Scene-specific camera angle], 50mm portrait aesthetic, face sharp and detailed, shallow depth of field"
+Layer 3 (Transformation): "[Scene-specific costume/styling/action]"
+Layer 4 (Prohibitions): "Negative prompt: avoid beautification, avoid smoothing, avoid retouching, avoid feature alteration"
 
-CRITICAL DISTINCTION:
-- PRESERVE (must stay identical to reference image): Facial structure, proportions, skin tone, eye structure, unique characteristics, facial features
-- CHANGE/VARY (optimized for each transformation scene): Face direction, angle, pose, expression, hairstyle, makeup, costume, jewelry, accessories, styling
-- Face can be at ANY angle optimized for the transformation scene (not locked to reference angle)
+INSTRUCTIONS FOR PROMPT GENERATION:
+- Create {count} DISTINCT transformation prompts (each 100-150 words, compressed/dense)
+- EACH PROMPT MUST START with explicit facial feature preservation statement
+- EACH PROMPT MUST END with explicit "Negative: [forbidden list]"
+- Use direct language, minimize explanation, maximize clarity
+- Repeat identity anchors 2-3 times in different forms for redundancy
+- Order: Facial Preservation (most emphasized) → Composition → Scene → Negatives
+- Test prompts work on DALL-E 3, Midjourney, Stable Diffusion
 
-IDENTITY CONSTRAINTS:
-- Preserve 100% exact facial identity from reference image with no structural or feature alterations whatsoever
-- Face direction/angle/pose: CAN BE DIFFERENT and optimized for each transformation scene
-- Expression: Allow natural micro-expression changes appropriate to the action/scene
-- Face must remain fully visible and unobstructed at all times
+SPECIAL INSTRUCTION FOR REFERENCE-BASED TRANSFORMATIONS:
+- Every transformation shares the EXACT SAME FACE
+- Face angle/pose/expression: OPTIMIZE per scene (never locked)
+- Everything else: Completely new per scene
+- The person must be recognizable across all transformations by facial features alone
 
-STYLING CONSTRAINTS (all NEW, not from reference):
-- Hairstyle: New bridal hairstyle, but MAINTAIN original hairline and face framing
-- Makeup: Enhance subtly without altering perceived facial structure or identity
-- Clothing/Attire: Use best costume choice for the scene (NOT from reference)
-- Jewelry/Accessories: Scene-appropriate and elegant (NOT from reference)
-- Styling: Completely new styling to match the transformation context
-
-HAIRSTYLE GUIDANCE (scene-specific, NEW, NOT from reference):
-- Create a completely new hairstyle appropriate to the transformation scene/character/style
-- MAINTAIN original hairline and face framing (never alter face boundaries)
-- Adapt hairstyle to transformation theme: if formal/professional → polished; if casual/street → natural; if character/fantasy → thematic
-- Preserve natural face framing so identity remains recognizable despite new hairstyle
-- Examples: bridal scenes → elegant hairstyle with flowers; professional → polished business style; fantasy → character-appropriate style
-- The key: NEW hairstyle every time, but always preserves original hairline boundaries
-
-MAKEUP GUIDANCE (identity-safe enhancement, NEW, NOT from reference):
-- Enhance makeup subtly to match the transformation scene without altering perceived facial structure
-- Adapt makeup to scene: formal events → elegant with defined features; casual → natural; character transformation → scene-appropriate colors
-- CRITICAL: Makeup must enhance WITHOUT altering perceived facial features or identity
-- Never apply heavy makeup that obscures facial structure or distorts feature recognition
-- Examples: bridal → warm tones/defined eyes; professional → neutral/polished; casual → minimal/natural
-- The key: New makeup for each scene, but always preserves facial feature recognition
-
-HANDS:
-- Prominently visible in foreground (if scene requires hands-focus like henna application)
-- Anatomically correct, detailed, naturally positioned
-- No extra fingers, natural proportions, consistent with body
-
-OTHER REALISM REQUIREMENTS:
-- Natural skin texture with visible pores, no smoothing or artificial enhancement
-- Lighting: Soft but directionally defined, preserving skin texture and facial detail (avoid over-smoothing)
-- No cartoonish or stylized rendering, strict photorealism
-- No distortion, no identity alteration, professional quality
-
-BACKGROUND CONSTRAINTS:
-- Soft, minimal background with light scene elements, heavily blurred to avoid distraction
-- Gentle bokeh effect but NOT dense with flowers/elements
-- Background serves as supporting context only, never competing with face for attention
-- If scene mentions nature/garden: use subtle elements, not filled/crowded
-
-Instructions:
-- Create {count} DISTINCT transformation prompts (each ~150-200 words)
-- Each prompt must work directly in DALL-E 3, Midjourney, or Stable Diffusion
-- Each prompt must emphasize reference image preservation FIRST, then scene transformation
-- Order content: Identity Lock → Composition Control → Scene Transformation → Constraint System
-- Use redundant identity language (repeat identity anchors in different forms for strength)
-- Group constraints by category (Identity, Realism, Background) for clarity
-- Vary the transformations/scenes across prompts, but ALWAYS keep identity preservation paramount
-- DO NOT describe facial features manually (say "preserve exact facial identity from reference" instead)
-
-Return ONLY valid JSON (no markdown, no extra text):
+Return ONLY valid JSON (no markdown, no text before/after):
 {{
   "prompts": [
-    {{"prompt": "<transformation prompt using 4-layer structure: Identity Lock → Composition Control → Scene Transformation → Constraint System>", "scene": "<transformation type>"}}
+    {{"prompt": "<compressed 100-150 word prompt starting with facial preservation, ending with negatives>", "scene": "<transformation type>"}}
   ],
-  "tip": "<actionable tip emphasizing reference image anchoring and composition for identity preservation>"
+  "analysis": "Facial preservation strategy and key identity anchors used",
+  "tip": "Identity lock technique: [specific method for preserving this face]"
 }}"""
         elif category == "design_gifts":
             # Specialized template for gift design with optional reference image support
