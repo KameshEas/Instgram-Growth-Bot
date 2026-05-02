@@ -629,7 +629,18 @@ FACIAL FEATURE PRESERVATION (DO NOT ALTER EVEN SLIGHTLY):
 ✗ ABSOLUTELY FORBIDDEN: Any skin smoothing or artificial enhancement | Any beautification or retouching | Any feature adjustment (bigger eyes, smaller nose, fuller lips, etc.) | Any facial structure alteration | Any skin tone warming, cooling, or lightening | Any feature reshaping or refinement | Any asymmetry correction | Filters, effects, or stylization that change facial appearance | Any micro-alterations that change identity perception
 
 SCENE TRANSFORMATION (WHAT CAN CHANGE):
-- Hair direction, style, color (completely new - NOT from reference) | Makeup type and intensity (NEW - NOT from reference) | Clothing/costume (completely new scene-appropriate attire) | Accessories, jewelry, styling (all new, scene-appropriate) | Face direction, angle, pose (optimize for scene) | Expression, micro-expressions (appropriate to scene action) | Lighting intensity and direction (preserve skin texture while enhancing mood) | Background elements (soft, blurred, non-distracting)
+- Hair direction, style, color (completely new - NOT from reference) | Makeup type and intensity (NEW - NOT from reference) | Clothing/costume (completely new scene-appropriate attire) | Face direction, angle, pose (optimize for scene) | Expression, micro-expressions (appropriate to scene action) | Lighting intensity and direction (preserve skin texture while enhancing mood) | Background elements (soft, blurred, non-distracting)
+
+ACCESSORY & STYLING HARMONY (CRITICAL COORDINATION RULES):
+⭐ JEWELRY & ACCESSORIES MUST COORDINATE WITH OUTFIT:
+- Earrings: Metal tone and style must complement outfit colors (gold accessories with warm tones, silver with cool tones, rose gold versatile)
+- Jewelry color: Match primary outfit color palette (if wearing purple, use complementary metal; if wearing jewel tones, use gold)
+- Necklace (if any): Length and material must suit outfit neckline and formality level
+- Bindi (if applicable): Color MUST harmonize with outfit color scheme — warm outfit = warm/red tones, cool outfit = blue/purple tones, neutral outfit = gold/jewel tones
+- Bindi placement: Must be centered, appropriate to face structure, visible and color-coordinated
+- Bracelets: Metal and style must match jewelry/accessories theme (matching earrings tone and formality)
+- Overall coherence: All accessories work together as unified styling set, never mismatched metals or clashing colors
+- Style consistency: Formal outfit = refined/elegant accessories; casual outfit = simple/approachable accessories; traditional = culturally appropriate styling
 
 TECHNICAL REQUIREMENTS:
 Composition: Medium close-up (waist-up), 50mm portrait lens style, eye-level or slight angle
@@ -642,17 +653,18 @@ Skin Texture: Natural with visible pores, no artificial smoothing
 Realism: Strict photorealism, no cartoon/stylization
 
 NEGATION INSTRUCTIONS (Critical for AI models):
-- Negative: "avoid beautification, avoid face smoothing, avoid skin enhancement, avoid retouching, avoid feature alteration, avoid plastic surgery effects, avoid artificial perfection, avoid Photoshop effects, avoid feature reshaping, avoid identity change"
+- Negative: "avoid beautification, avoid face smoothing, avoid skin enhancement, avoid retouching, avoid feature alteration, avoid plastic surgery effects, avoid artificial perfection, avoid Photoshop effects, avoid feature reshaping, avoid identity change, avoid mismatched accessories"
 
 4-LAYER STRUCTURE FOR EACH PROMPT:
 Layer 1 (Identity Lock): "Preserve [specific facial feature list] identically from reference image. Do not alter facial structure in any way."
 Layer 2 (Composition): "[Scene-specific camera angle], 50mm portrait aesthetic, face sharp and detailed, shallow depth of field"
-Layer 3 (Transformation): "[Scene-specific costume/styling/action]"
+Layer 3 (Transformation): "[Scene-specific costume/styling/action] with accessories coordinated to outfit colors and style"
 Layer 4 (Prohibitions): "Negative prompt: avoid beautification, avoid smoothing, avoid retouching, avoid feature alteration"
 
 INSTRUCTIONS FOR PROMPT GENERATION:
-- Create {count} DISTINCT transformation prompts (each 100-150 words, compressed/dense)
+- Create {count} DISTINCT transformation prompts (each 100-160 words, compressed/dense)
 - EACH PROMPT MUST START with explicit facial feature preservation statement
+- EACH PROMPT MUST INCLUDE accessory-outfit coordination specifics
 - EACH PROMPT MUST END with explicit "Negative: [forbidden list]"
 - Use direct language, minimize explanation, maximize clarity
 - Repeat identity anchors 2-3 times in different forms for redundancy
@@ -668,10 +680,10 @@ SPECIAL INSTRUCTION FOR REFERENCE-BASED TRANSFORMATIONS:
 Return ONLY valid JSON (no markdown, no text before/after):
 {{
   "prompts": [
-    {{"prompt": "<compressed 100-150 word prompt starting with facial preservation, ending with negatives>", "scene": "<transformation type>"}}
+    {{"prompt": "<compressed 100-160 word prompt with identity lock, accessory-outfit coordination, and negatives>", "scene": "<transformation type>"}}
   ],
-  "analysis": "Facial preservation strategy and key identity anchors used",
-  "tip": "Identity lock technique: [specific method for preserving this face]"
+  "analysis": "Facial preservation strategy, identity anchors, and accessory coordination approach used",
+  "tip": "Identity lock + accessory harmony technique: [specific method for preserving face and coordinating styling]"
 }}"""
         elif category == "design_gifts":
             # Specialized template for gift design with optional reference image support
