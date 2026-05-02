@@ -16,4 +16,5 @@ htmlcov/
 .env.local
 .env.*.local
 data/*
+metrics/
 *.md
