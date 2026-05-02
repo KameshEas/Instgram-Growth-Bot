@@ -1448,8 +1448,14 @@ class TelegramBotHandler:
                         if best_for:
                             msg += f"_{best_for}_\n"
                         msg += "─────────────────────\n\n"
-                        msg += escape_md(prompts[0]) if prompts else "No prompt returned."
-                        msg += f"\n\n🛠 Tools: {tools}"
+                        # For transformations, show all 3 scene variations
+                        if category in _TRANSFORM_CATEGORIES and len(prompts) > 1:
+                            for i, p in enumerate(prompts, 1):
+                                display = strip_transform_boilerplate(p) if category in _TRANSFORM_CATEGORIES else p
+                                msg += f"*Scene {i}:*\n{escape_md(display)}\n\n"
+                        else:
+                            msg += escape_md(prompts[0]) if prompts else "No prompt returned."
+                        msg += f"\n🛠 Tools: {tools}"
                     else:
                         msg = f"{cat_emoji} *{category}* — {level_labels.get(res_level, res_level)}\n"
                         if best_for:

@@ -244,13 +244,13 @@ class InstagramGrowthBot:
         """Centralised Groq call with DB logging and tiered fallback cache.
 
         Flow:
-        1. Check fresh cache → return immediately on hit.
+        1. Check fresh cache → return immediately on hit (unless ttl_hours=None).
         2. Call Groq → on success log + cache + return result.
         3. On failure → log error → serve stale cache with _stale flag.
         4. Nothing cached → return error dict.
         """
-        # Step 1 — fresh cache check
-        if PROMPT_LOG_ENABLED:
+        # Step 1 — fresh cache check (SKIP if ttl_hours=None, meaning no caching for this request)
+        if PROMPT_LOG_ENABLED and ttl_hours is not None:  # Only use cache if caching is enabled (ttl_hours set)
             cached = _plog.get_cached_response(cache_key)
             if cached:
                 logger.info("[CACHE] Fresh hit for %s", command)
@@ -298,8 +298,8 @@ class InstagramGrowthBot:
             raw_response = response.choices[0].message.content[:500]  # First 500 chars
             logger.error(f"[ERROR] Parse failed for {command}. Response: {raw_response}")
             
-            # Parse failure — try stale cache as fallback
-            if PROMPT_LOG_ENABLED:
+            # Parse failure — try stale cache as fallback (only if caching enabled)
+            if PROMPT_LOG_ENABLED and ttl_hours is not None:  # Only fall back to stale cache if this request uses caching
                 _plog.log_prompt_response(
                     command=command, prompt_hash=cache_key, prompt_text=prompt,
                     response_json=None, success=0, error_msg="JSON parse failed",
@@ -325,10 +325,12 @@ class InstagramGrowthBot:
                     response_json=None, success=0, error_msg=str(exc),
                     latency_ms=latency_ms, model=self.model, chat_id=chat_id,
                 )
-                stale = _plog.get_cached_response(cache_key, ignore_ttl=True)
-                if stale:
-                    logger.warning("[CACHE] Stale fallback for %s (AI unavailable)", command)
-                    return {**stale, "_from_cache": True, "_stale": True}
+                # Only use stale cache if caching is enabled (ttl_hours set)
+                if ttl_hours is not None:
+                    stale = _plog.get_cached_response(cache_key, ignore_ttl=True)
+                    if stale:
+                        logger.warning("[CACHE] Stale fallback for %s (AI unavailable)", command)
+                        return {**stale, "_from_cache": True, "_stale": True}
             return {"error": f"Failed to execute {command}"}
         
     def generate_content(
@@ -600,19 +602,73 @@ Return JSON with:
 
         # Use specialized prompt template for transformation tasks
         if category in transform_categories:
+            # For transformation with CUSTOM prompt, use a simplified template that respects user's requirement
+            if user_context_safe and user_context_safe.strip():
+                # CUSTOM TRANSFORMATION: User-driven requirement only (no hardcoded scenarios)
+                prompt = f"""You are an expert AI image generation prompt engineer for identity-locked portrait transformations.
+
+Category: {category_desc}{niche_line}{context_line}
+
+USER'S TRANSFORMATION REQUIREMENT: {user_context_safe}
+
+ABSOLUTE PRIORITY: IDENTITY LOCK (NO EXCEPTIONS)
+- IDENTITY MUST BE PIXEL-PERFECT IDENTICAL TO REFERENCE IMAGE
+- Face direction/angle/pose/expression: CAN CHANGE to fit the user's requirement
+- Everything else about the face: CANNOT CHANGE (not even 1% alteration)
+
+FACIAL FEATURE PRESERVATION (DO NOT ALTER EVEN SLIGHTLY):
+Preserve identically: Eye shape, size, spacing, iris color, pupil shape | Nose structure, tip, nostrils, width | Mouth shape, lip fullness, corners | Cheekbone height and prominence | Jawline shape and definition | Face shape | Skin tone (exact match) | Skin texture | Forehead, chin structure | Face proportions | Unique facial characteristics, birthmarks, asymmetries | Eyebrow shape, thickness, arch, spacing | Hairline position and shape
+
+Forbidden: Any beautification, skin smoothing, feature alteration, plastic surgery effects, artificial perfection, identity change
+
+SCENE TRANSFORMATION (WHAT CAN CHANGE):
+- Hair direction, style, color (completely new) | Makeup type (new, not from reference) | Clothing/costume (scene-appropriate) | Face angle and pose (optimize for requirement) | Expression | Lighting (preserve skin texture while enhancing mood) | Background
+
+TECHNICAL REQUIREMENTS:
+Composition: Medium close-up (waist-up), 50mm portrait lens style, eye-level or slight angle
+Face Clarity: Sharpest element, fully visible, most detailed
+Hands: Anatomically correct, properly detailed if visible
+Lighting: Soft, preserving skin texture (no over-smoothing)
+Background: Minimal, blurred, supporting
+Skin Texture: Natural with visible pores, no artificial smoothing
+Realism: Strict photorealism
+
+NEGATION INSTRUCTIONS:
+Negative: "avoid beautification, avoid face smoothing, avoid skin enhancement, avoid retouching, avoid feature alteration, avoid plastic surgery effects, avoid artificial perfection, avoid Photoshop effects, avoid feature reshaping, avoid identity change"
+
+INSTRUCTION:
+- Create {count} DISTINCT transformation prompts (each 100-160 words), each showing a DIFFERENT creative interpretation of the user's requirement
+- Each prompt MUST preserve facial identity absolutely while varying pose, clothing, environment, lighting, and mood to match different aspects of the requirement
+- Ensure each prompt is visually distinct in its interpretation of the requirement
+- DO NOT add template scenarios (Bride/Professional/Casual) — use ONLY the user's requirement to drive the generation
+- Each prompt MUST start with facial feature preservation statement
+- Each prompt MUST END with explicit negation instructions
+
+Return ONLY valid JSON (no markdown, no text before/after):
+{{
+  "prompts": [
+    {{"prompt": "<100-160 word prompt preserving identity, using user requirement, with negatives>", "interpretation": "<brief 2-3 word description of this prompt's creative angle>"}}
+  ],
+  "tip": "Identity preservation + user requirement focus technique used"
+}}"""
+                return self._call_groq_with_fallback(
+                    command="generate_image_prompts",
+                    cache_key=self._make_cache_key(
+                        "generate_image_prompts",
+                        niche=niche,
+                        action=category,
+                        topic=user_context_safe[:50],
+                    ),
+                    prompt=prompt,
+                    chat_id=chat_id,
+                    temperature=0.8,
+                    ttl_hours=None,  # NO CACHE for custom prompts
+                )
+            
             # For transformation with custom prompt, use it to define the scene
             # Otherwise use category-based approach
             transformation_directive = ""
             artistic_style_emphasis = ""
-            if user_context_safe and user_context_safe.strip():
-                transformation_directive = f"\n\nTRANSFORMATION DIRECTIVE: Apply this specific transformation to the reference image:\n{user_context_safe}\n\nThis user-specified transformation takes priority over all category defaults."
-                
-                # Extract artistic style if mentioned (e.g., illustration, watercolor, digital art, 3D, photorealistic, etc.)
-                user_lower = user_context_safe.lower()
-                artistic_keywords = ["illustration", "watercolor", "digital art", "3d", "oil painting", "acrylic", "sketch", "photorealistic", "cartoon", "anime", "comic", "vector", "painting", "art style", "artistic"]
-                detected_styles = [kw for kw in artistic_keywords if kw in user_lower]
-                if detected_styles:
-                    artistic_style_emphasis = f"\n\n**ARTISTIC STYLE PRIORITY**: The user has specified an artistic direction: {', '.join(detected_styles)}. This MUST be honored throughout the transformation. This artistic style takes priority over default photorealism."
             
             prompt = f"""You are an expert AI image generation prompt engineer for identity-locked portrait transformations.
 
@@ -941,13 +997,15 @@ Return ONLY valid JSON (no markdown, no extra text):
             action=category,
             topic=user_context_safe[:50] if user_context_safe else str(count),  # Include custom prompt content to prevent cache collision
         )
+        # NO CACHE for custom prompts — user wants fresh generation each time
+        cache_ttl = None if user_context_safe else 24  # Custom prompts: no cache; standard: 24h cache
         return self._call_groq_with_fallback(
             command="generate_image_prompts",
             cache_key=cache_key,
             prompt=prompt,
             chat_id=chat_id,
             temperature=0.8,
-            ttl_hours=24,
+            ttl_hours=cache_ttl,
         )
 
     def generate_design_brief(
@@ -987,13 +1045,15 @@ Each variation should be a complete, ready-to-brief design brief that a designer
             niche=niche,
         )
         
+        # NO CACHE for custom design briefs — user wants fresh generation each time
+        cache_ttl = None if user_input and user_input.strip() else 24
         result = self._call_groq_with_fallback(
             command="generate_design_brief",
             cache_key=cache_key,
             prompt=prompt,
             chat_id=chat_id,
             temperature=0.85,
-            ttl_hours=24,
+            ttl_hours=cache_ttl,
         )
 
         # Parse and structure response
@@ -1067,13 +1127,15 @@ All prompts must be ready to paste directly into image generation tools."""
             niche=niche,
         )
 
+        # NO CACHE for custom gift designs — user wants fresh generation each time
+        cache_ttl = None if concept_idea and concept_idea.strip() else 24
         result = self._call_groq_with_fallback(
             command="generate_gift_design_concepts",
             cache_key=cache_key,
             prompt=prompt,
             chat_id=chat_id,
             temperature=0.85,
-            ttl_hours=24,
+            ttl_hours=cache_ttl,
         )
 
         # Parse and structure response
