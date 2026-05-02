@@ -13,6 +13,12 @@ from src.prompts.templates import (
     GIFT_DESIGN_SYSTEM_PROMPT,
 )
 from src.services.agent_evaluation_integration import EvaluationHookFactory
+from src.services.parameter_recommendation_engine import ParameterRecommendationFactory
+from src.services.image_alignment_validator import ImageAlignmentValidatorFactory
+from src.services.input_validator import InputValidatorFactory
+from src.services.conflict_resolver import ConflictResolverFactory
+from src.services.edge_case_handler import EdgeCaseHandlerFactory
+from src.services.error_recovery_system import ErrorRecoverySystemFactory, ErrorType
 
 if TYPE_CHECKING:
     from src.main import InstagramGrowthBot
@@ -30,10 +36,46 @@ class GiftDesignAgent(BaseAgent):
         self.roles = list_professional_roles()
         # Initialize evaluation hook for quality monitoring
         self.eval_hook = EvaluationHookFactory.get_hook("GiftDesignAgent")
+        # Initialize Phase 2A components
+        self.param_engine = ParameterRecommendationFactory.get_engine()
+        self.alignment_validator = ImageAlignmentValidatorFactory.get_validator()
+        # Initialize Phase 2C components
+        self.input_validator = InputValidatorFactory.get_validator()
+        self.conflict_resolver = ConflictResolverFactory.get_resolver()
+        self.edge_case_handler = EdgeCaseHandlerFactory.get_handler()
+        self.error_recovery = ErrorRecoverySystemFactory.get_system()
 
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Main execution handler for gift design operations"""
         try:
+            # 🔴 PHASE 2C STEP 1: Validate input
+            validation_result = await self.input_validator.validate_design_input(input_data)
+            if validation_result.status.value == "fail":
+                self.logger.warning(f"Input validation failed: {validation_result}")
+                if validation_result.corrected_data:
+                    input_data = validation_result.corrected_data
+                    self.logger.info("Using corrected input data")
+                else:
+                    return {
+                        "status": "error",
+                        "message": "Input validation failed",
+                        "issues": [str(issue) for issue in validation_result.issues]
+                    }
+            
+            # 🔴 PHASE 2C STEP 2: Resolve conflicts
+            conflict_result = await self.conflict_resolver.resolve_conflicts(input_data)
+            if conflict_result.has_conflicts():
+                self.logger.warning(f"Input conflicts detected: {len(conflict_result.conflicts_detected)}")
+                if conflict_result.resolved_data:
+                    input_data = conflict_result.resolved_data
+            
+            # 🔴 PHASE 2C STEP 3: Handle edge cases
+            edge_result = await self.edge_case_handler.handle_gift_design_input(input_data)
+            if edge_result.has_alerts():
+                self.logger.warning(f"Edge cases detected: {len(edge_result.alerts)}")
+                if edge_result.corrected_data:
+                    input_data = edge_result.corrected_data
+            
             action = input_data.get("action", "generate_concepts")
 
             if action == "generate_concepts":
@@ -53,6 +95,17 @@ class GiftDesignAgent(BaseAgent):
 
         except Exception as e:
             self.logger.error(f"Gift design error: {str(e)}")
+            # 🔴 PHASE 2C: Attempt error recovery
+            try:
+                recovery_result = await self.error_recovery.handle_error(
+                    error=e,
+                    error_type=ErrorType.PROCESSING_ERROR,
+                    context={"action": input_data.get("action")}
+                )
+                self.logger.info(f"Error recovery attempted: {recovery_result.recovery_successful}")
+            except Exception as recovery_err:
+                self.logger.error(f"Error recovery failed: {str(recovery_err)}")
+            
             return {"status": "error", "error": str(e)}
 
     async def _generate_design_concepts(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -124,6 +177,24 @@ class GiftDesignAgent(BaseAgent):
             )
 
             if isinstance(ai_result, dict) and "concepts" in ai_result and not ai_result.get("error"):
+                # 🎯 PHASE 2A: RECOMMEND OPTIMAL PARAMETERS
+                try:
+                    recommended_params = self.param_engine.recommend_parameters(
+                        product_type=product_type,
+                        alignment_importance=0.85,
+                        quality_level="high" if data.get("quality_preference") == "premium" else "balanced",
+                    )
+                    params_dict = {
+                        "cfg_scale": recommended_params.cfg_scale,
+                        "denoising_strength": recommended_params.denoising_strength,
+                        "num_steps": recommended_params.num_steps,
+                        "preset_name": recommended_params.preset_name,
+                        "reasoning": recommended_params.reasoning,
+                    }
+                except Exception as e:
+                    self.logger.warning(f"Parameter recommendation failed: {str(e)}")
+                    params_dict = {}
+                
                 result = {
                     "status": "success",
                     "action": "generate_concepts",
@@ -135,6 +206,7 @@ class GiftDesignAgent(BaseAgent):
                     "concepts": ai_result["concepts"],
                     "concept_count": len(ai_result["concepts"]),
                     "ai_generated": True,
+                    "recommended_parameters": params_dict,
                     "metadata": {
                         "product_tools": product_meta.get("tools", []),
                         "design_tip": ai_result.get("design_tip", ""),

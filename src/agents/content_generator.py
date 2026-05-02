@@ -2,6 +2,12 @@ from typing import Dict, Any, List, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from src.prompts.templates import list_categories
 from src.services.agent_evaluation_integration import EvaluationHookFactory
+from src.services.parameter_recommendation_engine import ParameterRecommendationFactory
+from src.services.image_alignment_validator import ImageAlignmentValidatorFactory
+from src.services.input_validator import InputValidatorFactory
+from src.services.conflict_resolver import ConflictResolverFactory
+from src.services.edge_case_handler import EdgeCaseHandlerFactory
+from src.services.error_recovery_system import ErrorRecoverySystemFactory, ErrorType
 
 if TYPE_CHECKING:
     from src.main import InstagramGrowthBot
@@ -17,10 +23,46 @@ class ContentGeneratorAgent(BaseAgent):
         self.categories = list_categories()
         # Initialize evaluation hook for quality monitoring
         self.eval_hook = EvaluationHookFactory.get_hook("ContentGeneratorAgent")
+        # Initialize Phase 2A components
+        self.param_engine = ParameterRecommendationFactory.get_engine()
+        self.alignment_validator = ImageAlignmentValidatorFactory.get_validator()
+        # Initialize Phase 2C components
+        self.input_validator = InputValidatorFactory.get_validator()
+        self.conflict_resolver = ConflictResolverFactory.get_resolver()
+        self.edge_case_handler = EdgeCaseHandlerFactory.get_handler()
+        self.error_recovery = ErrorRecoverySystemFactory.get_system()
     
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Generate content prompts based on category"""
         try:
+            # 🔴 PHASE 2C STEP 1: Validate input
+            validation_result = await self.input_validator.validate_content_input(input_data)
+            if validation_result.status.value == "fail":
+                self.logger.warning(f"Input validation failed: {validation_result}")
+                if validation_result.corrected_data:
+                    input_data = validation_result.corrected_data
+                    self.logger.info("Using corrected input data")
+                else:
+                    return {
+                        "status": "error",
+                        "message": "Input validation failed",
+                        "issues": [str(issue) for issue in validation_result.issues]
+                    }
+            
+            # 🔴 PHASE 2C STEP 2: Resolve conflicts
+            conflict_result = await self.conflict_resolver.resolve_conflicts(input_data)
+            if conflict_result.has_conflicts():
+                self.logger.warning(f"Input conflicts detected: {len(conflict_result.conflicts_detected)}")
+                if conflict_result.resolved_data:
+                    input_data = conflict_result.resolved_data
+            
+            # 🔴 PHASE 2C STEP 3: Handle edge cases
+            edge_result = await self.edge_case_handler.handle_content_input(input_data)
+            if edge_result.has_alerts():
+                self.logger.warning(f"Edge cases detected: {len(edge_result.alerts)}")
+                if edge_result.corrected_data:
+                    input_data = edge_result.corrected_data
+            
             action = input_data.get("action", "generate")
             
             if action == "generate":
@@ -34,6 +76,17 @@ class ContentGeneratorAgent(BaseAgent):
             
         except Exception as e:
             self.logger.error(f"Content generation error: {str(e)}")
+            # 🔴 PHASE 2C: Attempt error recovery
+            try:
+                recovery_result = await self.error_recovery.handle_error(
+                    error=e,
+                    error_type=ErrorType.PROCESSING_ERROR,
+                    context={"action": input_data.get("action")}
+                )
+                self.logger.info(f"Error recovery attempted: {recovery_result.recovery_successful}")
+            except Exception as recovery_err:
+                self.logger.error(f"Error recovery failed: {str(recovery_err)}")
+            
             return {"status": "error", "error": str(e)}
     
     async def _generate_prompts(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -78,6 +131,24 @@ class ContentGeneratorAgent(BaseAgent):
             )
             
             if isinstance(ai_result, dict) and "prompts" in ai_result and not ai_result.get("error"):
+                # 🎯 PHASE 2A: RECOMMEND OPTIMAL PARAMETERS
+                try:
+                    recommended_params = self.param_engine.recommend_parameters(
+                        product_type="poster",  # Default to poster for general content
+                        alignment_importance=0.75,
+                        quality_level="balanced",
+                    )
+                    params_dict = {
+                        "cfg_scale": recommended_params.cfg_scale,
+                        "denoising_strength": recommended_params.denoising_strength,
+                        "num_steps": recommended_params.num_steps,
+                        "preset_name": recommended_params.preset_name,
+                        "reasoning": recommended_params.reasoning,
+                    }
+                except Exception as e:
+                    self.logger.warning(f"Parameter recommendation failed: {str(e)}")
+                    params_dict = {}
+                
                 result = {
                     "status": "success",
                     "action": "generate",
@@ -85,6 +156,7 @@ class ContentGeneratorAgent(BaseAgent):
                     "count": len(ai_result["prompts"]),
                     "prompts": ai_result["prompts"],
                     "ai_generated": True,
+                    "recommended_parameters": params_dict,
                     "metadata": {
                         "tip": ai_result.get("tip", ""),
                         "total_in_category": len(ai_result["prompts"]),
