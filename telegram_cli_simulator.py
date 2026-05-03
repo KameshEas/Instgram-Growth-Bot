@@ -86,8 +86,30 @@ async def main():
             # Handle clarification request
             if isinstance(result, dict) and result.get("status") == "clarify":
                 question = result.get("question", "Could you clarify?")
-                answer = input(f"Bot: {question}\nYou> ")
-                input_data["clarification_answer"] = answer
+                fields = result.get("clarify_fields", [])
+                if fields:
+                    print(f"Bot: {question}")
+                    print("Please reply with key:value pairs separated by semicolons, e.g. subject: woman; colors: white; mood: editorial")
+                    answer = input("You> ")
+                    # Try to parse key:value pairs
+                    parsed = {}
+                    try:
+                        parts = [p.strip() for p in answer.split(";") if p.strip()]
+                        for part in parts:
+                            if ":" in part:
+                                k, v = part.split(":", 1)
+                                parsed[k.strip()] = v.strip()
+                    except Exception:
+                        parsed = {}
+                    # If parsing yielded nothing, store raw text under 'text'
+                    if not parsed:
+                        input_data["clarification_answer"] = {"text": answer}
+                    else:
+                        input_data["clarification_answer"] = parsed
+                else:
+                    question = result.get("question", "Could you clarify?")
+                    answer = input(f"Bot: {question}\nYou> ")
+                    input_data["clarification_answer"] = answer
                 input_data["clarified"] = True
                 result = await orchestrator.execute(input_data)
 

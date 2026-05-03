@@ -182,10 +182,15 @@ class ContentOrchestratorAgent(BaseAgent):
                     if ambiguous and not input_data.get("clarified"):
                         self.logger.info(f"[DEBUG] Returning clarify for custom prompt")
                         try:
-                            question = await handler.get_clarifying_question({"content_prompt": custom_prompt})
+                            question_obj = await handler.get_clarifying_question({"content_prompt": custom_prompt})
                         except Exception:
-                            question = "Could you provide a bit more detail for the request?"
-                        result = {"status": "clarify", "question": question}
+                            question_obj = {"question": "Could you provide a bit more detail for the request?", "fields": ["subject", "colors", "mood"]}
+                        # Support both string and structured dict returns from handler
+                        if isinstance(question_obj, dict):
+                            q_text = question_obj.get("question", "Could you clarify?")
+                            result = {"status": "clarify", "question": q_text, "clarify_fields": question_obj.get("fields", [])}
+                        else:
+                            result = {"status": "clarify", "question": str(question_obj)}
                     else:
                         # Custom-concept path: delegate to Groq for AI enhancement
                         # For design_gifts, check if reference image description is provided
@@ -194,7 +199,12 @@ class ContentOrchestratorAgent(BaseAgent):
                         effective_prompt = custom_prompt
                         if input_data.get("clarified") and input_data.get("clarification_answer"):
                             try:
-                                clarified_text = str(input_data.get("clarification_answer")).strip()
+                                clar = input_data.get("clarification_answer")
+                                if isinstance(clar, dict):
+                                    parts = [f"{k}: {v}" for k, v in clar.items()]
+                                    clarified_text = "; ".join(parts)
+                                else:
+                                    clarified_text = str(clar).strip()
                                 if clarified_text:
                                     effective_prompt = f"{custom_prompt.strip()} — Clarification: {clarified_text}"
                             except Exception:
@@ -360,6 +370,9 @@ class ContentOrchestratorAgent(BaseAgent):
                 # No recognized command at this point
                 result = {"status": "error", "message": f"Unknown command: {command}"}
 
+            # Ensure result is defined to avoid UnboundLocalError
+            if 'result' not in locals():
+                result = {"status": "error", "error": "Orchestrator produced no result"}
             await self.log_execution(input_data, result, "success")
             return result
 

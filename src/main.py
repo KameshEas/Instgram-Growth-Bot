@@ -495,7 +495,10 @@ Return JSON with:
     def image_generation_prompts(self, category: str = "general_photography", 
                                   custom_prompt: str = None, level: str = None, 
                                   niche: str = "", chat_id: int = None, 
-                                  reference_image_text: str = None) -> dict:
+                                  reference_image_text: str = None,
+                                  temperature: float = None,
+                                  guidance: float = None,
+                                  count: int = None) -> dict:
         """Enhance custom prompt or generate AI-only prompts.
         
         Architecture: Pure AI-generated prompts (no static library).
@@ -541,7 +544,7 @@ Return JSON with:
                 return self.generate_image_prompts(
                     category=category,
                     niche="",  # Not a niche context - custom_prompt is the transformation directive
-                    count=prompt_count,
+                    count= prompt_count if count is None else count,
                     user_context=custom_prompt,  # Pass custom_prompt as the actual user requirement
                     chat_id=chat_id,
                     reference_image_text=reference_image_text
@@ -549,13 +552,14 @@ Return JSON with:
             
             # Otherwise, generate via AI
             return self.generate_image_prompts(
-                category=category,
-                niche=niche,
-                count=3,
-                user_context="",
-                chat_id=chat_id,
-                reference_image_text=reference_image_text
-            )
+                    category=category,
+                    niche=niche,
+                    count= count or 3,
+                    user_context="",
+                    chat_id=chat_id,
+                    reference_image_text=reference_image_text,
+                    temperature=temperature,
+                )
         
         except Exception as e:
             logger.error(f"image_generation_prompts error: {e}")
@@ -569,10 +573,12 @@ Return JSON with:
         user_context: str = "",
         chat_id: int = None,
         reference_image_text: str = None,
+        temperature: float = None,
+        guidance: float = None,
     ) -> dict:
         """Generate AI-crafted, niche-tailored image generation prompts for a given category.
         
-        Args:
+                                            temperature=temperature if temperature is not None else 0.8,
             reference_image_text: Optional description of reference image for categories like design_gifts
                                  (e.g., "couple photo for personalized gift design")
         """
@@ -671,7 +677,7 @@ Return ONLY valid JSON (no markdown, no text before/after):
                     ),
                     prompt=prompt,
                     chat_id=chat_id,
-                    temperature=0.8,
+                    temperature=temperature if temperature is not None else 0.8,
                     ttl_hours=None,  # NO CACHE for custom prompts
                 )
             
@@ -1014,7 +1020,7 @@ Return ONLY valid JSON (no markdown, no extra text):
             cache_key=cache_key,
             prompt=prompt,
             chat_id=chat_id,
-            temperature=0.8,
+            temperature=temperature if temperature is not None else 0.8,
             ttl_hours=cache_ttl,
         )
 

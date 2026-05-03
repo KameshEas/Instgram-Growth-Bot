@@ -99,10 +99,13 @@ class ContentGeneratorAgent(BaseAgent):
                 ambiguous = False
             if ambiguous and not data.get("clarified"):
                 try:
-                    question = await self.edge_case_handler.get_clarifying_question(data)
+                    question_obj = await self.edge_case_handler.get_clarifying_question(data)
                 except Exception:
-                    question = "Could you provide a bit more detail for the request?"
-                return {"status": "clarify", "question": question}
+                    question_obj = {"question": "Could you provide a bit more detail for the request?", "fields": ["subject", "colors", "mood"]}
+                if isinstance(question_obj, dict):
+                    return {"status": "clarify", "question": question_obj.get("question"), "clarify_fields": question_obj.get("fields", [])}
+                else:
+                    return {"status": "clarify", "question": str(question_obj)}
 
             requested_category = data.get("category", "").lower()
             count = data.get("count", 3)
@@ -138,7 +141,7 @@ class ContentGeneratorAgent(BaseAgent):
                 category=category,
                 niche=niche,
                 count=count,
-                user_context=str({k: v for k, v in data.items() if k not in ("action", "chat_id")}),
+                user_context=self._build_user_context(data),
                 chat_id=data.get("chat_id"),
             )
             
@@ -208,6 +211,23 @@ class ContentGeneratorAgent(BaseAgent):
         except Exception as e:
             self.logger.error(f"Prompt generation error: {str(e)}")
             return {"status": "error", "error": str(e)}
+
+    def _build_user_context(self, data: Dict[str, Any]) -> str:
+        """Build a concise user_context string for AI from input data, merging structured clarification if present."""
+        try:
+            base = {k: v for k, v in data.items() if k not in ("action", "chat_id")}
+            clar = data.get("clarification_answer")
+            if clar:
+                if isinstance(clar, dict):
+                    # Merge clarification fields into base
+                    base.update(clar)
+                else:
+                    base["clarification"] = str(clar)
+            # Convert to a compact string
+            items = [f"{k}={v}" for k, v in base.items() if v is not None]
+            return "; ".join(items)[:500]
+        except Exception:
+            return str({k: v for k, v in data.items() if k not in ("action", "chat_id")})
     
     async def _list_all_categories(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """List all available prompt categories for AI generation."""

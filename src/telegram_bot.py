@@ -1441,7 +1441,7 @@ class TelegramBotHandler:
                 question = result.get("question", "Could you clarify your request?")
                 await update.message.reply_text(f"❓ {question}")
                 # Save minimal input to resume after clarification
-                context.user_data["pending_clarification"] = {
+                pending = {
                     "question": question,
                     "input": {
                         "command": "/generate",
@@ -1453,6 +1453,9 @@ class TelegramBotHandler:
                         "niche": niche,
                     }
                 }
+                if result.get("clarify_fields"):
+                    pending["fields"] = result.get("clarify_fields")
+                context.user_data["pending_clarification"] = pending
                 return
             
             if result and result.get("status") == "success":
@@ -1596,9 +1599,26 @@ class TelegramBotHandler:
         if pending_clar:
             # Treat this message as the clarification answer
             answer = user_text
+            # If pending_clar asked for structured fields, try to parse key:value pairs
+            parsed = None
+            if pending_clar.get("fields"):
+                try:
+                    parts = [p.strip() for p in user_text.split(";") if p.strip()]
+                    parsed = {}
+                    for part in parts:
+                        if ":" in part:
+                            k, v = part.split(":", 1)
+                            parsed[k.strip()] = v.strip()
+                    if not parsed:
+                        parsed = None
+                except Exception:
+                    parsed = None
             await update.message.reply_text("✅ Thanks — generating updated prompts...")
             input_data = pending_clar.get("input", {})
-            input_data["clarification_answer"] = answer
+            if parsed:
+                input_data["clarification_answer"] = parsed
+            else:
+                input_data["clarification_answer"] = answer
             input_data["clarified"] = True
             try:
                 result = await self.orchestrator.execute(input_data)

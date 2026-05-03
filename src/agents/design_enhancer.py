@@ -35,7 +35,14 @@ class DesignPromptEnhancerAgent(BaseAgent):
             # If clarified, merge clarification into the user input to preserve user's extra detail
             if data.get("clarified") and data.get("clarification_answer"):
                 try:
-                    clarified_text = str(data.get("clarification_answer")).strip()
+                    clar = data.get("clarification_answer")
+                    if isinstance(clar, dict):
+                        parts = []
+                        for k, v in clar.items():
+                            parts.append(f"{k}: {v}")
+                        clarified_text = "; ".join(parts)
+                    else:
+                        clarified_text = str(clar).strip()
                     if clarified_text:
                         user_input = f"{user_input.strip()} — Clarification: {clarified_text}"
                 except Exception:
