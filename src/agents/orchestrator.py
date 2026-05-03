@@ -8,6 +8,7 @@ from src.agents.monetization_agent import MonetizationAgent
 from src.agents.analytics_agent import AnalyticsAgent
 from src.agents.trends_agent import TrendsAgent
 from src.prompts.templates import get_category_meta
+from src.services.edge_case_handler import EdgeCaseHandlerFactory
 
 if TYPE_CHECKING:
     from src.main import InstagramGrowthBot
@@ -106,6 +107,7 @@ class ContentOrchestratorAgent(BaseAgent):
             if command == "/generate":
                 custom_prompt = input_data.get("custom_prompt")
                 category = input_data.get("category", "general_photography").lower()
+                self.logger.info(f"[TRACE] /generate called category={category} custom_prompt={custom_prompt}")
                 level = input_data.get("level")
                 user_input = input_data.get("user_input", "")  # For design briefs
                 
@@ -116,53 +118,111 @@ class ContentOrchestratorAgent(BaseAgent):
                     "brand_identity"
                 }
                 
-                # Route design categories to design enhancer agent
+                # Route design categories to design enhancer agent (with ambiguity check)
                 if category in design_categories and user_input:
-                    result = await self.agents["design_enhancer"].execute({
-                        **input_data,
-                        "action": "enhance",
-                        "category": category,
-                        "user_input": user_input,
-                        "brand_context": {"niche": niche, "region": region},
-                    })
-                elif category in design_categories and custom_prompt and custom_prompt.strip():
-                    # Design brief from custom prompt
-                    result = await self.agents["design_enhancer"].execute({
-                        **input_data,
-                        "action": "enhance",
-                        "category": category,
-                        "user_input": custom_prompt,
-                        "brand_context": {"niche": niche, "region": region},
-                    })
-                elif custom_prompt and custom_prompt.strip() and self._groq_bot:
-                    # Custom-concept path: delegate to Groq for AI enhancement
-                    # For design_gifts, check if reference image description is provided
-                    reference_image_desc = input_data.get("reference_image_text") if category == "design_gifts" else None
-                    
-                    ai_result = self._groq_bot.image_generation_prompts(
-                        category=category,
-                        custom_prompt=custom_prompt,
-                        level=level,
-                        reference_image_text=reference_image_desc,
-                    )
-                    # Normalize to the shape the telegram handler expects
-                    if ai_result and "error" not in ai_result:
-                        raw_prompts = ai_result.get("prompts", [])
-                        prompt_strings = [
-                            p["prompt"] if isinstance(p, dict) else p
-                            for p in raw_prompts
-                        ]
-                        result = {
-                            "status": "success",
-                            "category": category,
-                            "custom": True,
-                            "level": level or "mixed",
-                            "count": len(prompt_strings),
-                            "prompts": prompt_strings,
-                            "meta": get_category_meta(category) or {"emoji": "🎯", "tools": [], "best_for": ""},
-                        }
+                    try:
+                        handler = EdgeCaseHandlerFactory.get_handler()
+                        ambiguous = await handler.is_ambiguous({"content_prompt": user_input})
+                    except Exception:
+                        ambiguous = False
+
+                    if ambiguous and not input_data.get("clarified"):
+                        try:
+                            question = await handler.get_clarifying_question({"content_prompt": user_input})
+                        except Exception:
+                            question = "Could you provide a bit more detail for the request?"
+                        result = {"status": "clarify", "question": question}
                     else:
-                        result = ai_result
+                        result = await self.agents["design_enhancer"].execute({
+                            **input_data,
+                            "action": "enhance",
+                            "category": category,
+                            "user_input": user_input,
+                            "brand_context": {"niche": niche, "region": region},
+                        })
+                elif category in design_categories and custom_prompt and custom_prompt.strip():
+                    # Design brief from custom prompt (check ambiguity)
+                    try:
+                        handler = EdgeCaseHandlerFactory.get_handler()
+                        ambiguous = await handler.is_ambiguous({"content_prompt": custom_prompt})
+                    except Exception:
+                        ambiguous = False
+
+                    if ambiguous and not input_data.get("clarified"):
+                        try:
+                            question = await handler.get_clarifying_question({"content_prompt": custom_prompt})
+                        except Exception:
+                            question = "Could you provide a bit more detail for the request?"
+                        result = {"status": "clarify", "question": question}
+                    else:
+                        # Design brief from custom prompt
+                        result = await self.agents["design_enhancer"].execute({
+                            **input_data,
+                            "action": "enhance",
+                            "category": category,
+                            "user_input": custom_prompt,
+                            "brand_context": {"niche": niche, "region": region},
+                        })
+                elif custom_prompt and custom_prompt.strip() and self._groq_bot:
+                    # Before delegating custom prompts directly to Groq, check for ambiguity
+                    try:
+                        handler = EdgeCaseHandlerFactory.get_handler()
+                        ambiguous = await handler.is_ambiguous({"content_prompt": custom_prompt})
+                        self.logger.info(f"[DEBUG] ambiguity check result: {ambiguous} for prompt: {str(custom_prompt)[:80]}")
+                        # Extra inline heuristic: if any vague keyword appears, mark ambiguous
+                        try:
+                            lower = str(custom_prompt).lower()
+                            if any(kw in lower for kw in handler.vague_keywords):
+                                ambiguous = True
+                        except Exception:
+                            pass
+                    except Exception:
+                        ambiguous = False
+
+                    if ambiguous and not input_data.get("clarified"):
+                        self.logger.info(f"[DEBUG] Returning clarify for custom prompt")
+                        try:
+                            question = await handler.get_clarifying_question({"content_prompt": custom_prompt})
+                        except Exception:
+                            question = "Could you provide a bit more detail for the request?"
+                        result = {"status": "clarify", "question": question}
+                    else:
+                        # Custom-concept path: delegate to Groq for AI enhancement
+                        # For design_gifts, check if reference image description is provided
+                        reference_image_desc = input_data.get("reference_image_text") if category == "design_gifts" else None
+                        # If user clarified, merge the clarification into the custom prompt
+                        effective_prompt = custom_prompt
+                        if input_data.get("clarified") and input_data.get("clarification_answer"):
+                            try:
+                                clarified_text = str(input_data.get("clarification_answer")).strip()
+                                if clarified_text:
+                                    effective_prompt = f"{custom_prompt.strip()} — Clarification: {clarified_text}"
+                            except Exception:
+                                pass
+
+                        ai_result = self._groq_bot.image_generation_prompts(
+                            category=category,
+                            custom_prompt=effective_prompt,
+                            level=level,
+                            reference_image_text=reference_image_desc,
+                        )
+                        # Normalize to the shape the telegram handler expects
+                        if ai_result and "error" not in ai_result:
+                            raw_prompts = ai_result.get("prompts", [])
+                            prompt_strings = [
+                                p["prompt"] if isinstance(p, dict) else p
+                                for p in raw_prompts
+                            ]
+                            result = {
+                                "status": "success",
+                                "category": category,
+                                "custom": True,
+                                "level": level or "mixed",
+                                "count": len(prompt_strings),
+                                "prompts": prompt_strings,
+                                "meta": get_category_meta(category) or {"emoji": "🎯", "tools": [], "best_for": ""},
+                            }
+                    # (Handled above) result is either a clarify dict or a normalized ai_result
                 else:
                     # Library path: serve from static prompt templates via agent
                     agent_result = await self.agents["content_generator"].execute({

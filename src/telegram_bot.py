@@ -66,6 +66,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Ensure stdout/stderr use UTF-8 to avoid UnicodeEncodeError on Windows consoles
+try:
+    if sys.stdout and (sys.stdout.encoding is None or sys.stdout.encoding.lower() != "utf-8"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if sys.stderr and (sys.stderr.encoding is None or sys.stderr.encoding.lower() != "utf-8"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 
 # ── Telegram imports ──────────────────────────────────────────────────────────
 try:
@@ -1427,6 +1436,24 @@ class TelegramBotHandler:
                 "chat_id": update.message.chat_id,
                 "niche": niche,
             })
+            # If agent requests clarification, ask user a single question and persist state
+            if result and result.get("status") == "clarify":
+                question = result.get("question", "Could you clarify your request?")
+                await update.message.reply_text(f"❓ {question}")
+                # Save minimal input to resume after clarification
+                context.user_data["pending_clarification"] = {
+                    "question": question,
+                    "input": {
+                        "command": "/generate",
+                        "category": category,
+                        "custom_prompt": custom_prompt,
+                        "user_input": custom_prompt,
+                        "level": level,
+                        "chat_id": update.message.chat_id,
+                        "niche": niche,
+                    }
+                }
+                return
             
             if result and result.get("status") == "success":
                 # Check if this is a design brief response
@@ -1564,6 +1591,38 @@ class TelegramBotHandler:
         """Route free-text messages to Groq chat with profile context."""
         user_text = update.message.text.strip()
         chat_id = update.effective_chat.id
+        # First, check if we're waiting for a clarification answer
+        pending_clar = context.user_data.get("pending_clarification")
+        if pending_clar:
+            # Treat this message as the clarification answer
+            answer = user_text
+            await update.message.reply_text("✅ Thanks — generating updated prompts...")
+            input_data = pending_clar.get("input", {})
+            input_data["clarification_answer"] = answer
+            input_data["clarified"] = True
+            try:
+                result = await self.orchestrator.execute(input_data)
+            except Exception as e:
+                await update.message.reply_text(f"❌ Error: {e}")
+                context.user_data.pop("pending_clarification", None)
+                return
+
+            # Clear pending state
+            context.user_data.pop("pending_clarification", None)
+
+            # If generation succeeded, display prompts (simple short-format)
+            if result and result.get("status") == "success":
+                prompts = result.get("prompts", [])
+                msg = "✅ Generated prompts:\n\n"
+                for i, p in enumerate(prompts, 1):
+                    msg += f"{i}. {p}\n\n"
+                for chunk in self._send_long(msg):
+                    await update.message.reply_text(chunk, parse_mode="Markdown")
+                return
+            else:
+                err = result.get("error", "Unknown") if isinstance(result, dict) else str(result)
+                await update.message.reply_text(f"❌ {err}")
+                return
 
         # Check if waiting for argument after inline button tap
         pending = context.user_data.pop("pending_cmd", None)

@@ -88,7 +88,8 @@ class EdgeCaseHandler:
             "something", "nice", "cool", "good", "great",
             "simple", "complex", "various", "different",
             "interesting", "unique", "professional",
-            "beautiful", "pretty", "awesome"
+            "beautiful", "pretty", "awesome",
+            "cute", "romantic", "romancing", "loving"
         }
     
     async def handle_gift_design_input(self, data: Dict[str, Any]) -> EdgeCaseHandling:
@@ -208,7 +209,8 @@ class EdgeCaseHandler:
             # Vague request detection
             if field in ["design_prompt", "content_prompt"]:
                 vague_count = sum(1 for kw in self.vague_keywords if kw.lower() in value.lower())
-                if vague_count > 2:
+                # Treat presence of a single vague keyword as an indicator for clarification
+                if vague_count >= 1:
                     alerts.append(EdgeCaseAlert(
                         case_type=EdgeCaseType.VAGUE_REQUEST,
                         field=field,
@@ -318,6 +320,41 @@ class EdgeCaseHandler:
                         corrected[alert.field] = 5
         
         return corrected
+
+    async def is_ambiguous(self, data: Dict[str, Any]) -> bool:
+        """Return True if input contains vague or missing-critical alerts."""
+        try:
+            handling = await self._handle_input(data, "content_generator")
+            for a in handling.alerts:
+                if a.case_type in (EdgeCaseType.VAGUE_REQUEST, EdgeCaseType.MISSING_CRITICAL, EdgeCaseType.INVALID_FORMAT):
+                    return True
+            return False
+        except Exception:
+            return False
+
+    async def get_clarifying_question(self, data: Dict[str, Any]) -> str:
+        """Construct a short clarifying question based on detected alerts.
+
+        This is intentionally simple: return the first reasonable question.
+        """
+        try:
+            handling = await self._handle_input(data, "content_generator")
+            if not handling.alerts:
+                return "Could you provide a bit more detail for the request?"
+
+            # Find the most actionable alert
+            for a in handling.alerts:
+                if a.case_type == EdgeCaseType.MISSING_CRITICAL:
+                    return f"I need the `{a.field}` value — could you provide it?"
+                if a.case_type == EdgeCaseType.VAGUE_REQUEST:
+                    return f"Could you be more specific about {a.field}? For example: subject, colors, mood, or style."
+                if a.case_type == EdgeCaseType.INVALID_FORMAT:
+                    return f"The field `{a.field}` looks malformed — can you rephrase it?"
+
+            # Fallback short question
+            return "Could you clarify what you mean so I can generate a better prompt?"
+        except Exception:
+            return "Could you provide a bit more detail for the request?"
 
 
 class EdgeCaseHandlerFactory:

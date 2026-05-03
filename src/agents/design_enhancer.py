@@ -32,6 +32,14 @@ class DesignPromptEnhancerAgent(BaseAgent):
         """Generate structured design brief via AI"""
         try:
             user_input = data.get("user_input", "")
+            # If clarified, merge clarification into the user input to preserve user's extra detail
+            if data.get("clarified") and data.get("clarification_answer"):
+                try:
+                    clarified_text = str(data.get("clarification_answer")).strip()
+                    if clarified_text:
+                        user_input = f"{user_input.strip()} — Clarification: {clarified_text}"
+                except Exception:
+                    pass
             category = data.get("category", "design_posters").lower()
             niche = data.get("niche", "")
             brand_context = data.get("brand_context", {})

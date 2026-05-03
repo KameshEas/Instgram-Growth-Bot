@@ -11,6 +11,17 @@ def setup_logger(name: str):
     # Remove existing handlers to avoid duplicates
     if logger.handlers:
         return logger
+    # Ensure stdout/stderr use UTF-8 to prevent UnicodeEncodeError on Windows consoles
+    try:
+        if sys.stdout and (sys.stdout.encoding is None or sys.stdout.encoding.lower() != "utf-8"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+    try:
+        if sys.stderr and (sys.stderr.encoding is None or sys.stderr.encoding.lower() != "utf-8"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
     
     # Console handler
     console_handler = logging.StreamHandler(sys.stdout)

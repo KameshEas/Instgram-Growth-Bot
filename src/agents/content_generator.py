@@ -92,6 +92,18 @@ class ContentGeneratorAgent(BaseAgent):
     async def _generate_prompts(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Generate prompts via AI only — no static library or hardcoded fallbacks."""
         try:
+            # If input appears ambiguous, ask for a clarification before generating
+            try:
+                ambiguous = await self.edge_case_handler.is_ambiguous(data)
+            except Exception:
+                ambiguous = False
+            if ambiguous and not data.get("clarified"):
+                try:
+                    question = await self.edge_case_handler.get_clarifying_question(data)
+                except Exception:
+                    question = "Could you provide a bit more detail for the request?"
+                return {"status": "clarify", "question": question}
+
             requested_category = data.get("category", "").lower()
             count = data.get("count", 3)
             niche = data.get("niche", "")
