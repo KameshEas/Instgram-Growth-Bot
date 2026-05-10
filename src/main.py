@@ -1179,7 +1179,11 @@ Return ONLY valid JSON (no markdown, no extra text):
         
         # Log comprehensive batch statistics
         logger.info(
-            f\"[BATCH STATS L6] Processed {batch_stats['total_prompts']} prompts in category '{category}': \"\n                f\"cache_hit_rate={cache_hit_rate:.1f}% ({batch_stats['cache_hits']}/{batch_stats['total_prompts']}), \"\n                f\"avg_quality_score={avg_quality_score:.1f}, \"\n                f\"avg_processing_time={avg_processing_time:.0f}ms\"\n        )
+            f"[BATCH STATS L6] Processed {batch_stats['total_prompts']} prompts in category '{category}': "
+            f"cache_hit_rate={cache_hit_rate:.1f}% ({batch_stats['cache_hits']}/{batch_stats['total_prompts']}), "
+            f"avg_quality_score={avg_quality_score:.1f}, "
+            f"avg_processing_time={avg_processing_time:.0f}ms"
+        )
         
         # Return enhanced response with L6 comprehensive batch statistics
         return {
