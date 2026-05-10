@@ -67,3 +67,17 @@ class GiftDesign(SQLModel, table=True):
     notes: Optional[str] = None  # User notes/feedback
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class MobileJob(SQLModel, table=True):
+    __tablename__ = "mobile_jobs"
+
+    job_id: str = Field(default=None, primary_key=True)
+    task: str
+    params: Optional[str] = None  # JSON string
+    status: str = Field(default="queued")
+    result: Optional[str] = None  # JSON string
+    error: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None

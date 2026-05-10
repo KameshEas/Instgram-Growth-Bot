@@ -403,6 +403,312 @@ COMPONENT_TEMPLATES = {
             "base": "3D rendering, product render, high definition, perfect quality",
             "full": "3D rendering, product render, high definition, perfect quality, ray tracing, unreal engine quality, octane render, photorealistic 3D, masterpiece 3D art, professional product rendering",
         }
+    },
+    
+    # -----------------------------------------------------------------------
+    # WOMEN TRANSFORMATION CATEGORY (women_transform)
+    # -----------------------------------------------------------------------
+    "women_transform": {
+        "subject": {
+            "identity_preservation": [
+                "Preserve 100% accurate facial identity from reference image",
+                "Use provided reference image as primary identity source",
+                "Maintain exact facial structure and unique features",
+                "Keep original face identity while transforming context",
+            ],
+            "transformation_context": [
+                "Transform the subject into a new scenario while preserving face",
+                "Apply transformation to scene while protecting facial identity",
+                "Reimagine the person in a new context with authentic face",
+            ]
+        },
+        "face_details": {
+            # Professional Secret: Realistic skin textures with identity preservation
+            "preserved": "natural skin texture exactly as in reference image, preserve all skin characteristics, no smoothing or artificial enhancement",
+            "enhanced": "enhance reference skin naturally, subtle improvement while maintaining character, realistic skin detail preservation",
+        },
+        "hair": [
+            "preserve hair color and style from reference unless specified otherwise",
+            "maintain original hair texture and appearance",
+            "keep distinctive hair characteristics from source image",
+        ],
+        "expression": {
+            # Professional Secret: Emotional expression anchoring
+            "original": "maintain original facial expression from reference image exactly",
+            "subtle_variation": "preserve core expression with subtle contextual adjustment",
+            "transformed": "allow expression change appropriate to transformation context",
+        },
+        "clothing": {
+            "transformation": [
+                "transform to new outfit appropriate to scenario",
+                "change to contextual costume matching transformation",
+                "redesign clothing to fit transformation scenario authentically",
+            ],
+            "accessories": [
+                "include relevant accessories for transformation context",
+                "add contextual props and accessories matching scenario",
+                "incorporate period-appropriate or scenario-specific details",
+            ]
+        },
+        "pose": {
+            "framing": [
+                "medium close-up (waist-up), face remains focal point and sharp",
+                "composed framing showcasing face with body context",
+                "professional framing maintaining facial clarity and detail",
+            ],
+            "action": [
+                "natural pose appropriate to transformation scenario",
+                "engaged pose matching scene context",
+                "authentic positioning for transformation setting",
+            ]
+        },
+        "environment": {
+            "setting": [
+                "contextual environment matching transformation scenario",
+                "immersive setting that supports transformation narrative",
+                "atmospheric background enhancing transformation story",
+            ],
+            "period_style": [
+                "historically accurate setting if period transformation",
+                "culturally authentic environment for transformation",
+                "scene elements supporting transformation context",
+            ]
+        },
+        "lighting": {
+            # Professional Secret: Cinematic lighting for transformations
+            "natural": "natural lighting complementing transformation setting, warm or cool appropriate to context",
+            "dramatic": "dramatic cinematic lighting enhancing transformation mood and atmosphere",
+            "ethereal": "ethereal atmospheric lighting creating transformation magic",
+            "studio": "professional studio lighting maintaining face clarity through transformation",
+        },
+        "mood": [
+            "authentic transformation narrative mood",
+            "compelling emotional resonance for scenario",
+            "immersive transformation atmosphere",
+            "powerful storytelling transformation mood",
+            "genuine emotional context for transformation",
+        ],
+        "camera_style": {
+            # Professional Secret: Professional camera language
+            "portrait": "portrait lens (85mm), shallow depth of field keeping face sharp, professional portrait composition",
+            "standard": "standard composition (50mm equivalent), balanced framing showcasing transformation",
+            "cinematic": "cinematic camera language, professional composition, cinema-quality framing",
+        },
+        "color_palette": {
+            # Professional Secret: Color grading for transformations
+            "warm": "warm golden color grading enhancing transformation mood, natural warm tones",
+            "cool": "cool sophisticated color palette, cinematic color grading suitable to transformation",
+            "vibrant": "vibrant color grading matching transformation setting, rich color storytelling",
+            "authentic": "authentic color reproduction matching transformation scenario",
+        },
+        "quality_keywords": {
+            "base": "identity preserved transformation, high definition, sharp face detail, authentic transformation",
+            "full": "identity preserved transformation, high definition, sharp face detail, authentic transformation, award-winning photography, masterpiece, cinematic quality, professional color grading, editorial quality, storytelling excellence",
+        }
+    },
+    
+    # -----------------------------------------------------------------------
+    # MEN TRANSFORMATION CATEGORY (men_transform)
+    # -----------------------------------------------------------------------
+    "men_transform": {
+        "subject": {
+            "identity_preservation": [
+                "Preserve 100% accurate facial identity from reference image",
+                "Use provided reference image as primary identity source",
+                "Maintain exact facial structure and masculine features",
+                "Keep original face identity while transforming context",
+            ],
+            "transformation_context": [
+                "Transform the subject into a new scenario while preserving face",
+                "Apply transformation to scene while protecting facial identity",
+                "Reimagine the person in a new context with authentic face",
+            ]
+        },
+        "face_details": {
+            # Professional Secret: Realistic skin textures with identity preservation
+            "preserved": "natural masculine skin texture exactly as in reference image, preserve facial hair and features",
+            "enhanced": "enhance reference skin naturally, subtle improvement while maintaining character, realistic facial detail",
+        },
+        "hair": [
+            "preserve hair color and style from reference unless specified otherwise",
+            "maintain original hair texture and masculine styling",
+            "keep distinctive facial hair and appearance from source image",
+        ],
+        "expression": {
+            # Professional Secret: Emotional expression anchoring
+            "original": "maintain original facial expression from reference image exactly",
+            "subtle_variation": "preserve core expression with subtle contextual adjustment",
+            "transformed": "allow expression change appropriate to transformation context",
+        },
+        "clothing": {
+            "transformation": [
+                "transform to new outfit appropriate to scenario",
+                "change to contextual costume matching transformation",
+                "redesign clothing to fit transformation scenario authentically",
+            ],
+            "accessories": [
+                "include relevant accessories for transformation context",
+                "add contextual props and accessories matching scenario",
+                "incorporate period-appropriate or scenario-specific details",
+            ]
+        },
+        "pose": {
+            "framing": [
+                "medium close-up (waist-up), face remains focal point and sharp",
+                "composed framing showcasing face with body context",
+                "professional framing maintaining facial clarity and detail",
+            ],
+            "action": [
+                "natural pose appropriate to transformation scenario",
+                "confident pose matching scene context",
+                "authentic positioning for transformation setting",
+            ]
+        },
+        "environment": {
+            "setting": [
+                "contextual environment matching transformation scenario",
+                "immersive setting that supports transformation narrative",
+                "atmospheric background enhancing transformation story",
+            ],
+            "period_style": [
+                "historically accurate setting if period transformation",
+                "culturally authentic environment for transformation",
+                "scene elements supporting transformation context",
+            ]
+        },
+        "lighting": {
+            # Professional Secret: Cinematic lighting for transformations
+            "natural": "natural lighting complementing transformation setting, emphasizing masculine features",
+            "dramatic": "dramatic cinematic lighting with strong shadows enhancing transformation",
+            "powerful": "powerful atmospheric lighting creating transformation impact",
+            "studio": "professional studio lighting maintaining face clarity and detail",
+        },
+        "mood": [
+            "authentic transformation narrative mood",
+            "powerful emotional resonance for scenario",
+            "immersive transformation atmosphere",
+            "compelling transformation storytelling mood",
+            "genuine emotional context for transformation",
+        ],
+        "camera_style": {
+            # Professional Secret: Professional camera language
+            "portrait": "portrait lens (85-135mm), subtle depth of field keeping face sharp, professional composition",
+            "standard": "standard composition (50mm equivalent), balanced framing showcasing transformation",
+            "cinematic": "cinematic camera language, powerful composition, cinema-quality framing",
+        },
+        "color_palette": {
+            # Professional Secret: Color grading for transformations
+            "warm": "warm golden color grading, rich warm tones for transformation",
+            "cool": "cool sophisticated color palette, cinematic color grading suitable to scenario",
+            "dramatic": "dramatic color grading matching transformation mood, powerful color storytelling",
+            "authentic": "authentic color reproduction matching transformation scenario",
+        },
+        "quality_keywords": {
+            "base": "identity preserved transformation, high definition, sharp face detail, authentic transformation",
+            "full": "identity preserved transformation, high definition, sharp face detail, authentic transformation, award-winning photography, masterpiece, cinematic quality, professional color grading, editorial quality, powerful storytelling",
+        }
+    },
+    
+    # -----------------------------------------------------------------------
+    # COUPLES TRANSFORMATION CATEGORY (couples_transform)
+    # -----------------------------------------------------------------------
+    "couples_transform": {
+        "subject": {
+            "identity_preservation": [
+                "Preserve 100% accurate facial identity for both individuals from reference images",
+                "Use provided reference images as primary identity source",
+                "Maintain exact facial structure and unique features for each person",
+                "Keep original facial identities while transforming relationship context",
+            ],
+            "transformation_context": [
+                "Transform the couple into a new scenario while preserving both faces",
+                "Apply transformation to scene while protecting both facial identities",
+                "Reimagine the couple in a new context with authentic faces for both",
+            ]
+        },
+        "face_details": {
+            # Professional Secret: Realistic skin textures with identity preservation
+            "preserved": "natural skin texture exactly as in reference images for both individuals, preserve all skin characteristics",
+            "complementary": "preserve reference skin while ensuring complementary rendering of both faces",
+        },
+        "hair": [
+            "preserve hair color and styles from reference for both individuals",
+            "maintain original hair texture and appearance for each person",
+            "keep distinctive hair characteristics from source images",
+        ],
+        "expression": {
+            # Professional Secret: Emotional expression anchoring for couples
+            "original": "maintain original facial expressions from reference images exactly",
+            "chemistry": "preserve expressions while showing authentic couple chemistry and connection",
+            "narrative": "allow subtle expression variation appropriate to transformation scenario",
+        },
+        "clothing": {
+            "transformation": [
+                "transform both outfits appropriately to scenario",
+                "change to contextual costumes matching couple transformation",
+                "redesign clothing to fit transformation scenario authentically for both",
+            ],
+            "coordination": [
+                "coordinate outfits showing couple connection",
+                "complementary styling enhancing relationship narrative",
+                "harmonious costume design for couples scenario",
+            ]
+        },
+        "pose": {
+            "composition": [
+                "couple composition maintaining face clarity for both individuals",
+                "balanced framing showcasing connection while preserving facial detail",
+                "professional positioning maintaining facial prominence",
+            ],
+            "interaction": [
+                "intimate natural pose showing authentic couple connection",
+                "engaged positioning reflecting relationship context",
+                "authentic couple positioning for transformation setting",
+            ]
+        },
+        "environment": {
+            "setting": [
+                "contextual environment matching couple transformation scenario",
+                "romantic or immersive setting supporting couple narrative",
+                "atmospheric background enhancing couple transformation story",
+            ],
+            "relationship_context": [
+                "environment emphasizing couple connection and relationship",
+                "setting supporting romantic or narrative couple context",
+                "scene elements highlighting couple dynamics",
+            ]
+        },
+        "lighting": {
+            # Professional Secret: Cinematic lighting for couples
+            "romantic": "romantic cinematic lighting flattering both faces equally, warm intimate mood",
+            "dramatic": "dramatic lighting creating transformation atmosphere with balanced face illumination",
+            "ethereal": "ethereal atmospheric lighting creating couple transformation magic",
+            "studio": "professional studio lighting illuminating both faces with equal clarity",
+        },
+        "mood": [
+            "authentic couple transformation narrative mood",
+            "compelling emotional resonance showing connection",
+            "immersive couple transformation atmosphere",
+            "powerful relationship storytelling mood",
+            "genuine emotional connection in transformation context",
+        ],
+        "camera_style": {
+            # Professional Secret: Professional camera language for couples
+            "portrait": "couple portrait lens (85mm), shallow depth of field keeping both faces sharp, professional composition",
+            "standard": "standard composition (50mm equivalent), balanced framing for couple",
+            "cinematic": "cinematic camera language, professional couple composition, cinema-quality framing",
+        },
+        "color_palette": {
+            # Professional Secret: Color grading for couple transformations
+            "warm": "warm golden color grading creating intimate mood for couple",
+            "cool": "cool sophisticated color palette, cinematic grading for couple transformation",
+            "harmonious": "harmonious color grading balancing both individuals in transformation",
+            "authentic": "authentic color reproduction matching couple transformation scenario",
+        },
+        "quality_keywords": {
+            "base": "identity preserved couple transformation, high definition, sharp face detail for both, authentic couple transformation",
+            "full": "identity preserved couple transformation, high definition, sharp face detail for both, authentic couple transformation, award-winning photography, masterpiece, cinematic quality, professional color grading, editorial quality, relationship storytelling excellence",
+        }
     }
 }
 
