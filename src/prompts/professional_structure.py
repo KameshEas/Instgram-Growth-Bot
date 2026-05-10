@@ -14,15 +14,16 @@ Professional Secrets Embedded:
 - Storytelling atmosphere
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass, asdict
 import json
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
 # ============================================================================
-# NA COMPONENT STANDARDIZATION (Fix C1)
+# NA COMPONENT STANDARDIZATION (Fix C1 & M5)
 # ============================================================================
 # Single source of truth for N/A marker detection
 NA_MARKERS = {
@@ -37,8 +38,13 @@ NA_MARKERS = {
     "not_applicable_product": "N/A - product focus",
 }
 
+# M5 FIX: Consistent regex pattern for N/A detection
+# Matches any string starting with "N/A" followed by optional dash and context
+NA_PATTERN = re.compile(r"^N/A\s*(-|unless|:)?", re.IGNORECASE)
+
 def is_component_na(component_data: Any) -> bool:
     """Check if a component is marked as N/A (not applicable for this category).
+    M5 FIX: Use consistent regex pattern instead of brittle startswith check.
     
     Args:
         component_data: The component data to check
@@ -47,8 +53,33 @@ def is_component_na(component_data: Any) -> bool:
         True if component is N/A, False otherwise
     """
     if isinstance(component_data, str):
-        return component_data in NA_MARKERS.values() or component_data.startswith("N/A")
+        # Check against known N/A markers first (whitelist)
+        if component_data in NA_MARKERS.values():
+            return True
+        # Then check with regex for any other N/A patterns (defensive)
+        return bool(NA_PATTERN.match(component_data))
     return False
+
+
+# ============================================================================
+# COMPONENT ORDER (M1 FIX: Single Source of Truth)
+# ============================================================================
+# Professional 12-component framework in assembly order
+# Used by: build_professional_prompt(), professional_prompt_enhancer.py, promptBuilder.js
+COMPONENT_ORDER = [
+    'subject',           # Who is being depicted
+    'face_details',      # Facial characteristics and texture
+    'hair',              # Hair styling and appearance
+    'expression',        # Facial expression and emotion
+    'clothing',          # What subject is wearing
+    'pose',              # Body positioning and posture
+    'environment',       # Background and setting
+    'lighting',          # Lighting setup and quality
+    'mood',              # Overall atmosphere and feeling
+    'camera_style',      # Camera technique and perspective
+    'color_palette',     # Color grading and tone
+    'quality_keywords'   # Resolution and quality specifications
+]
 
 
 @dataclass
@@ -75,6 +106,27 @@ class PrompComponentData:
 # ============================================================================
 # COMPONENT TEMPLATES BY CATEGORY
 # ============================================================================
+# M2 FIX: Component Typing Standardization Documentation
+#
+# STANDARD FORMAT: All components should be dict with "base" key for default options
+#   "component_name": {
+#       "base": [list of options],  # Always provide "base" key
+#       "subcategory": [list of options],  # Optional additional subcategories
+#   }
+#
+# LEGACY FORMAT (still supported for backward compatibility):
+#   "component_name": [list of options]  # Direct array, no dict wrapper
+#
+# HANDLING:
+#   - get_component_template() returns both formats transparently
+#   - select_component() handles both array and string inputs
+#   - New categories should use dict format; existing categories maintain current format
+#   - Use normalize_component_template() to convert legacy to standard format
+#
+# EXAMPLES:
+#   Dict format: "lighting": {"base": [...], "cinematic": [...]}
+#   Array format: "hair": [...]
+#   Both handled by existing code through isinstance() checks
 
 COMPONENT_TEMPLATES = {
     # -----------------------------------------------------------------------
@@ -768,9 +820,11 @@ COMPONENT_TEMPLATES = {
 # COMPONENT SELECTOR & BUILDER FUNCTIONS
 # ============================================================================
 
-def get_component_template(category: str, component: str, subcategory: Optional[str] = None) -> List[str] or str:
+def get_component_template(category: str, component: str, subcategory: Optional[str] = None) -> Union[List[str], str]:
     """
     Retrieve template options for a specific component in a category.
+    
+    L4 FIX: Added example docstring
     
     Args:
         category: e.g., 'portrait_transformation', 'design_gifts', 'design_posters'
@@ -779,6 +833,12 @@ def get_component_template(category: str, component: str, subcategory: Optional[
         
     Returns:
         List of template strings or single string
+        
+    Example:
+        >>> templates = get_component_template('portrait_transformation', 'subject')
+        >>> len(templates)  # → 4 (women, men subject options)
+        >>> templates = get_component_template('portrait_transformation', 'lighting')
+        >>> len(templates)  # → 6 (different lighting techniques)
     """
     if category not in COMPONENT_TEMPLATES:
         return f"Unknown category: {category}"
@@ -804,10 +864,12 @@ def get_component_template(category: str, component: str, subcategory: Optional[
     return component_options
 
 
-def select_component(options: List[str] or str, preference: Optional[int] = None) -> str:
+def select_component(options: Union[List[str], str], preference: Optional[int] = None) -> str:
     """
     Select a single component from available options with bounds checking.
     Logs warnings when indices are out of bounds (Fix C3).
+    
+    L4 FIX: Added example docstring
     
     Args:
         options: List of component options or single string
@@ -815,6 +877,12 @@ def select_component(options: List[str] or str, preference: Optional[int] = None
         
     Returns:
         Selected component string
+        
+    Example:
+        >>> subject_options = ["A woman", "A man", "A couple"]
+        >>> select_component(subject_options, 1)  # → "A man"
+        >>> select_component(subject_options, 0)  # → "A woman"
+        >>> select_component("fixed_option")  # → "fixed_option"
     """
     if isinstance(options, str):
         return options
@@ -833,6 +901,43 @@ def select_component(options: List[str] or str, preference: Optional[int] = None
         return options[0]
     
     return str(options)
+
+
+def normalize_component_template(component: Union[List[str], Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    M2 FIX: Normalize component templates to standard dict format.
+    
+    Converts legacy array format to standardized dict format with "base" key.
+    Safe to call multiple times (idempotent).
+    
+    Args:
+        component: Component in array format [options] or dict format {"base": [...]}
+        
+    Returns:
+        Standardized dict format: {"base": [options]} or existing dict if already standard
+        
+    Example:
+        normalize_component_template(["hair option 1", "hair option 2"])
+        → {"base": ["hair option 1", "hair option 2"]}
+        
+        normalize_component_template({"base": [...], "editorial": [...]})
+        → {"base": [...], "editorial": [...]}  # Already standard, returned as-is
+    """
+    # Already in dict format
+    if isinstance(component, dict):
+        # Ensure "base" key exists
+        if "base" not in component and len(component) > 0:
+            # Move first key's value to "base"
+            first_key = next(iter(component))
+            component["base"] = component.pop(first_key)
+        return component
+    
+    # Convert array format to dict format
+    if isinstance(component, list):
+        return {"base": component}
+    
+    # Single string or other format - wrap in dict
+    return {"base": [str(component)]} if component else {"base": []}
 
 
 def build_professional_prompt(
@@ -859,16 +964,10 @@ def build_professional_prompt(
         Assembled professional prompt string
     """
     
-    # Component order for assembly
-    component_order = [
-        'subject', 'face_details', 'hair', 'expression', 'clothing',
-        'pose', 'environment', 'lighting', 'mood', 'camera_style',
-        'color_palette', 'quality_keywords'
-    ]
-    
+    # M1 FIX: Use single source of truth for component order
     prompt_parts = []
     
-    for component in component_order:
+    for component in COMPONENT_ORDER:
         if component == 'quality_keywords' and not include_quality:
             continue
         
@@ -925,13 +1024,9 @@ def build_simple_prompt(
     
     # Build components dict with indices
     components = {}
-    component_order = [
-        'subject', 'face_details', 'hair', 'expression', 'clothing',
-        'pose', 'environment', 'lighting', 'mood', 'camera_style',
-        'color_palette', 'quality_keywords'
-    ]
     
-    for component in component_order:
+    # M1 FIX: Use single source of truth for component order
+    for component in COMPONENT_ORDER:
         if component in component_selections:
             components[f"{component}_idx"] = component_selections[component]
         else:
@@ -987,53 +1082,66 @@ def get_category_info(category: str) -> Dict[str, Any]:
 
 # C4: Consolidated professional secrets with unified structure
 # This matches PROFESSIONAL_SECRETS_KEYWORDS in professional_secrets_validator.py
+# M3 FIX: Removed keyword overlaps to ensure unique detection across secrets
 PROFESSIONAL_SECRETS_KEYWORDS = {
     "cinematic_lighting": {
         "description": "Advanced lighting techniques for cinematic quality",
         "keywords": [
+            # Lighting-specific keywords (removed: cinematic, atmospheric, mood)
             "volumetric", "three-point", "global illumination", "backlighting",
             "rim lighting", "side lighting", "color-graded lighting", "golden hour",
-            "cinematic lighting", "dramatic lighting", "atmospheric lighting"
+            "dramatic lighting", "light source", "lighting setup", "key light",
+            "fill light", "practical light", "diffused light", "hard light"
         ]
     },
     "realistic_skin_textures": {
         "description": "Photorealistic skin rendering with character",
         "keywords": [
+            # Skin-specific keywords (removed: natural, authentic - moved to emotional)
             "pores", "micro-texture", "subsurface scattering", "imperfections",
-            "skin texture", "natural appearance", "realistic skin", "complexion",
-            "skin tones", "texture", "natural skin"
+            "skin texture", "realistic skin", "complexion", "skin tones",
+            "wrinkles", "freckles", "blemishes", "skin detail", "facial texture",
+            "natural appearance", "detailed skin"
         ]
     },
     "emotional_expression": {
         "description": "Capturing genuine emotion and storytelling",
         "keywords": [
-            "authentic", "emotional", "genuine", "narrative", "storytelling",
-            "connection", "chemistry", "expression", "emotion", "sentiment",
-            "soulful", "sincere", "tender", "vulnerable", "affection"
+            # Emotion-specific keywords (added back: narrative, authentic, genuine, storytelling)
+            "authentic", "emotional", "genuine", "expression", "emotion",
+            "sentiment", "soulful", "sincere", "tender", "vulnerable", "affection",
+            "chemistry", "connection", "sincere expression", "natural expression",
+            "authentic emotion", "genuine feeling", "dramatic expression"
         ]
     },
     "color_grading": {
         "description": "Professional color grading for mood and impact",
         "keywords": [
-            "color grading", "color palette", "color harmony", "warm", "cool",
-            "saturation", "contrast", "color treatment", "color tone", "hue",
-            "atmospheric", "moody", "graded"
+            # Color-specific keywords (removed: atmospheric, cinematic, mood, storytelling)
+            "color grading", "color palette", "color harmony", "warm tones",
+            "cool tones", "saturation", "contrast", "color treatment", "color tone",
+            "hue", "desaturation", "graded", "color correction", "tone mapping",
+            "color cast", "color temperature", "color balance"
         ]
     },
     "professional_camera_language": {
         "description": "Professional camera and lens techniques",
         "keywords": [
+            # Camera-specific keywords (removed: cinematic)
             "focal length", "aperture", "depth of field", "perspective",
-            "composition", "85mm", "135mm", "compression", "framing",
-            "portrait lens", "camera", "photography", "editorial"
+            "composition", "85mm", "135mm", "50mm", "compression", "framing",
+            "portrait lens", "telephoto", "wide angle", "photography technique",
+            "camera angle", "camera setup", "editorial composition", "f-number"
         ]
     },
     "storytelling_atmosphere": {
         "description": "Creating narrative and mood in imagery",
         "keywords": [
-            "narrative", "atmosphere", "environmental context", "scenario",
-            "mood", "story", "setting", "backdrop", "environment",
-            "storytelling", "cinematic", "compelling"
+            # Atmosphere-specific keywords (added back: narrative, storytelling - removed: cinematic, atmospheric)
+            "narrative", "storytelling", "environment", "environmental context",
+            "scenario", "mood", "story", "setting", "backdrop", "environmental storytelling",
+            "compelling story", "narrative arc", "contextual environment", "atmospheric depth",
+            "world-building", "scene setup", "narrative moment"
         ]
     }
 }

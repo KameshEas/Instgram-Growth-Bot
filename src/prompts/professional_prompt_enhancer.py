@@ -35,23 +35,32 @@ class ProfessionalPromptEnhancer:
         self,
         original_prompt: str,
         category: str,
-        professional_secrets_to_embed: Optional[List[str]] = None
+        professional_secrets: Optional[List[str]] = None  # L3 FIX: Renamed from professional_secrets_to_embed
     ) -> Dict[str, Any]:
         """
         Analyze and enhance an existing prompt with professional structure validation.
         
+        L4 FIX: Added example docstring with clear input/output
+        
         Args:
             original_prompt: The AI-generated prompt text
             category: Category (e.g., 'portrait_transformation', 'design_gifts')
-            professional_secrets_to_embed: Optional list of secrets to inject ('cinematic_lighting', etc.)
+            professional_secrets: Optional list of secrets to inject ('cinematic_lighting', etc.)
             
         Returns:
             Enhanced prompt data with structure breakdown and quality metrics
+            
+        Example:
+            >>> prompt = "A woman with red hair in a studio"
+            >>> result = enhancer.enhance_prompt_with_structure(prompt, "portrait_transformation")
+            >>> result["quality_score"]  # → 65.5 (quality score out of 100)
+            >>> result["professional_secrets_found"]["cinematic_lighting"]  # → False
+            >>> result["enhancement_suggestions"]["enhanced_prompt"]  # → Enhanced version with all components
         """
         
-        if professional_secrets_to_embed is None:
+        if professional_secrets is None:
             # Default secrets for each category
-            professional_secrets_to_embed = self._get_default_secrets(category)
+            professional_secrets = self._get_default_secrets(category)
         
         # Analyze the prompt structure
         components = self._extract_components_from_prompt(original_prompt, category)
@@ -65,7 +74,7 @@ class ProfessionalPromptEnhancer:
             category,
             components,
             secrets_found,
-            professional_secrets_to_embed
+            professional_secrets  # L3 FIX: Updated reference to renamed parameter
         )
         
         return {
@@ -87,12 +96,23 @@ class ProfessionalPromptEnhancer:
         """
         Validate that a prompt includes all essential components for its category.
         
+        L4 FIX: Added example docstring
+        
         Args:
             prompt: Prompt text to validate
             category: Category of the prompt
             
         Returns:
             Validation report with missing components and recommendations
+            
+        Example:
+            >>> report = enhancer.validate_prompt_completeness(
+            ...     "A woman in a studio with professional lighting",
+            ...     "portrait_transformation"
+            ... )
+            >>> report["is_complete"]  # → False
+            >>> report["missing_components"]  # → ['hair', 'pose', 'color_palette']
+            >>> len(report["recommendations"])  # → 3 (one per missing component)
         """
         
         required_components = self._get_required_components(category)

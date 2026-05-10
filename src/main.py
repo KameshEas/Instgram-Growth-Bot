@@ -61,19 +61,27 @@ except Exception:
 
 # Initialize Groq client
 def init_groq():
+    """L1 FIX: Descriptive error messages for initialization failures."""
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        raise ValueError("[ERROR] GROQ_API_KEY not found in .env file")
+        raise ValueError(
+            "[ERROR L1] GROQ_API_KEY not found in .env file. "
+            "Ensure .env exists in project root with GROQ_API_KEY=<your-api-key>. "
+            "Get API key from: https://console.groq.com"
+        )
     return Groq(api_key=api_key)
 
 # Utility function for robust JSON parsing
 def parse_json_response(text: str) -> dict:
-    """Parse JSON from response, handling markdown code blocks, incomplete JSON, and embedded JSON"""
+    """Parse JSON from response, handling markdown code blocks, incomplete JSON, and embedded JSON
+    
+    L1 FIX: Descriptive error messages with context about parsing failure
+    """
     text = text.strip()
     
     if not text:
-        logger.warning("[WARN] Empty response text")
-        return {}
+        logger.warning("[WARN] JSON parsing failed: empty response text received (expected JSON object or array)")
+        return {"error": "Empty response - no content to parse"}
     
     logger.debug(f"[DEBUG] Parsing response (length={len(text)}, first 200 chars: {text[:200]})...")
     
@@ -84,7 +92,7 @@ def parse_json_response(text: str) -> dict:
             logger.debug("[DEBUG] Successfully parsed as direct JSON")
             return result
     except json.JSONDecodeError as e:
-        logger.debug(f"[DEBUG] Direct JSON parse failed: {e}")
+        logger.debug(f"[DEBUG] Direct JSON parse failed at position {e.pos}: {e.msg}")
         pass
     
     # Try extracting from markdown code block with ```json
@@ -216,10 +224,13 @@ def parse_json_response(text: str) -> dict:
     
     # Log failed parsing for debugging
     preview = text[:300] if len(text) > 300 else text
-    logger.warning(f"[WARN] JSON parsing failed. Response preview:\n{preview}\n...")
+    logger.warning(
+        f"[WARN L1] JSON parsing failed after attempting: direct parse, ```json blocks, generic code blocks, raw extraction. "
+        f"Response length: {len(text)} chars, starts with: {preview}..."
+    )
     
     # Return empty dict with error indicator
-    return {"error": "Failed to parse JSON response"}
+    return {"error": "Failed to parse JSON response (no valid JSON found after attempts at multiple extraction methods)"}
 
 # AI Agent implementations
 class InstagramGrowthBot:
@@ -306,42 +317,51 @@ class InstagramGrowthBot:
 
             # Parse failure — log what we got
             raw_response = response.choices[0].message.content[:500]  # First 500 chars
-            logger.error(f"[ERROR] Parse failed for {command}. Response: {raw_response}")
+            logger.error(
+                f"[ERROR L1] {command}: JSON parse failed after {latency_ms}ms latency. "
+                f"Expected JSON object/array but received invalid format. "
+                f"Response preview: {raw_response}..."
+            )
             
             # Parse failure — try stale cache as fallback (only if caching enabled)
             if PROMPT_LOG_ENABLED and ttl_hours is not None:  # Only fall back to stale cache if this request uses caching
                 _plog.log_prompt_response(
                     command=command, prompt_hash=cache_key, prompt_text=prompt,
-                    response_json=None, success=0, error_msg="JSON parse failed",
+                    response_json=None, success=0, error_msg="JSON parse failed after all parsing attempts",
                     latency_ms=latency_ms, model=self.model, chat_id=chat_id,
                 )
                 stale = _plog.get_cached_response(cache_key, ignore_ttl=True)
                 if stale:
-                    logger.warning("[CACHE] Stale fallback for %s (parse failure)", command)
+                    logger.warning("[CACHE] Stale fallback for %s (parse failure after %dms)", command, latency_ms)
                     return {**stale, "_from_cache": True, "_stale": True}
-            return {"error": f"Failed to parse {command} response"}
+            return {"error": f"Failed to parse {command} response (JSON invalid - tried 4 extraction methods)"}
 
         except Exception as exc:
             duration = time.time() - start
             latency_ms = int(duration * 1000)
-            logger.error("%s error: %s", command, exc)
+            logger.error(
+                f"[ERROR L1] {command} execution failed after {latency_ms}ms: "
+                f"{type(exc).__name__}: {str(exc)}. Model: {self.model}"
+            )
             if METRICS_ENABLED:
                 metrics.record_api_call(model=self.model, duration=duration, success=False)
-                metrics.record_error(f"{command}Error", str(exc), command)
+                metrics.record_error(f"{command}Error", f"{type(exc).__name__}: {str(exc)}", command)
                 health_check.record_error()
             if PROMPT_LOG_ENABLED:
                 _plog.log_prompt_response(
                     command=command, prompt_hash=cache_key, prompt_text=prompt,
-                    response_json=None, success=0, error_msg=str(exc),
+                    response_json=None, success=0, error_msg=f"{type(exc).__name__}: {str(exc)}",
                     latency_ms=latency_ms, model=self.model, chat_id=chat_id,
                 )
                 # Only use stale cache if caching is enabled (ttl_hours set)
                 if ttl_hours is not None:
                     stale = _plog.get_cached_response(cache_key, ignore_ttl=True)
                     if stale:
-                        logger.warning("[CACHE] Stale fallback for %s (AI unavailable)", command)
+                        logger.warning(
+                            f"[CACHE] Stale fallback for {command} (AI unavailable after {latency_ms}ms): {type(exc).__name__}"
+                        )
                         return {**stale, "_from_cache": True, "_stale": True}
-            return {"error": f"Failed to execute {command}"}
+            return {"error": f"Failed to execute {command} (Groq API error - {type(exc).__name__})"}
         
     def generate_content(
         self,
@@ -1039,6 +1059,8 @@ Return ONLY valid JSON (no markdown, no extra text):
         3. Calculate quality scores
         4. Provide enhancement recommendations
         
+        M4 FIX: Uses caching to avoid reprocessing the same prompts multiple times
+        
         Args:
             prompts_response: The JSON response from generate_image_prompts containing "prompts" array
             category: Category of prompts (e.g., 'portrait_transformation', 'design_gifts')
@@ -1047,6 +1069,10 @@ Return ONLY valid JSON (no markdown, no extra text):
         Returns:
             Enhanced response with professional structure metadata and quality improvements
         """
+        # M4 FIX: Initialize cache for enhancement results if not already present
+        if not hasattr(self, '_enhancement_cache'):
+            self._enhancement_cache = {}
+        
         # C2: Improve error handling - don't silently fail
         try:
             from src.prompts.professional_prompt_enhancer import ProfessionalPromptEnhancer
@@ -1075,19 +1101,58 @@ Return ONLY valid JSON (no markdown, no extra text):
         enhanced_prompts = []
         quality_scores = []
         
+        # L6 FIX: Track comprehensive batch statistics
+        batch_stats = {
+            "total_prompts": len(prompts_list),
+            "cache_hits": 0,
+            "cache_misses": 0,
+            "processing_times_ms": [],
+            "skipped_prompts": 0,
+            "secrets_found_counts": {secret: 0 for secret in ["cinematic_lighting", "realistic_skin_textures", "emotional_expression", "color_grading", "professional_camera_language", "storytelling_atmosphere"]}
+        }
+        
         for prompt_item in prompts_list:
             if not isinstance(prompt_item, dict) or "prompt" not in prompt_item:
                 enhanced_prompts.append(prompt_item)
+                batch_stats["skipped_prompts"] += 1
                 continue
             
             original_prompt = prompt_item["prompt"]
             
-            # Enhance with professional structure
-            enhancement_result = enhancer.enhance_prompt_with_structure(
-                original_prompt,
-                category,
-                professional_secrets_to_embed=None
-            )
+            # M4 FIX: Check cache before enhancing
+            cache_key = hashlib.sha256(f"{category}:{original_prompt}".encode()).hexdigest()
+            prompt_start_time = time.time()
+            
+            if cache_key in self._enhancement_cache:
+                # Use cached enhancement result
+                enhancement_result = self._enhancement_cache[cache_key]
+                batch_stats["cache_hits"] += 1
+                logger.debug(f"[CACHE] Cache hit for prompt (category={category}, cache_size={len(self._enhancement_cache)})")
+            else:
+                # Enhance with professional structure
+                enhancement_result = enhancer.enhance_prompt_with_structure(
+                    original_prompt,
+                    category,
+                    professional_secrets=None  # L3 FIX: Renamed from professional_secrets_to_embed
+                )
+                batch_stats["cache_misses"] += 1
+                
+                # M4 FIX: Store in cache (limit cache size to 1000 entries to prevent memory bloat)
+                if len(self._enhancement_cache) >= 1000:
+                    # Remove oldest entry (FIFO)
+                    oldest_key = next(iter(self._enhancement_cache))
+                    del self._enhancement_cache[oldest_key]
+                
+                self._enhancement_cache[cache_key] = enhancement_result
+            
+            # L6 FIX: Track processing time per prompt
+            prompt_processing_time = int((time.time() - prompt_start_time) * 1000)
+            batch_stats["processing_times_ms"].append(prompt_processing_time)
+            
+            # L6 FIX: Track which secrets were found
+            for secret, found in enhancement_result["professional_secrets_found"].items():
+                if found:
+                    batch_stats["secrets_found_counts"][secret] += 1
             
             # Create enhanced prompt item
             enhanced_item = {
@@ -1107,10 +1172,16 @@ Return ONLY valid JSON (no markdown, no extra text):
             enhanced_prompts.append(enhanced_item)
             quality_scores.append(enhancement_result["quality_score"])
         
-        # Calculate average quality score
+        # Calculate average quality score and comprehensive batch statistics
         avg_quality_score = (sum(quality_scores) / len(quality_scores)) if quality_scores else 0
+        cache_hit_rate = (batch_stats["cache_hits"] / batch_stats["total_prompts"] * 100) if batch_stats["total_prompts"] > 0 else 0
+        avg_processing_time = (sum(batch_stats["processing_times_ms"]) / len(batch_stats["processing_times_ms"])) if batch_stats["processing_times_ms"] else 0
         
-        # Return enhanced response
+        # Log comprehensive batch statistics
+        logger.info(
+            f\"[BATCH STATS L6] Processed {batch_stats['total_prompts']} prompts in category '{category}': \"\n                f\"cache_hit_rate={cache_hit_rate:.1f}% ({batch_stats['cache_hits']}/{batch_stats['total_prompts']}), \"\n                f\"avg_quality_score={avg_quality_score:.1f}, \"\n                f\"avg_processing_time={avg_processing_time:.0f}ms\"\n        )
+        
+        # Return enhanced response with L6 comprehensive batch statistics
         return {
             **prompts_response,
             "prompts": enhanced_prompts,
@@ -1119,7 +1190,19 @@ Return ONLY valid JSON (no markdown, no extra text):
                 "average_quality_score": round(avg_quality_score, 1),
                 "enhanced": True,
                 "enhancement_date": datetime.now().isoformat(),
-                "professional_secrets_applied": apply_professional_secrets
+                "professional_secrets_applied": apply_professional_secrets,
+                # L6 FIX: Comprehensive batch statistics
+                "batch_statistics": {
+                    "total_prompts_processed": batch_stats["total_prompts"],
+                    "skipped_prompts": batch_stats["skipped_prompts"],
+                    "cache_hits": batch_stats["cache_hits"],
+                    "cache_misses": batch_stats["cache_misses"],
+                    "cache_hit_rate_percent": round(cache_hit_rate, 1),
+                    "average_processing_time_ms": round(avg_processing_time, 1),
+                    "min_processing_time_ms": min(batch_stats["processing_times_ms"]) if batch_stats["processing_times_ms"] else 0,
+                    "max_processing_time_ms": max(batch_stats["processing_times_ms"]) if batch_stats["processing_times_ms"] else 0,
+                    "secrets_distribution": batch_stats["secrets_found_counts"]
+                }
             }
         }
 

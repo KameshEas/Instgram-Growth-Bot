@@ -8,60 +8,32 @@ prompts, ensuring consistent quality across all transformation categories.
 
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
+from professional_structure import PROFESSIONAL_SECRETS_KEYWORDS  # M3 FIX: Import from single source of truth
 
 # ============================================================================
 # PROFESSIONAL SECRETS KEYWORDS
 # ============================================================================
+# M3 FIX: Imported from professional_structure.py to ensure consistency
+# and eliminate keyword overlap issues across the codebase
 
-PROFESSIONAL_SECRETS_KEYWORDS = {
-    "cinematic_lighting": {
-        "description": "Advanced lighting techniques for cinematic quality",
-        "keywords": [
-            "volumetric", "three-point", "global illumination", "backlighting",
-            "rim lighting", "side lighting", "color-graded lighting", "golden hour",
-            "cinematic lighting", "dramatic lighting", "atmospheric lighting"
-        ]
-    },
-    "realistic_skin_textures": {
-        "description": "Photorealistic skin rendering with character",
-        "keywords": [
-            "pores", "micro-texture", "subsurface scattering", "imperfections",
-            "skin texture", "natural appearance", "realistic skin", "complexion",
-            "skin tones", "texture", "natural skin"
-        ]
-    },
-    "emotional_expression": {
-        "description": "Capturing genuine emotion and storytelling",
-        "keywords": [
-            "authentic", "emotional", "genuine", "narrative", "storytelling",
-            "connection", "chemistry", "expression", "emotion", "sentiment",
-            "soulful", "sincere", "tender", "vulnerable", "affection"
-        ]
-    },
-    "color_grading": {
-        "description": "Professional color grading for mood and impact",
-        "keywords": [
-            "color grading", "color palette", "color harmony", "warm", "cool",
-            "saturation", "contrast", "color treatment", "color tone", "hue",
-            "atmospheric", "moody", "graded"
-        ]
-    },
-    "professional_camera_language": {
-        "description": "Professional camera and lens techniques",
-        "keywords": [
-            "focal length", "aperture", "depth of field", "perspective",
-            "composition", "85mm", "135mm", "compression", "framing",
-            "portrait lens", "camera", "photography", "editorial"
-        ]
-    },
-    "storytelling_atmosphere": {
-        "description": "Creating narrative and mood in imagery",
-        "keywords": [
-            "narrative", "atmosphere", "environmental context", "scenario",
-            "mood", "story", "setting", "backdrop", "environment",
-            "storytelling", "cinematic", "compelling"
-        ]
-    }
+
+# ============================================================================
+# COMPONENT GUIDANCE (M7 FIX: All 12 Components)
+# ============================================================================
+# M7 FIX: Specific guidance for all 12 components when they're missing or weak
+COMPONENT_GUIDANCE = {
+    "subject": "Describe who is in the image (person, character, or group). Use: woman, man, couple, professional, model",
+    "face_details": "Add facial characteristics and texture details. Use: skin texture, facial features, cheekbones, complexity, realistic appearance",
+    "hair": "Describe hair styling, color, and texture. Use: hairstyle, hair color, hair texture, braided, flowing, styled",
+    "expression": "Specify emotional expression and facial emotion. Use: smile, genuine expression, emotion, eye contact, authentic emotion",
+    "clothing": "Describe what the subject is wearing. Use: outfit, dress, clothing, jacket, blazer, attire, wardrobe, styled",
+    "pose": "Describe body positioning and posture. Use: pose, standing, seated, posture, positioned, gesture, stance",
+    "environment": "Add background setting and context. Use: background, environment, setting, location, backdrop, scenery, landscape",
+    "lighting": "Specify lighting techniques and quality. Use: three-point lighting, soft light, dramatic lighting, golden hour, cinematic",
+    "mood": "Convey the overall atmosphere and feeling. Use: mood, atmosphere, energy, peaceful, vibrant, dramatic, intimate, joyful",
+    "camera_style": "Add camera technique and composition. Use: 85mm, aperture, depth of field, composition, framing, perspective",
+    "color_palette": "Define color grading and tone. Use: color grading, warm tones, cool tones, saturation, color treatment, graded",
+    "quality_keywords": "Specify resolution and quality level. Use: 8k, high definition, masterpiece, sharp, detailed, professional"
 }
 
 
@@ -125,6 +97,45 @@ def detect_secret_in_prompt(
     )
 
 
+def check_component_presence(
+    prompt: str,
+    component: str
+) -> Tuple[bool, str]:
+    """
+    M7 FIX: Check if a component is present in the prompt and provide guidance.
+    
+    Args:
+        prompt: The generated prompt
+        component: Component name to check (e.g., 'face_details')
+        
+    Returns:
+        Tuple of (is_present, guidance) where guidance is specific to the component
+    """
+    prompt_lower = prompt.lower()
+    
+    # Component-specific signal keywords to detect presence
+    component_signals = {
+        "subject": ["person", "woman", "man", "couple", "professional", "model", "character"],
+        "face_details": ["face", "skin", "complexion", "cheekbone", "facial", "texture"],
+        "hair": ["hair", "hairstyle", "braid", "curl", "wave", "strand", "styled"],
+        "expression": ["smile", "expression", "emotion", "gaze", "authentic", "genuine"],
+        "clothing": ["dress", "outfit", "clothes", "jacket", "shirt", "attire", "wardrobe"],
+        "pose": ["pose", "posing", "standing", "seated", "positioned", "stance"],
+        "environment": ["background", "setting", "environment", "location", "backdrop", "scene"],
+        "lighting": ["lighting", "light", "illumination", "shadow", "dramatic", "golden"],
+        "mood": ["mood", "atmosphere", "energy", "peaceful", "vibrant", "intimate"],
+        "camera_style": ["camera", "lens", "aperture", "composition", "framing", "perspective"],
+        "color_palette": ["color", "grading", "tone", "saturation", "warm", "cool"],
+        "quality_keywords": ["8k", "4k", "high", "detailed", "masterpiece", "sharp"]
+    }
+    
+    signals = component_signals.get(component, [])
+    is_present = any(signal in prompt_lower for signal in signals)
+    guidance = COMPONENT_GUIDANCE.get(component, f"Enhance the {component} component")
+    
+    return is_present, guidance
+
+
 def validate_prompt_quality(
     prompt: str,
     category: str
@@ -156,12 +167,25 @@ def validate_prompt_quality(
     
     # Generate recommendations
     recommendations = []
+    
+    # M7 FIX: Add secret recommendations (existing)
     for secret_name, result in secrets_detected.items():
         if not result.found:
             recommendations.append(
                 f"Missing '{secret_name}': Consider adding keywords like "
                 f"{', '.join(PROFESSIONAL_SECRETS_KEYWORDS[secret_name]['keywords'][:3])}"
             )
+    
+    # M7 FIX: Add component recommendations for all 12 components
+    all_components = [
+        "subject", "face_details", "hair", "expression", "clothing", "pose",
+        "environment", "lighting", "mood", "camera_style", "color_palette", "quality_keywords"
+    ]
+    
+    for component in all_components:
+        is_present, guidance = check_component_presence(prompt, component)
+        if not is_present:
+            recommendations.append(f"{component}: {guidance}")
     
     return PromptQualityReport(
         category=category,
