@@ -585,10 +585,10 @@ Return JSON with:
         CATEGORY_DESC = {
             "general_photography":  "lifestyle, street, travel, and editorial photography",
             "women_professional":   "professional/corporate female portrait photography",
-            "women_transform":      "female portrait transformation (strict facial feature preservation required)",
+            "women_transform":      "female portrait transformation with reference-based identity preservation and scenario-specific generation",
             "men_professional":     "professional/corporate male portrait photography",
-            "men_transform":        "male portrait transformation (strict facial feature preservation required)",
-            "couples_transform":    "couples portrait transformation (facial preservation for both subjects)",
+            "men_transform":        "male portrait transformation with reference-based identity preservation and scenario-specific generation",
+            "couples_transform":    "couples portrait transformation with relationship-context awareness and dual-identity preservation through reference foundation",
             "design_posters":       "social media poster and graphic design",
             "design_gifts":         "personalized gift design and custom merchandise",
             "ui_ux_design":         "UI/UX screen and interface design",

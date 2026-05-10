@@ -422,9 +422,10 @@ COMPONENT_TEMPLATES = {
             "genuine skin tones and texture",
         ],
         "hair": [
-            "with hair matching reference appearance",
-            "hair styled as in reference",
-            "original hair with new styling if needed",
+            "with hair matching reference appearance and length",
+            "hair color and style as in reference",
+            "original hair preserving color and cut",
+            "natural hair texture with scenario styling",
         ],
         "expression": [
             "with natural engaging expression",
@@ -432,28 +433,24 @@ COMPONENT_TEMPLATES = {
             "genuine relaxed expression",
             "friendly natural demeanor",
         ],
-        "clothing": {
-            "transformation": [
-                "wearing elegant scenario-appropriate outfit",
-                "dressed for the new scenario authentically",
-                "styled appropriately for the setting",
-                "in contextual costume for the scenario",
-            ],
-        },
+        "clothing": [
+            "wearing scenario-appropriate outfit reflecting the setting",
+            "dressed authentically for the transformation context",
+            "in styled clothing suited to the scenario",
+            "with wardrobe choices matching the scene",
+        ],
         "pose": [
             "positioned naturally in the scene",
             "positioned authentically in the environment",
             "naturally engaged with the setting",
             "comfortably positioned in the scenario",
         ],
-        "environment": {
-            "setting": [
-                "in a beautiful transformation scenario",
-                "within the scenic environment",
-                "in the atmospheric setting",
-                "situated in the scenario backdrop",
-            ],
-        },
+        "environment": [
+            "in a beautiful transformation scenario",
+            "within the scenic environment",
+            "in the atmospheric setting",
+            "situated in the scenario backdrop",
+        ],
         "lighting": [
             "with warm natural lighting",
             "with cinematic atmospheric lighting",
@@ -504,8 +501,9 @@ COMPONENT_TEMPLATES = {
         ],
         "hair": [
             "with hair and facial hair as in reference",
-            "hair and styling matching reference",
-            "original styling with scenario adaptation",
+            "hair cut and beard style matching reference",
+            "original styling with scenario-appropriate grooming",
+            "natural hair preserving length and facial hair",
         ],
         "expression": [
             "with confident natural expression",
@@ -513,28 +511,24 @@ COMPONENT_TEMPLATES = {
             "genuine engaging expression",
             "natural confident presence",
         ],
-        "clothing": {
-            "transformation": [
-                "wearing scenario-appropriate attire",
-                "dressed for the new scenario authentically",
-                "styled appropriately for the setting",
-                "in contextual costume for the scenario",
-            ],
-        },
+        "clothing": [
+            "wearing scenario-appropriate attire reflecting the setting",
+            "dressed authentically for the transformation context",
+            "in styled clothing suited to the scenario",
+            "with wardrobe choices matching the scene",
+        ],
         "pose": [
             "positioned naturally in the scene",
             "positioned with confident presence",
             "naturally engaged with the setting",
             "comfortably positioned in the scenario",
         ],
-        "environment": {
-            "setting": [
-                "in a compelling transformation scenario",
-                "within the scenic environment",
-                "in the atmospheric setting",
-                "situated in the scenario backdrop",
-            ],
-        },
+        "environment": [
+            "in a compelling transformation scenario",
+            "within the scenic environment",
+            "in the atmospheric setting",
+            "situated in the scenario backdrop",
+        ],
         "lighting": [
             "with strong natural lighting",
             "with dramatic cinematic lighting",
@@ -572,10 +566,24 @@ COMPONENT_TEMPLATES = {
     # -----------------------------------------------------------------------
     "couples_transform": {
         "subject": [
-            "Using reference images, transform the couple into the new scenario",
-            "Based on reference images, reimagine the couple in",
-            "Reference images as base, transform the couple into",
-            "Using both people from reference images in",
+            "Using reference images, transform the couple into a romantic intimate moment",
+            "Using reference images, transform the couple into an adventure together",
+            "Using reference images, capture the couple having joyful fun together",
+            "Using reference images, transform the couple into a tender connection moment",
+            "Based on reference images, reimagine the couple in a passionate scenario",
+            "Based on reference images, reimagine the couple sharing a quiet intimate moment",
+            "Reference images as base, transform the couple into a romantic setting",
+            "Using both people from reference images in a beautiful couple scenario",
+        ],
+        "relationship_context": [
+            "newlyweds celebrating their wedding",
+            "long-time partners in committed romance",
+            "childhood sweethearts reconnecting",
+            "adventure partners exploring together",
+            "parents capturing intimate family moment",
+            "friends discovering secret connection",
+            "professional partners with hidden chemistry",
+            "distant lovers reunited by chance",
         ],
         "face_details": [
             "both with natural skin texture and appearance",
@@ -584,9 +592,10 @@ COMPONENT_TEMPLATES = {
             "genuine natural appearance for both individuals",
         ],
         "hair": [
-            "with hair matching reference appearance for both",
-            "hair styled as in reference images",
-            "original hair with new styling if needed",
+            "with hair matching reference appearance and length for both",
+            "hair color and style as in reference images for both",
+            "original hair preserving length and cut for both",
+            "natural hair texture with scenario styling for both",
         ],
         "expression": [
             "with natural genuine expressions showing connection",
@@ -594,28 +603,24 @@ COMPONENT_TEMPLATES = {
             "genuine relaxed expressions between them",
             "natural warm interaction between both",
         ],
-        "clothing": {
-            "transformation": [
-                "wearing scenario-appropriate outfits for the couple",
-                "dressed for the new scenario with coordinated styling",
-                "styled appropriately for the couple setting",
-                "in contextual costumes matching the scenario",
-            ],
-        },
+        "clothing": [
+            "wearing scenario-appropriate outfits for the couple",
+            "dressed for the new scenario with coordinated styling",
+            "styled appropriately for the couple setting",
+            "in contextual costumes matching the scenario",
+        ],
         "pose": [
             "positioned naturally showing couple connection",
             "positioned together in the scene authentically",
             "naturally engaged with each other and setting",
             "comfortably positioned showing relationship",
         ],
-        "environment": {
-            "setting": [
-                "in a beautiful couple transformation scenario",
-                "within the scenic romantic environment",
-                "in the atmospheric couple setting",
-                "situated in the scenario backdrop together",
-            ],
-        },
+        "environment": [
+            "in a beautiful couple transformation scenario",
+            "within the scenic romantic environment",
+            "in the atmospheric couple setting",
+            "situated in the scenario backdrop together",
+        ],
         "lighting": [
             "with warm romantic lighting flattering both",
             "with cinematic atmospheric lighting for couple",
