@@ -1024,6 +1024,92 @@ Return ONLY valid JSON (no markdown, no extra text):
             ttl_hours=cache_ttl,
         )
 
+    def enhance_prompts_with_professional_structure(
+        self,
+        prompts_response: dict,
+        category: str,
+        apply_professional_secrets: bool = True
+    ) -> dict:
+        """
+        Enhance AI-generated prompts with professional structure validation and quality improvements.
+        
+        This method integrates the professional 12-component framework to:
+        1. Validate that prompts include all essential components
+        2. Inject professional secrets (cinematic lighting, emotional expression, etc.)
+        3. Calculate quality scores
+        4. Provide enhancement recommendations
+        
+        Args:
+            prompts_response: The JSON response from generate_image_prompts containing "prompts" array
+            category: Category of prompts (e.g., 'portrait_transformation', 'design_gifts')
+            apply_professional_secrets: Whether to inject professional secrets into prompts
+            
+        Returns:
+            Enhanced response with professional structure metadata and quality improvements
+        """
+        try:
+            from src.prompts.professional_prompt_enhancer import ProfessionalPromptEnhancer
+        except ImportError:
+            logger.warning("[WARN] Professional prompt enhancer not available, returning original response")
+            return prompts_response
+        
+        if not isinstance(prompts_response, dict) or "prompts" not in prompts_response:
+            return prompts_response
+        
+        enhancer = ProfessionalPromptEnhancer()
+        prompts_list = prompts_response.get("prompts", [])
+        
+        enhanced_prompts = []
+        quality_scores = []
+        
+        for prompt_item in prompts_list:
+            if not isinstance(prompt_item, dict) or "prompt" not in prompt_item:
+                enhanced_prompts.append(prompt_item)
+                continue
+            
+            original_prompt = prompt_item["prompt"]
+            
+            # Enhance with professional structure
+            enhancement_result = enhancer.enhance_prompt_with_structure(
+                original_prompt,
+                category,
+                professional_secrets_to_embed=None
+            )
+            
+            # Create enhanced prompt item
+            enhanced_item = {
+                **prompt_item,
+                "professional_structure": {
+                    "components_found": enhancement_result["component_analysis"],
+                    "professional_secrets_found": enhancement_result["professional_secrets_found"],
+                    "quality_score": enhancement_result["quality_score"],
+                    "completeness_notes": enhancement_result["enhancement_suggestions"].get("notes", [])
+                }
+            }
+            
+            # Apply professional secrets if requested
+            if apply_professional_secrets and enhancement_result["enhancement_suggestions"].get("enhanced_prompt"):
+                enhanced_item["prompt_enhanced"] = enhancement_result["enhancement_suggestions"]["enhanced_prompt"]
+            
+            enhanced_prompts.append(enhanced_item)
+            quality_scores.append(enhancement_result["quality_score"])
+        
+        # Calculate average quality score
+        avg_quality_score = (sum(quality_scores) / len(quality_scores)) if quality_scores else 0
+        
+        # Return enhanced response
+        return {
+            **prompts_response,
+            "prompts": enhanced_prompts,
+            "professional_structure_metadata": {
+                "category": category,
+                "average_quality_score": round(avg_quality_score, 1),
+                "enhanced": True,
+                "enhancement_date": datetime.now().isoformat(),
+                "professional_secrets_applied": apply_professional_secrets
+            }
+        }
+
     def generate_design_brief(
         self,
         category: str = "design_posters",
