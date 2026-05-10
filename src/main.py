@@ -1047,18 +1047,31 @@ Return ONLY valid JSON (no markdown, no extra text):
         Returns:
             Enhanced response with professional structure metadata and quality improvements
         """
+        # C2: Improve error handling - don't silently fail
         try:
             from src.prompts.professional_prompt_enhancer import ProfessionalPromptEnhancer
-        except ImportError:
-            logger.warning("[WARN] Professional prompt enhancer not available, returning original response")
-            return prompts_response
+            enhancer_available = True
+        except ImportError as e:
+            logger.error(f"[ERROR C2] Professional prompt enhancer import failed: {e}")
+            logger.warning("[WARN] Prompts will not be enhanced with professional structure. Quality scores unavailable.")
+            enhancer_available = False
         
         if not isinstance(prompts_response, dict) or "prompts" not in prompts_response:
             return prompts_response
         
-        enhancer = ProfessionalPromptEnhancer()
         prompts_list = prompts_response.get("prompts", [])
         
+        # If enhancer is not available, add metadata flag and return with warning
+        if not enhancer_available:
+            logger.warning(f"[WARN C2] Processing {len(prompts_list)} prompts WITHOUT professional enhancement")
+            for prompt_item in prompts_list:
+                if isinstance(prompt_item, dict):
+                    prompt_item["professional_enhancement_status"] = "failed_import"
+                    prompt_item["quality_score"] = None
+                    prompt_item["enhancement_note"] = "Professional enhancer unavailable - quality score missing"
+            return prompts_response
+        
+        enhancer = ProfessionalPromptEnhancer()
         enhanced_prompts = []
         quality_scores = []
         

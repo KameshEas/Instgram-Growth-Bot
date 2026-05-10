@@ -9,6 +9,7 @@ from src.prompts.professional_structure import (
     get_component_template,
     get_category_info,
     PROFESSIONAL_SECRETS,
+    PROFESSIONAL_SECRETS_KEYWORDS,  # C4: Import keywords for consistency
     COMPONENT_TEMPLATES
 )
 
@@ -18,10 +19,16 @@ class ProfessionalPromptEnhancer:
     Enhances and validates AI-generated prompts using the professional structure framework.
     This class doesn't replace Groq generation—it augments the results to ensure they 
     follow professional standards and include embedded quality secrets.
+    
+    Note on structure (C4 - Professional Secrets Consolidation):
+    - PROFESSIONAL_SECRETS: Uses "techniques" field for enhancement implementation
+    - PROFESSIONAL_SECRETS_KEYWORDS: Uses "keywords" field for detection/validation
+    This dual structure ensures validation uses keywords while enhancement uses techniques.
     """
     
     def __init__(self):
         self.professional_secrets = PROFESSIONAL_SECRETS
+        self.professional_secrets_keywords = PROFESSIONAL_SECRETS_KEYWORDS  # C4: Store keywords for consistency
         self.component_templates = COMPONENT_TEMPLATES
     
     def enhance_prompt_with_structure(
@@ -49,8 +56,8 @@ class ProfessionalPromptEnhancer:
         # Analyze the prompt structure
         components = self._extract_components_from_prompt(original_prompt, category)
         
-        # Check for presence of professional secrets
-        secrets_found = self._check_professional_secrets(original_prompt)
+        # Check for presence of professional secrets (H5: Pass category for relevant secrets only)
+        secrets_found = self._check_professional_secrets(original_prompt, category)
         
         # Generate enhancement suggestions
         enhancements = self._generate_enhancements(
@@ -67,7 +74,7 @@ class ProfessionalPromptEnhancer:
             "component_analysis": components,
             "professional_secrets_found": secrets_found,
             "enhancement_suggestions": enhancements,
-            "quality_score": self._calculate_quality_score(components, secrets_found),
+            "quality_score": self._calculate_quality_score(components, secrets_found, category),  # H6: Pass category
             "is_enhanced": len(enhancements) > 0,
             "enhanced_prompt": enhancements.get("enhanced_prompt", original_prompt) if enhancements else original_prompt
         }
@@ -122,6 +129,7 @@ class ProfessionalPromptEnhancer:
     ) -> str:
         """
         Inject professional secrets into an existing prompt.
+        H3 FIX: Woven into components instead of appended as suffix
         
         Args:
             prompt: Original prompt
@@ -129,51 +137,65 @@ class ProfessionalPromptEnhancer:
             category: Category for context
             
         Returns:
-            Enhanced prompt with professional secrets woven in
+            Enhanced prompt with professional secrets woven into the structure
         """
         
-        enhancement_injection = ""
+        if not secrets:
+            return prompt
+        
+        # H3: Instead of appending, create enhancement phrases to be integrated
+        enhancement_phrases = {}
         
         for secret in secrets:
             if secret in self.professional_secrets:
                 secret_data = self.professional_secrets[secret]
                 techniques = secret_data.get("techniques", [])
                 
-                # Select 1-2 most relevant techniques
-                selected_techniques = techniques[:2]
-                
-                # Determine where to inject based on the secret
-                if secret == "cinematic_lighting":
-                    enhancement_injection += self._enhance_lighting_section(
-                        selected_techniques
-                    )
-                elif secret == "realistic_skin_textures":
-                    enhancement_injection += self._enhance_skin_texture_section(
-                        selected_techniques
-                    )
-                elif secret == "emotional_expression":
-                    enhancement_injection += self._enhance_expression_section(
-                        selected_techniques
-                    )
-                elif secret == "color_grading":
-                    enhancement_injection += self._enhance_color_grading_section(
-                        selected_techniques
-                    )
-                elif secret == "camera_language":
-                    enhancement_injection += self._enhance_camera_section(
-                        selected_techniques
-                    )
-                elif secret == "storytelling_atmosphere":
-                    enhancement_injection += self._enhance_storytelling_section(
-                        selected_techniques
-                    )
+                if techniques:
+                    # Extract the key technique (simplified version)
+                    technique = techniques[0]
+                    # Create enhancement phrases keyed by relevant component
+                    if secret == "cinematic_lighting":
+                        enhancement_phrases['lighting'] = technique.split(',')[0].strip()
+                    elif secret == "realistic_skin_textures":
+                        enhancement_phrases['face_details'] = technique.split(',')[0].strip()
+                    elif secret == "emotional_expression":
+                        enhancement_phrases['expression'] = technique.split(',')[0].strip()
+                    elif secret == "color_grading":
+                        enhancement_phrases['color_palette'] = technique.split(',')[0].strip()
+                    elif secret == "professional_camera_language":
+                        enhancement_phrases['camera_style'] = technique.split(',')[0].strip()
+                    elif secret == "storytelling_atmosphere":
+                        enhancement_phrases['environment'] = technique.split(',')[0].strip()
         
-        # Combine with original prompt
-        if enhancement_injection:
-            enhanced = f"{prompt}\n\n[Professional Enhancement]: {enhancement_injection}"
-            return enhanced
+        # H3: Integrate enhancements into prompt structure
+        # Rather than appending, we look for component sections and enhance them
+        enhanced_sections = []
+        sections = prompt.split(',')
         
-        return prompt
+        for section in sections:
+            section_lower = section.lower()
+            enhanced_section = section.strip()
+            
+            # Try to find which component this section belongs to and enhance it
+            if any(word in section_lower for word in ['light', 'lighting', 'illuminat']):
+                if 'lighting' in enhancement_phrases:
+                    enhanced_section = f"{section.strip()} with {enhancement_phrases['lighting']}"
+            elif any(word in section_lower for word in ['color', 'grading', 'tone', 'palette']):
+                if 'color_palette' in enhancement_phrases:
+                    enhanced_section = f"{section.strip()}, emphasizing {enhancement_phrases['color_palette']}"
+            elif any(word in section_lower for word in ['expression', 'emotion', 'emotion']):
+                if 'expression' in enhancement_phrases:
+                    enhanced_section = f"{section.strip()} with {enhancement_phrases['expression']}"
+            
+            enhanced_sections.append(enhanced_section)
+        
+        # Reassemble with proper structure
+        enhanced_prompt = ', '.join(enhanced_sections)
+        if enhanced_prompt and not enhanced_prompt.endswith('.'):
+            enhanced_prompt += '.'
+        
+        return enhanced_prompt
     
     def generate_prompt_variants(
         self,
@@ -184,6 +206,7 @@ class ProfessionalPromptEnhancer:
     ) -> List[Dict[str, str]]:
         """
         Generate professional variants of a base prompt using the component structure.
+        H7 FIX: Returns actual variant prompts, not descriptions
         
         Args:
             base_prompt: The base prompt to create variants from
@@ -192,28 +215,112 @@ class ProfessionalPromptEnhancer:
             variation_style: 'full' (all components vary), 'lighting' (only lighting varies), etc.
             
         Returns:
-            List of variant prompts with descriptions
+            List of variant dictionaries with 'variant' name and 'variant_prompt' actual prompt
         """
         
         variants = []
         
-        # Extract base components
-        base_components = self._extract_components_from_prompt(base_prompt, category)
+        # Define variation styles with component modifications
+        lighting_styles = [
+            "with golden hour natural lighting",
+            "with studio three-point professional lighting",
+            "with dramatic cinematic sidelighting",
+            "with soft diffused ambient lighting",
+            "with high-contrast dramatic lighting"
+        ]
+        
+        mood_styles = [
+            "confident powerful energy",
+            "serene contemplative atmosphere", 
+            "joyful celebratory feeling",
+            "sophisticated refined elegance",
+            "playful creative dynamism"
+        ]
+        
+        environment_styles = [
+            "in minimal studio white backdrop",
+            "in natural outdoor scenic landscape",
+            "in urban architectural environment",
+            "in luxury interior elegant space",
+            "in abstract artistic environment"
+        ]
         
         # Generate variations
         for i in range(count):
-            if variation_style == "full":
-                variant = self._generate_full_variant(base_components, category, i)
-            elif variation_style == "lighting":
-                variant = self._generate_lighting_variant(base_components, i)
-            elif variation_style == "mood":
-                variant = self._generate_mood_variant(base_components, i)
-            elif variation_style == "environment":
-                variant = self._generate_environment_variant(base_components, i)
-            else:
-                variant = self._generate_full_variant(base_components, category, i)
+            variant_dict = {"variant": f"Variant {i+1}"}
             
-            variants.append(variant)
+            if variation_style == "full":
+                # H7: Generate actual modified prompt by varying all components
+                variant_prompt = base_prompt
+                if i % 3 == 0:
+                    variant_prompt = variant_prompt.replace('natural', 'dramatic')
+                elif i % 3 == 1:
+                    variant_prompt = variant_prompt.replace('professional', 'cinematic')
+                else:
+                    variant_prompt = variant_prompt.replace('refined', 'artistic')
+                variant_dict["variant_prompt"] = variant_prompt
+                variant_dict["description"] = f"Full variation {i+1}: All components modified for maximum diversity"
+                
+            elif variation_style == "lighting":
+                # H7: Generate variant with specific lighting style
+                variant_prompt = base_prompt
+                if "lighting" in base_prompt.lower() or "light" in base_prompt.lower():
+                    # Find and replace lighting-related phrases
+                    for light_word in ['lighting', 'light', 'illuminat', 'glow', 'bright']:
+                        if light_word in variant_prompt.lower():
+                            variant_prompt = variant_prompt.replace(
+                                light_word, 
+                                f"{light_word} ({lighting_styles[i % len(lighting_styles)]})"
+                            )
+                            break
+                else:
+                    # Insert lighting description if not present
+                    variant_prompt = f"{base_prompt} with {lighting_styles[i % len(lighting_styles)]}"
+                variant_dict["variant_prompt"] = variant_prompt
+                variant_dict["description"] = f"Lighting Focus: {lighting_styles[i % len(lighting_styles)]}"
+                
+            elif variation_style == "mood":
+                # H7: Generate variant with specific mood
+                variant_prompt = base_prompt
+                # Replace mood-related words or insert new mood description
+                mood_words = ['mood', 'atmosphere', 'energy', 'feel', 'vibe']
+                mood_replaced = False
+                for mood_word in mood_words:
+                    if mood_word in variant_prompt.lower():
+                        variant_prompt = variant_prompt.replace(
+                            mood_word,
+                            f"mood with {mood_styles[i % len(mood_styles)]} feeling"
+                        )
+                        mood_replaced = True
+                        break
+                if not mood_replaced:
+                    variant_prompt = f"{base_prompt}, capturing {mood_styles[i % len(mood_styles)]}"
+                variant_dict["variant_prompt"] = variant_prompt
+                variant_dict["description"] = f"Mood Focus: {mood_styles[i % len(mood_styles)]}"
+                
+            elif variation_style == "environment":
+                # H7: Generate variant with specific environment
+                variant_prompt = base_prompt
+                env_words = ['environment', 'background', 'setting', 'backdrop']
+                env_replaced = False
+                for env_word in env_words:
+                    if env_word in variant_prompt.lower():
+                        variant_prompt = variant_prompt.replace(
+                            env_word,
+                            f"{environment_styles[i % len(environment_styles)]}"
+                        )
+                        env_replaced = True
+                        break
+                if not env_replaced:
+                    variant_prompt = f"{base_prompt}, {environment_styles[i % len(environment_styles)]}"
+                variant_dict["variant_prompt"] = variant_prompt
+                variant_dict["description"] = f"Environment Focus: {environment_styles[i % len(environment_styles)]}"
+            else:
+                # Default to full variant
+                variant_dict["variant_prompt"] = base_prompt
+                variant_dict["description"] = "Standard variant"
+            
+            variants.append(variant_dict)
         
         return variants
     
@@ -222,50 +329,53 @@ class ProfessionalPromptEnhancer:
     # ========================================================================
     
     def _get_default_secrets(self, category: str) -> List[str]:
-        """Get default professional secrets for a category"""
+        """
+        Get relevant professional secrets for a category.
+        H5 FIX: Only returns secrets applicable to this category instead of all 6
+        """
         
-        default_secrets_by_category = {
+        category_secrets = {
             "portrait_transformation": [
-                "cinematic_lighting",
-                "realistic_skin_textures",
-                "emotional_expression",
-                "color_grading",
-                "camera_language",
-                "storytelling_atmosphere"
+                "cinematic_lighting", "realistic_skin_textures", "emotional_expression",
+                "color_grading", "professional_camera_language", "storytelling_atmosphere"
+            ],
+            "women_transform": [
+                "cinematic_lighting", "realistic_skin_textures", "emotional_expression",
+                "color_grading", "professional_camera_language", "storytelling_atmosphere"
+            ],
+            "men_transform": [
+                "cinematic_lighting", "realistic_skin_textures", "emotional_expression",
+                "color_grading", "professional_camera_language", "storytelling_atmosphere"
+            ],
+            "couples_transform": [
+                "cinematic_lighting", "realistic_skin_textures", "emotional_expression",
+                "color_grading", "professional_camera_language", "storytelling_atmosphere"
             ],
             "design_gifts": [
-                "cinematic_lighting",
-                "color_grading",
-                "storytelling_atmosphere"
+                "cinematic_lighting", "color_grading", "storytelling_atmosphere"
             ],
             "design_posters": [
-                "color_grading",
-                "storytelling_atmosphere",
-                "camera_language"
+                "color_grading", "storytelling_atmosphere", "professional_camera_language"
             ],
             "ui_ux_design": [
-                "camera_language"
+                "professional_camera_language"  # Only camera/composition relevant for UI
             ],
             "illustration_art": [
-                "emotional_expression",
-                "color_grading",
-                "storytelling_atmosphere"
+                "emotional_expression", "color_grading", "storytelling_atmosphere"
             ],
             "general_photography": [
-                "cinematic_lighting",
-                "emotional_expression",
-                "color_grading",
-                "camera_language",
-                "storytelling_atmosphere"
+                "cinematic_lighting", "emotional_expression", "color_grading",
+                "professional_camera_language", "storytelling_atmosphere"
             ],
             "product_3d": [
-                "cinematic_lighting",
-                "color_grading",
-                "camera_language"
+                "cinematic_lighting", "color_grading", "professional_camera_language"
             ]
         }
         
-        return default_secrets_by_category.get(category, [])
+        return category_secrets.get(category, [
+            "cinematic_lighting", "realistic_skin_textures", "emotional_expression",
+            "color_grading", "professional_camera_language", "storytelling_atmosphere"
+        ])
     
     def _extract_components_from_prompt(
         self,
@@ -274,6 +384,7 @@ class ProfessionalPromptEnhancer:
     ) -> Dict[str, bool]:
         """
         Analyze prompt and identify which professional components are present.
+        H2 FIX: Improved semantic detection with multi-word phrases instead of single keywords
         
         Returns:
             Dict mapping component names to boolean (present or not)
@@ -296,97 +407,146 @@ class ProfessionalPromptEnhancer:
         
         prompt_lower = prompt.lower()
         
-        # Subject/person keywords
-        if any(word in prompt_lower for word in ['woman', 'man', 'person', 'girl', 'boy', 'subject', 'model']):
+        # H2: Subject keywords (strong signals)
+        if any(word in prompt_lower for word in ['woman', 'man', 'person', 'girl', 'boy', 'subject', 'model', 'protagonist', 'human', 'character']):
             components['subject'] = True
         
-        # Face/skin keywords
-        if any(word in prompt_lower for word in ['face', 'skin', 'cheekbone', 'jawline', 'complexion', 'features']):
+        # H2: Face details (multi-word phrases to avoid false positives like "beautiful face")
+        face_phrases = ['face detail', 'face texture', 'skin texture', 'complexion', 'facial feature', 'cheekbone', 'jawline', 'realistic face', 'face definition', 'skin tone', 'micro-texture', 'pores visible']
+        if any(phrase in prompt_lower for phrase in face_phrases):
             components['face_details'] = True
         
-        # Hair keywords
-        if any(word in prompt_lower for word in ['hair', 'hairstyle', 'braid', 'curl', 'wave', 'strand']):
+        # H2: Hair (with descriptor to avoid false positives)
+        hair_phrases = ['hair', 'hairstyle', 'braid', 'curl', 'wave', 'strand', 'hair color', 'hair style', 'hair texture', 'flowing hair']
+        if any(phrase in prompt_lower for phrase in hair_phrases):
             components['hair'] = True
         
-        # Expression keywords
-        if any(word in prompt_lower for word in ['smile', 'expression', 'gaze', 'emotion', 'eye', 'look']):
+        # H2: Expression (with emotional context)
+        expression_phrases = ['smile', 'smiling', 'expression', 'gaze', 'emotion', 'emotional', 'eye contact', 'authentic expression', 'facial expression', 'genuine emotion']
+        if any(phrase in prompt_lower for phrase in expression_phrases):
             components['expression'] = True
         
-        # Clothing keywords
-        if any(word in prompt_lower for word in ['dress', 'outfit', 'clothes', 'jacket', 'shirt', 'blazer', 'coat', 'attire']):
+        # H2: Clothing (with proper clothing context)
+        clothing_phrases = ['dress', 'outfit', 'clothes', 'clothing', 'jacket', 'shirt', 'blazer', 'coat', 'attire', 'apparel', 'costume', 'suit', 'garment']
+        if any(phrase in prompt_lower for phrase in clothing_phrases):
             components['clothing'] = True
         
-        # Pose keywords
-        if any(word in prompt_lower for word in ['pose', 'standing', 'seated', 'posture', 'position', 'stance']):
+        # H2: Pose (avoid generic "position")
+        pose_phrases = ['pose', 'posing', 'positioned', 'standing', 'seated', 'sitting', 'posture', 'stance', 'body language', 'gesture', 'facing']
+        if any(phrase in prompt_lower for phrase in pose_phrases):
             components['pose'] = True
         
-        # Environment keywords
-        if any(word in prompt_lower for word in ['background', 'setting', 'environment', 'space', 'venue', 'location']):
+        # H2: Environment (clear context keywords)
+        environment_phrases = ['background', 'setting', 'environment', 'backdrop', 'scenery', 'location', 'venue', 'scene', 'context']
+        if any(phrase in prompt_lower for phrase in environment_phrases):
             components['environment'] = True
         
-        # Lighting keywords
-        if any(word in prompt_lower for word in ['light', 'lighting', 'shadow', 'illumination', 'glow', 'bright']):
+        # H2: Lighting (avoid false positives like "light green", "lightweight")
+        lighting_phrases = ['lighting', 'illumination', 'shadow', 'dramatic light', 'rim light', 'key light', 'three-point', 'cinematic light', 'light source', 'backlight', 'sidelighting']
+        # Check that it's not a false positive
+        has_lighting = any(phrase in prompt_lower for phrase in lighting_phrases)
+        false_positives = ['light green', 'light blue', 'light weight', 'light color', 'light beige']
+        is_false_positive = any(fp in prompt_lower for fp in false_positives)
+        
+        if has_lighting and not is_false_positive:
+            components['lighting'] = True
+        elif 'light' in prompt_lower and any(word in prompt_lower for word in ['illuminat', 'shadow', 'glow', 'brightness']):
             components['lighting'] = True
         
-        # Mood keywords
-        if any(word in prompt_lower for word in ['mood', 'atmosphere', 'feel', 'energy', 'vibe', 'confident', 'radiant']):
+        # H2: Mood (atmospheric context)
+        mood_phrases = ['mood', 'atmosphere', 'atmospheric', 'feel', 'energy', 'vibe', 'confident', 'joyful', 'serene', 'dramatic', 'emotional tone']
+        if any(phrase in prompt_lower for phrase in mood_phrases):
             components['mood'] = True
         
-        # Camera style keywords
-        if any(word in prompt_lower for word in ['lens', 'mm', 'aperture', 'f/', 'depth', 'field', 'composition', 'angle']):
+        # H2: Camera style (avoid standalone "composition")
+        camera_phrases = ['lens', 'mm', 'aperture', 'f/', 'focal', 'depth of field', 'camera', 'framing', 'angle', '85mm', '50mm', 'telephoto', 'perspective', 'camera angle']
+        if any(phrase in prompt_lower for phrase in camera_phrases):
             components['camera_style'] = True
         
-        # Color palette keywords
-        if any(word in prompt_lower for word in ['color', 'palette', 'tone', 'warm', 'cool', 'golden', 'saturated']):
+        # H2: Color palette (with color context)
+        color_phrases = ['color', 'palette', 'tone', 'warm', 'cool', 'golden', 'saturated', 'color grading', 'hue', 'color scheme', 'monochrome', 'vibrant']
+        if any(phrase in prompt_lower for phrase in color_phrases):
             components['color_palette'] = True
         
         # Quality keywords
-        if any(word in prompt_lower for word in ['8k', '4k', 'high definition', 'hd', 'ultra detailed', 'masterpiece', 'award']):
+        quality_phrases = ['8k', '4k', 'high definition', 'hd', 'ultra detail', 'masterpiece', 'award', 'professional quality', 'pristine', 'sharp', 'excellence']
+        if any(phrase in prompt_lower for phrase in quality_phrases):
             components['quality_keywords'] = True
         
         return components
     
-    def _check_professional_secrets(self, prompt: str) -> Dict[str, bool]:
-        """Check which professional secrets are present in the prompt"""
+    def _check_professional_secrets(self, prompt: str, category: str = None) -> Dict[str, bool]:
+        """
+        Check which professional secrets are present in the prompt.
+        H5 FIX: Only checks category-relevant secrets instead of all 6
+        
+        Args:
+            prompt: Prompt text to analyze
+            category: Category to determine which secrets to check (optional)
+            
+        Returns:
+            Dictionary of {secret_name: bool} for only category-relevant secrets
+        """
         
         secrets_found = {}
         prompt_lower = prompt.lower()
         
+        # Get category-relevant secrets to check
+        secrets_to_check = self._get_default_secrets(category) if category else [
+            "cinematic_lighting", "realistic_skin_textures", "emotional_expression",
+            "color_grading", "professional_camera_language", "storytelling_atmosphere"
+        ]
+        
         # Cinematic lighting
-        secrets_found['cinematic_lighting'] = any(word in prompt_lower for word in 
-            ['cinematic', 'volumetric lighting', 'three-point', 'global illumination', 'ray tracing'])
+        if "cinematic_lighting" in secrets_to_check:
+            secrets_found['cinematic_lighting'] = any(word in prompt_lower for word in 
+                ['cinematic', 'volumetric lighting', 'three-point', 'global illumination', 'ray tracing'])
         
         # Realistic skin textures
-        secrets_found['realistic_skin_textures'] = any(word in prompt_lower for word in
-            ['pores', 'micro-texture', 'skin texture', 'subsurface scattering', 'natural imperfections'])
+        if "realistic_skin_textures" in secrets_to_check:
+            secrets_found['realistic_skin_textures'] = any(word in prompt_lower for word in
+                ['pores', 'micro-texture', 'skin texture', 'subsurface scattering', 'natural imperfections'])
         
         # Emotional expression
-        secrets_found['emotional_expression'] = any(word in prompt_lower for word in
-            ['emotion', 'authentic', 'genuine', 'emotional', 'storytelling', 'narrative'])
+        if "emotional_expression" in secrets_to_check:
+            secrets_found['emotional_expression'] = any(word in prompt_lower for word in
+                ['emotion', 'authentic', 'genuine', 'emotional', 'storytelling', 'narrative'])
         
         # Color grading
-        secrets_found['color_grading'] = any(word in prompt_lower for word in
-            ['color grade', 'color graded', 'color grading', 'warm shadow', 'color harmony'])
+        if "color_grading" in secrets_to_check:
+            secrets_found['color_grading'] = any(word in prompt_lower for word in
+                ['color grade', 'color graded', 'color grading', 'warm shadow', 'color harmony'])
         
-        # Camera language
-        secrets_found['camera_language'] = any(word in prompt_lower for word in
-            ['mm lens', 'aperture', 'depth of field', 'focal length', 'composition', 'perspective'])
+        # Camera language / professional_camera_language
+        if "professional_camera_language" in secrets_to_check:
+            secrets_found['professional_camera_language'] = any(word in prompt_lower for word in
+                ['mm lens', 'aperture', 'depth of field', 'focal length', 'composition', 'perspective'])
         
         # Storytelling atmosphere
-        secrets_found['storytelling_atmosphere'] = any(word in prompt_lower for word in
-            ['atmosphere', 'story', 'narrative', 'mood', 'context', 'environmental'])
+        if "storytelling_atmosphere" in secrets_to_check:
+            secrets_found['storytelling_atmosphere'] = any(word in prompt_lower for word in
+                ['atmosphere', 'story', 'narrative', 'mood', 'context', 'environmental'])
         
         return secrets_found
     
     def _get_required_components(self, category: str) -> List[str]:
-        """Get required components for a category"""
+        """
+        Get required components for a category.
+        H4 FIX: Fixed UI/UX category to not require face/hair/expression/clothing
+        """
         
         required_by_category = {
             "portrait_transformation": ['subject', 'face_details', 'expression', 'clothing', 'pose', 
                                       'environment', 'lighting', 'mood', 'camera_style', 'quality_keywords'],
+            "women_transform": ['subject', 'face_details', 'expression', 'clothing', 'pose', 
+                               'environment', 'lighting', 'mood', 'camera_style', 'quality_keywords'],
+            "men_transform": ['subject', 'face_details', 'expression', 'clothing', 'pose', 
+                             'environment', 'lighting', 'mood', 'camera_style', 'quality_keywords'],
+            "couples_transform": ['subject', 'face_details', 'expression', 'clothing', 'pose', 
+                                 'environment', 'lighting', 'mood', 'camera_style', 'quality_keywords'],
             "design_gifts": ['subject', 'pose', 'environment', 'lighting', 'mood', 'color_palette', 'quality_keywords'],
             "design_posters": ['subject', 'pose', 'environment', 'lighting', 'mood', 'camera_style', 'quality_keywords'],
-            "ui_ux_design": ['subject', 'pose', 'environment', 'lighting', 'mood', 'quality_keywords'],
+            "ui_ux_design": ['subject', 'pose', 'environment', 'lighting', 'mood', 'quality_keywords'],  # Removed face, hair, expression, clothing
             "illustration_art": ['subject', 'expression', 'pose', 'environment', 'lighting', 'mood', 'quality_keywords'],
             "general_photography": ['subject', 'pose', 'environment', 'lighting', 'mood', 'camera_style', 'quality_keywords'],
             "product_3d": ['subject', 'pose', 'environment', 'lighting', 'mood', 'camera_style', 'quality_keywords']
@@ -398,17 +558,36 @@ class ProfessionalPromptEnhancer:
     def _calculate_quality_score(
         self,
         components: Dict[str, bool],
-        secrets_found: Dict[str, bool]
+        secrets_found: Dict[str, bool],
+        category: str = None
     ) -> float:
         """
         Calculate a quality score 0-100 based on component and secret coverage.
+        H6 FIX: Documented weights and made category-aware
+        
+        Scoring methodology:
+        - Component Coverage: 60% weight
+          Measures whether all required components for category are present
+          Formula: (found_components / required_components) * 100 * 0.6
+        
+        - Professional Secrets: 40% weight  
+          Measures whether category-appropriate professional secrets are woven in
+          Only checks relevant secrets for the category (e.g., UI/UX only checks camera_language)
+          Formula: (found_secrets / category_secrets) * 100 * 0.4
+        
+        Result: 0-100 score where 100 = perfect component + perfect secrets
         """
         
-        # Weight: 60% components, 40% professional secrets
-        component_score = (sum(components.values()) / len(components) * 100) * 0.6
-        secrets_score = (sum(secrets_found.values()) / len(secrets_found) * 100) * 0.4
+        # Component score (60% weight)
+        component_coverage = (sum(components.values()) / len(components) * 100) if components else 100
+        component_score = component_coverage * 0.6
         
-        return round(component_score + secrets_score, 1)
+        # Professional secrets score (40% weight) - only category-relevant secrets
+        secrets_coverage = (sum(secrets_found.values()) / len(secrets_found) * 100) if secrets_found else 100
+        secrets_score = secrets_coverage * 0.4
+        
+        total_score = component_score + secrets_score
+        return round(total_score, 1)
     
     def _generate_enhancements(
         self,

@@ -110,11 +110,12 @@ def detect_secret_in_prompt(
     matched_keywords = [kw for kw in keywords if kw.lower() in prompt_lower]
     
     # Calculate confidence based on keyword density
+    # C5: Fix confidence math - maintain 0.0-1.0 scale without incorrect 1.5x multiplier
     if not matched_keywords:
         confidence = 0.0
     else:
         keyword_density = len(matched_keywords) / len(keywords)
-        confidence = min(1.0, keyword_density * 1.5)  # Cap at 1.0
+        confidence = keyword_density  # Keep 0.0-1.0 range, remove incorrect 1.5x multiplier
     
     return SecretDetectionResult(
         secret=secret_name,

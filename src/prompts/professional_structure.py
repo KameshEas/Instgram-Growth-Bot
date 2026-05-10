@@ -17,6 +17,38 @@ Professional Secrets Embedded:
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict
 import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+# ============================================================================
+# NA COMPONENT STANDARDIZATION (Fix C1)
+# ============================================================================
+# Single source of truth for N/A marker detection
+NA_MARKERS = {
+    # Complete list of valid N/A patterns to avoid brittle string matching
+    "not_applicable_skip_product": "N/A - skip for product designs unless featuring people",
+    "not_applicable_skip_product_simple": "N/A - skip for product designs",
+    "not_applicable_skip_modeled": "N/A - skip unless featuring modeled on person",
+    "not_applicable_portrait_conditional": "N/A unless featuring portrait elements - if so, use portrait_transformation guidelines",
+    "not_applicable_portrait_simple": "N/A unless featuring portrait elements",
+    "not_applicable_design": "N/A - design focus",
+    "not_applicable_interface": "N/A - interface focus",
+    "not_applicable_product": "N/A - product focus",
+}
+
+def is_component_na(component_data: Any) -> bool:
+    """Check if a component is marked as N/A (not applicable for this category).
+    
+    Args:
+        component_data: The component data to check
+        
+    Returns:
+        True if component is N/A, False otherwise
+    """
+    if isinstance(component_data, str):
+        return component_data in NA_MARKERS.values() or component_data.startswith("N/A")
+    return False
 
 
 @dataclass
@@ -407,250 +439,327 @@ COMPONENT_TEMPLATES = {
     
     # -----------------------------------------------------------------------
     # WOMEN TRANSFORMATION CATEGORY (women_transform)
+    # H1 FIX: Converted from array to dict format for consistency
     # -----------------------------------------------------------------------
     "women_transform": {
-        "subject": [
-            "Using reference image, transform the subject into the new scenario",
-            "Based on reference image, reimagine the person in",
-            "Reference image as base, transform into",
-            "Using the person from reference image in",
-        ],
-        "face_details": [
-            "natural skin texture and appearance",
-            "realistic complexion and features",
-            "authentic natural appearance",
-            "genuine skin tones and texture",
-        ],
-        "hair": [
-            "with hair matching reference appearance and length",
-            "hair color and style as in reference",
-            "original hair preserving color and cut",
-            "natural hair texture with scenario styling",
-        ],
-        "expression": [
-            "with natural engaging expression",
-            "showing authentic warm expression",
-            "genuine relaxed expression",
-            "friendly natural demeanor",
-        ],
-        "clothing": [
-            "wearing scenario-appropriate outfit reflecting the setting",
-            "dressed authentically for the transformation context",
-            "in styled clothing suited to the scenario",
-            "with wardrobe choices matching the scene",
-        ],
-        "pose": [
-            "positioned naturally in the scene",
-            "positioned authentically in the environment",
-            "naturally engaged with the setting",
-            "comfortably positioned in the scenario",
-        ],
-        "environment": [
-            "in a beautiful transformation scenario",
-            "within the scenic environment",
-            "in the atmospheric setting",
-            "situated in the scenario backdrop",
-        ],
-        "lighting": [
-            "with warm natural lighting",
-            "with cinematic atmospheric lighting",
-            "with professional scenic lighting",
-            "with golden hour lighting quality",
-        ],
-        "mood": [
-            "capturing authentic moment and emotion",
-            "conveying genuine narrative mood",
-            "reflecting the scenario atmosphere",
-            "showing genuine emotional resonance",
-        ],
-        "camera_style": [
-            "professional portrait composition, 85mm focal length feel",
-            "cinematic framing with depth",
-            "professional photography aesthetic",
-            "editorial quality composition",
-        ],
-        "color_palette": [
-            "with warm color grading and natural tones",
-            "with cinematic color palette",
-            "with professional color grading",
-            "with authentic scenario color treatment",
-        ],
-        "quality_keywords": [
-            "high definition, sharp detail, authentic photography",
-            "masterpiece photography, award-winning quality",
-            "professional portrait quality",
-            "cinematic photography excellence",
-        ]
+        "subject": {
+            "base": [
+                "Using reference image, transform the subject into the new scenario",
+                "Based on reference image, reimagine the person in",
+                "Reference image as base, transform into",
+                "Using the person from reference image in",
+            ]
+        },
+        "face_details": {
+            "base": [
+                "natural skin texture and appearance",
+                "realistic complexion and features",
+                "authentic natural appearance",
+                "genuine skin tones and texture",
+            ]
+        },
+        "hair": {
+            "base": [
+                "with hair matching reference appearance and length",
+                "hair color and style as in reference",
+                "original hair preserving color and cut",
+                "natural hair texture with scenario styling",
+            ]
+        },
+        "expression": {
+            "base": [
+                "with natural engaging expression",
+                "showing authentic warm expression",
+                "genuine relaxed expression",
+                "friendly natural demeanor",
+            ]
+        },
+        "clothing": {
+            "base": [
+                "wearing scenario-appropriate outfit reflecting the setting",
+                "dressed authentically for the transformation context",
+                "in styled clothing suited to the scenario",
+                "with wardrobe choices matching the scene",
+            ]
+        },
+        "pose": {
+            "base": [
+                "positioned naturally in the scene",
+                "positioned authentically in the environment",
+                "naturally engaged with the setting",
+                "comfortably positioned in the scenario",
+            ]
+        },
+        "environment": {
+            "base": [
+                "in a beautiful transformation scenario",
+                "within the scenic environment",
+                "in the atmospheric setting",
+                "situated in the scenario backdrop",
+            ]
+        },
+        "lighting": {
+            "base": [
+                "with warm natural lighting",
+                "with cinematic atmospheric lighting",
+                "with professional scenic lighting",
+                "with golden hour lighting quality",
+            ]
+        },
+        "mood": {
+            "base": [
+                "capturing authentic moment and emotion",
+                "conveying genuine narrative mood",
+                "reflecting the scenario atmosphere",
+                "showing genuine emotional resonance",
+            ]
+        },
+        "camera_style": {
+            "base": [
+                "professional portrait composition, 85mm focal length feel",
+                "cinematic framing with depth",
+                "professional photography aesthetic",
+                "editorial quality composition",
+            ]
+        },
+        "color_palette": {
+            "base": [
+                "with warm color grading and natural tones",
+                "with cinematic color palette",
+                "with professional color grading",
+                "with authentic scenario color treatment",
+            ]
+        },
+        "quality_keywords": {
+            "base": [
+                "high definition, sharp detail, authentic photography",
+                "masterpiece photography, award-winning quality",
+                "professional portrait quality",
+                "cinematic photography excellence",
+            ]
+        }
     },
     
     # -----------------------------------------------------------------------
     # MEN TRANSFORMATION CATEGORY (men_transform)
+    # H1 FIX: Converted from array to dict format for consistency
     # -----------------------------------------------------------------------
     "men_transform": {
-        "subject": [
-            "Using reference image, transform the subject into the new scenario",
-            "Based on reference image, reimagine the person in",
-            "Reference image as base, transform into",
-            "Using the person from reference image in",
-        ],
-        "face_details": [
-            "natural skin texture and appearance",
-            "realistic complexion and features",
-            "authentic natural appearance",
-            "genuine skin tones and texture",
-        ],
-        "hair": [
-            "with hair and facial hair as in reference",
-            "hair cut and beard style matching reference",
-            "original styling with scenario-appropriate grooming",
-            "natural hair preserving length and facial hair",
-        ],
-        "expression": [
-            "with confident natural expression",
-            "showing authentic composed demeanor",
-            "genuine engaging expression",
-            "natural confident presence",
-        ],
-        "clothing": [
-            "wearing scenario-appropriate attire reflecting the setting",
-            "dressed authentically for the transformation context",
-            "in styled clothing suited to the scenario",
-            "with wardrobe choices matching the scene",
-        ],
-        "pose": [
-            "positioned naturally in the scene",
-            "positioned with confident presence",
-            "naturally engaged with the setting",
-            "comfortably positioned in the scenario",
-        ],
-        "environment": [
-            "in a compelling transformation scenario",
-            "within the scenic environment",
-            "in the atmospheric setting",
-            "situated in the scenario backdrop",
-        ],
-        "lighting": [
-            "with strong natural lighting",
-            "with dramatic cinematic lighting",
-            "with professional atmospheric lighting",
-            "with cinematic light quality",
-        ],
-        "mood": [
-            "capturing authentic moment and presence",
-            "conveying genuine narrative mood",
-            "reflecting the scenario atmosphere",
-            "showing powerful emotional resonance",
-        ],
-        "camera_style": [
-            "professional portrait composition, 85mm focal length feel",
-            "cinematic framing with depth",
-            "professional photography aesthetic",
-            "editorial quality composition",
-        ],
-        "color_palette": [
-            "with sophisticated color grading and natural tones",
-            "with cinematic color palette",
-            "with professional color treatment",
-            "with authentic scenario color tone",
-        ],
-        "quality_keywords": [
-            "high definition, sharp detail, authentic photography",
-            "masterpiece photography, award-winning quality",
-            "professional portrait quality",
-            "cinematic photography excellence",
-        ]
+        "subject": {
+            "base": [
+                "Using reference image, transform the subject into the new scenario",
+                "Based on reference image, reimagine the person in",
+                "Reference image as base, transform into",
+                "Using the person from reference image in",
+            ]
+        },
+        "face_details": {
+            "base": [
+                "natural skin texture and appearance",
+                "realistic complexion and features",
+                "authentic natural appearance",
+                "genuine skin tones and texture",
+            ]
+        },
+        "hair": {
+            "base": [
+                "with hair and facial hair as in reference",
+                "hair cut and beard style matching reference",
+                "original styling with scenario-appropriate grooming",
+                "natural hair preserving length and facial hair",
+            ]
+        },
+        "expression": {
+            "base": [
+                "with confident natural expression",
+                "showing authentic composed demeanor",
+                "genuine engaging expression",
+                "natural confident presence",
+            ]
+        },
+        "clothing": {
+            "base": [
+                "wearing scenario-appropriate attire reflecting the setting",
+                "dressed authentically for the transformation context",
+                "in styled clothing suited to the scenario",
+                "with wardrobe choices matching the scene",
+            ]
+        },
+        "pose": {
+            "base": [
+                "positioned naturally in the scene",
+                "positioned with confident presence",
+                "naturally engaged with the setting",
+                "comfortably positioned in the scenario",
+            ]
+        },
+        "environment": {
+            "base": [
+                "in a compelling transformation scenario",
+                "within the scenic environment",
+                "in the atmospheric setting",
+                "situated in the scenario backdrop",
+            ]
+        },
+        "lighting": {
+            "base": [
+                "with strong natural lighting",
+                "with dramatic cinematic lighting",
+                "with professional atmospheric lighting",
+                "with cinematic light quality",
+            ]
+        },
+        "mood": {
+            "base": [
+                "capturing authentic moment and presence",
+                "conveying genuine narrative mood",
+                "reflecting the scenario atmosphere",
+                "showing powerful emotional resonance",
+            ]
+        },
+        "camera_style": {
+            "base": [
+                "professional portrait composition, 85mm focal length feel",
+                "cinematic framing with depth",
+                "professional photography aesthetic",
+                "editorial quality composition",
+            ]
+        },
+        "color_palette": {
+            "base": [
+                "with sophisticated color grading and natural tones",
+                "with cinematic color palette",
+                "with professional color treatment",
+                "with authentic scenario color tone",
+            ]
+        },
+        "quality_keywords": {
+            "base": [
+                "high definition, sharp detail, authentic photography",
+                "masterpiece photography, award-winning quality",
+                "professional portrait quality",
+                "cinematic photography excellence",
+            ]
+        }
     },
     
     # -----------------------------------------------------------------------
     # COUPLES TRANSFORMATION CATEGORY (couples_transform)
+    # H1 FIX: Converted from array to dict format for consistency
     # -----------------------------------------------------------------------
     "couples_transform": {
-        "subject": [
-            "Using reference images, transform the couple into a romantic intimate moment",
-            "Using reference images, transform the couple into an adventure together",
-            "Using reference images, capture the couple having joyful fun together",
-            "Using reference images, transform the couple into a tender connection moment",
-            "Based on reference images, reimagine the couple in a passionate scenario",
-            "Based on reference images, reimagine the couple sharing a quiet intimate moment",
-            "Reference images as base, transform the couple into a romantic setting",
-            "Using both people from reference images in a beautiful couple scenario",
-        ],
-        "relationship_context": [
-            "newlyweds celebrating their wedding",
-            "long-time partners in committed romance",
-            "childhood sweethearts reconnecting",
-            "adventure partners exploring together",
-            "parents capturing intimate family moment",
-            "friends discovering secret connection",
-            "professional partners with hidden chemistry",
-            "distant lovers reunited by chance",
-        ],
-        "face_details": [
-            "both with natural skin texture and appearance",
-            "with realistic complexion and features for both",
-            "both showing authentic natural appearance",
-            "genuine natural appearance for both individuals",
-        ],
-        "hair": [
-            "with hair matching reference appearance and length for both",
-            "hair color and style as in reference images for both",
-            "original hair preserving length and cut for both",
-            "natural hair texture with scenario styling for both",
-        ],
-        "expression": [
-            "with natural genuine expressions showing connection",
-            "showing authentic affection and chemistry",
-            "genuine relaxed expressions between them",
-            "natural warm interaction between both",
-        ],
-        "clothing": [
-            "wearing scenario-appropriate outfits for the couple",
-            "dressed for the new scenario with coordinated styling",
-            "styled appropriately for the couple setting",
-            "in contextual costumes matching the scenario",
-        ],
-        "pose": [
-            "positioned naturally showing couple connection",
-            "positioned together in the scene authentically",
-            "naturally engaged with each other and setting",
-            "comfortably positioned showing relationship",
-        ],
-        "environment": [
-            "in a beautiful couple transformation scenario",
-            "within the scenic romantic environment",
-            "in the atmospheric couple setting",
-            "situated in the scenario backdrop together",
-        ],
-        "lighting": [
-            "with warm romantic lighting flattering both",
-            "with cinematic atmospheric lighting for couple",
-            "with professional lighting enhancing connection",
-            "with golden intimate lighting quality",
-        ],
-        "mood": [
-            "capturing authentic couple moment and connection",
-            "conveying genuine relationship and emotion",
-            "reflecting the scenario with couple chemistry",
-            "showing genuine emotional resonance between them",
-        ],
-        "camera_style": [
-            "professional couple portrait composition, 85mm focal length feel",
-            "cinematic framing showing connection and depth",
-            "professional couple photography aesthetic",
-            "editorial quality couple composition",
-        ],
-        "color_palette": [
-            "with warm intimate color grading and natural tones",
-            "with cinematic romantic color palette",
-            "with professional balanced color treatment",
-            "with authentic scenario color harmony",
-        ],
-        "quality_keywords": [
-            "high definition, sharp detail, authentic couple photography",
-            "masterpiece couple photography, award-winning quality",
-            "professional couple portrait quality",
-            "cinematic couple photography excellence",
-        ]
+        "subject": {
+            "base": [
+                "Using reference images, transform the couple into a romantic intimate moment",
+                "Using reference images, transform the couple into an adventure together",
+                "Using reference images, capture the couple having joyful fun together",
+                "Using reference images, transform the couple into a tender connection moment",
+                "Based on reference images, reimagine the couple in a passionate scenario",
+                "Based on reference images, reimagine the couple sharing a quiet intimate moment",
+                "Reference images as base, transform the couple into a romantic setting",
+                "Using both people from reference images in a beautiful couple scenario",
+            ]
+        },
+        "relationship_context": {
+            "base": [
+                "newlyweds celebrating their wedding",
+                "long-time partners in committed romance",
+                "childhood sweethearts reconnecting",
+                "adventure partners exploring together",
+                "parents capturing intimate family moment",
+                "friends discovering secret connection",
+                "professional partners with hidden chemistry",
+                "distant lovers reunited by chance",
+            ]
+        },
+        "face_details": {
+            "base": [
+                "both with natural skin texture and appearance",
+                "with realistic complexion and features for both",
+                "both showing authentic natural appearance",
+                "genuine natural appearance for both individuals",
+            ]
+        },
+        "hair": {
+            "base": [
+                "with hair matching reference appearance and length for both",
+                "hair color and style as in reference images for both",
+                "original hair preserving length and cut for both",
+                "natural hair texture with scenario styling for both",
+            ]
+        },
+        "expression": {
+            "base": [
+                "with natural genuine expressions showing connection",
+                "showing authentic affection and chemistry",
+                "genuine relaxed expressions between them",
+                "natural warm interaction between both",
+            ]
+        },
+        "clothing": {
+            "base": [
+                "wearing scenario-appropriate outfits for the couple",
+                "dressed for the new scenario with coordinated styling",
+                "styled appropriately for the couple setting",
+                "in contextual costumes matching the scenario",
+            ]
+        },
+        "pose": {
+            "base": [
+                "positioned naturally showing couple connection",
+                "positioned together in the scene authentically",
+                "naturally engaged with each other and setting",
+                "comfortably positioned showing relationship",
+            ]
+        },
+        "environment": {
+            "base": [
+                "in a beautiful couple transformation scenario",
+                "within the scenic romantic environment",
+                "in the atmospheric couple setting",
+                "situated in the scenario backdrop together",
+            ]
+        },
+        "lighting": {
+            "base": [
+                "with warm romantic lighting flattering both",
+                "with cinematic atmospheric lighting for couple",
+                "with professional lighting enhancing connection",
+                "with golden intimate lighting quality",
+            ]
+        },
+        "mood": {
+            "base": [
+                "capturing authentic couple moment and connection",
+                "conveying genuine relationship and emotion",
+                "reflecting the scenario with couple chemistry",
+                "showing genuine emotional resonance between them",
+            ]
+        },
+        "camera_style": {
+            "base": [
+                "professional couple portrait composition, 85mm focal length feel",
+                "cinematic framing showing connection and depth",
+                "professional couple photography aesthetic",
+                "editorial quality couple composition",
+            ]
+        },
+        "color_palette": {
+            "base": [
+                "with warm intimate color grading and natural tones",
+                "with cinematic romantic color palette",
+                "with professional balanced color treatment",
+                "with authentic scenario color harmony",
+            ]
+        },
+        "quality_keywords": {
+            "base": [
+                "high definition, sharp detail, authentic couple photography",
+                "masterpiece couple photography, award-winning quality",
+                "professional couple portrait quality",
+                "cinematic couple photography excellence",
+            ]
+        }
     }
 }
 
@@ -697,7 +806,8 @@ def get_component_template(category: str, component: str, subcategory: Optional[
 
 def select_component(options: List[str] or str, preference: Optional[int] = None) -> str:
     """
-    Select a single component from available options.
+    Select a single component from available options with bounds checking.
+    Logs warnings when indices are out of bounds (Fix C3).
     
     Args:
         options: List of component options or single string
@@ -710,7 +820,14 @@ def select_component(options: List[str] or str, preference: Optional[int] = None
         return options
     
     if isinstance(options, list):
-        if preference is not None and 0 <= preference < len(options):
+        if preference is not None:
+            if not (0 <= preference < len(options)):
+                # C3: Log when bounds are violated
+                logger.warning(
+                    f"[BOUNDS ERROR] Component index {preference} out of bounds (0-{len(options)-1}). "
+                    f"Using first option instead. This may indicate batch processing issues."
+                )
+                return options[0]
             return options[preference]
         # Default to first option if no preference
         return options[0]
@@ -755,13 +872,9 @@ def build_professional_prompt(
         if component == 'quality_keywords' and not include_quality:
             continue
         
-        # Skip N/A components (not applicable for this category)
+        # Skip N/A components (not applicable for this category) - C1: Use standardized detection
         templates = get_component_template(category, component)
-        if templates == "N/A - skip for product designs unless featuring people" or \
-           templates == "N/A - interface focus" or \
-           templates == "N/A - design focus" or \
-           templates == "N/A - product focus" or \
-           templates == "N/A unless featuring portrait elements":
+        if is_component_na(templates):
             continue
         
         # Select appropriate option
@@ -774,12 +887,13 @@ def build_professional_prompt(
                 selected = templates[components[subcategory_key]]
                 if isinstance(selected, list):
                     idx = components.get(selection_key, 0)
-                    selected = selected[min(idx, len(selected) - 1)]
+                    # C3: Use select_component for bounds checking instead of silent min()
+                    selected = select_component(selected, idx)
         else:
             idx = components.get(selection_key, 0)
             selected = select_component(templates, idx)
         
-        if selected and selected != "N/A":
+        if selected and not is_component_na(selected):
             prompt_parts.append(selected)
     
     # Join with natural transitions
@@ -871,6 +985,60 @@ def get_category_info(category: str) -> Dict[str, Any]:
 # PROFESSIONAL SECRETS - EMBEDDED QUALITY ENHANCEMENTS
 # ============================================================================
 
+# C4: Consolidated professional secrets with unified structure
+# This matches PROFESSIONAL_SECRETS_KEYWORDS in professional_secrets_validator.py
+PROFESSIONAL_SECRETS_KEYWORDS = {
+    "cinematic_lighting": {
+        "description": "Advanced lighting techniques for cinematic quality",
+        "keywords": [
+            "volumetric", "three-point", "global illumination", "backlighting",
+            "rim lighting", "side lighting", "color-graded lighting", "golden hour",
+            "cinematic lighting", "dramatic lighting", "atmospheric lighting"
+        ]
+    },
+    "realistic_skin_textures": {
+        "description": "Photorealistic skin rendering with character",
+        "keywords": [
+            "pores", "micro-texture", "subsurface scattering", "imperfections",
+            "skin texture", "natural appearance", "realistic skin", "complexion",
+            "skin tones", "texture", "natural skin"
+        ]
+    },
+    "emotional_expression": {
+        "description": "Capturing genuine emotion and storytelling",
+        "keywords": [
+            "authentic", "emotional", "genuine", "narrative", "storytelling",
+            "connection", "chemistry", "expression", "emotion", "sentiment",
+            "soulful", "sincere", "tender", "vulnerable", "affection"
+        ]
+    },
+    "color_grading": {
+        "description": "Professional color grading for mood and impact",
+        "keywords": [
+            "color grading", "color palette", "color harmony", "warm", "cool",
+            "saturation", "contrast", "color treatment", "color tone", "hue",
+            "atmospheric", "moody", "graded"
+        ]
+    },
+    "professional_camera_language": {
+        "description": "Professional camera and lens techniques",
+        "keywords": [
+            "focal length", "aperture", "depth of field", "perspective",
+            "composition", "85mm", "135mm", "compression", "framing",
+            "portrait lens", "camera", "photography", "editorial"
+        ]
+    },
+    "storytelling_atmosphere": {
+        "description": "Creating narrative and mood in imagery",
+        "keywords": [
+            "narrative", "atmosphere", "environmental context", "scenario",
+            "mood", "story", "setting", "backdrop", "environment",
+            "storytelling", "cinematic", "compelling"
+        ]
+    }
+}
+
+# Implementation techniques for detailed enhancement (used by enhancer)
 PROFESSIONAL_SECRETS = {
     "cinematic_lighting": {
         "description": "Advanced lighting techniques for cinematic quality",
