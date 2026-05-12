@@ -294,37 +294,190 @@ COMPONENT_TEMPLATES = {
     },
     
     # -----------------------------------------------------------------------
-    # GRAPHIC DESIGN / POSTER CATEGORY (design_posters)
+    # PREMIUM POSTER DESIGN CATEGORY (design_posters)
+    # Premium Design Formula: Minimal Luxury + Cinematic Lighting + Editorial Typography + 
+    # Structured Grid + Controlled Colors + Founder-Led Storytelling + Strategic Negative Space
     # -----------------------------------------------------------------------
     "design_posters": {
-        "subject": "A striking graphic design composition",
-        "face_details": "N/A unless featuring portrait elements - if so, use portrait_transformation guidelines",
-        "hair": "N/A unless featuring portrait elements",
-        "expression": "N/A unless featuring portrait elements",
-        "clothing": "N/A - design focus",
-        "pose": "compositional layout with visual hierarchy, balanced asymmetric arrangement, dynamic negative space",
-        "environment": "clean design canvas, integrated background elements, compositional staging",
+        "subject": "Premium poster hero composition: oversized ultra-bold typography dominating visual hierarchy, strategic focal point (cinematic portrait / futuristic UI / luxury product), founder-led creative vision evident",
+        "face_details": "N/A unless featuring founder/creative identity portrait - if present, cinematic editorial quality with rim lighting and depth",
+        "hair": "N/A unless part of founder portrait identity element",
+        "expression": "N/A unless founder portrait - if present, confident visionary calm expression",
+        "clothing": "N/A - design composition focus (founder portrait only: premium editorial styling if featured)",
+        "pose": {
+            "base": [
+                "ultra-bold geometric sans-serif typography at 40-60% of poster area, layered composition with depth stacking, precision grid-aligned layout",
+                "structured 12-column grid alignment, floating card elements with glassmorphism aesthetic, intentional negative space as luxury element",
+                "layered poster structure: oversized words (SYSTEM, FUTURE, BUILD, SCALE, AI, EXPERIENCE) cropped at edges for editorial campaign feel",
+                "hero subject dominating foreground, metadata typography floating with architectural precision, depth-created perspective illusion",
+            ],
+            "advanced": [
+                "cinematic hero portrait positioned with rule-of-thirds composition, floating futuristic dashboard panels with soft blur parallax",
+                "layered UI interfaces floating with glassmorphism, precision spacing on invisible grid, minimal geometric shapes floating in negative space",
+                "founder-led identity integrated subtly: portrait in corner with rim lighting, personal vision energy evident through composition authority",
+            ]
+        },
+        "environment": {
+            "base": [
+                "matte black luxury minimalism foundation: deep black (#0a0a0a) or soft graphite (#2a2a2a) with subtle depth",
+                "warm grey gradient subtle backdrop: imperceptible transitions suggesting dimension without texture",
+                "white breathing space strategic placement: negative space as designed luxury element",
+            ],
+            "cinematic": [
+                "atmospheric haze with controlled bloom, soft volumetric depth creating studio-quality air",
+                "subtle metallic reflection integration: glossy surfaces catching ethereal light for premium perception",
+                "architectural alignment with zero random elements: every shape grid-snapped, every spacing intentional",
+            ]
+        },
         "lighting": {
-            "base": "even graphic lighting without harsh shadows, emphasis on color vibrancy and clarity",
-            "dramatic": "dramatic contrast lighting for visual impact, theatrical shadowing for depth",
-            "editorial": "sophisticated lighting treatment with controlled tonal ranges, print-ready lighting",
+            "base": [
+                "soft key light on hero subject, professional studio quality without harsh overexposure",
+                "rim lighting creating separation and premium three-dimensionality, controlled metallic reflections",
+                "strategic bloom on typography for editorial campaign glow, minimal effects showing restraint",
+            ],
+            "cinematic_premium": [
+                "editorial photography lighting: soft key + fill + rim creating dimensional realism",
+                "controlled bloom on UI elements: subtle glow suggesting technology without sci-fi overload",
+                "shadow sophistication: soft shadows with feathered edges, professional studio rendering",
+            ],
+            "avoid": "RGB neon cyberpunk, harsh overexposed glow, random particle effects, aggressive sci-fi aesthetics"
         },
         "mood": [
-            "visually striking and attention-grabbing",
-            "professionally composed and intentional",
-            "emotionally resonant storytelling",
-            "bold confident design energy",
-            "refined sophisticated visual appeal",
+            "calm confidence and precision: visionary future clarity without urgency",
+            "premium innovation energy: creative technology studio feeling, not consumer electronics ad",
+            "editorial luxury storytelling: global campaign poster aesthetic with founder-led vision",
+            "refined professional restraint: sophisticated simplicity showing creative intelligence",
+            "aspirational creative intelligence: innovation leadership with personal creative touch",
         ],
-        "camera_style": "design composition photography, optimized for print, compositional integrity prioritized",
+        "camera_style": {
+            "base": [
+                "editorial photography composition: cinematic portrait framing with intentional negative space",
+                "85-135mm equivalent focal length feel: subject-focused framing with environmental context",
+                "architectural alignment and clean framing: compositional precision suggesting engineering",
+            ],
+            "premium": [
+                "Apple-style whitespace precision: maximum breathing room, minimal visual clutter",
+                "fashion editorial composition: high-end photography aesthetic adapted to poster medium",
+                "studio lighting setup visible in subtle details: professional production quality apparent",
+            ]
+        },
         "color_palette": {
-            "bold": "high contrast color scheme, vibrant saturation, dramatic color relationships, psychological color theory applied",
-            "sophisticated": "carefully curated color palette, limited harmonious colors, professional color grading",
-            "editorial": "editorial color grading with color story, strategic color emphasis, sophisticated tonal relationships",
+            "base": [
+                "restrained color restriction: base colors only (deep black, soft white, graphite, silver grey, deep violet)",
+                "ONE accent color maximum: burnt orange OR electric blue OR emerald OR crimson OR ice silver (choose single dominant)",
+                "limited harmony principle: luxury brands avoid color chaos, precision palette shows sophistication",
+            ],
+            "premium": [
+                "metallic accents subtly integrated: glossy silver or copper catches light without overload",
+                "color grading with color story: emotional narrative through sophisticated tonal relationships",
+                "zero-vibrant saturation excess: muted sophisticated palette creating high-end perception",
+            ]
         },
         "quality_keywords": {
-            "base": "graphic design, high definition, sharp composition, professional design",
-            "full": "graphic design, high definition, sharp composition, professional design, trending on behance, award-winning graphic design, pristine quality, design excellence, print-ready, color managed",
+            "base": [
+                "premium poster, editorial campaign, luxury design, high definition",
+                "architectural precision, structured grid, premium innovation branding, poster excellence",
+            ],
+            "full": [
+                "premium poster design, editorial campaign aesthetic, luxury brand positioning, high definition masterpiece",
+                "architectural grid precision, Apple-style whitespace sophistication, creative technology studio branding",
+                "founder-led innovation identity, cinematic editorial lighting, professional print-ready quality",
+                "award-winning poster composition, trending on behance dribbble, design excellence, premium brand perception",
+                "minimal luxury layout, futuristic UI integration, strategic negative space, founder creative vision",
+                "calm confidence storytelling, visionary future clarity, creative intelligence positioning, professional restraint",
+            ]
+        }
+    },
+    
+    # -----------------------------------------------------------------------
+    # PRINT COLLATERAL DESIGN CATEGORY (print_design)
+    # Print Design Formula: Professional Marketing Layout + Structured Information Hierarchy +
+    # Premium Typography + Brand Consistency + Print-Optimized Colors + Founder-Led Voice
+    # -----------------------------------------------------------------------
+    "print_design": {
+        "subject": "Professional print collateral: structured marketing composition with clear hierarchy, brand-consistent layout, founder voice integrated, print-optimized information architecture",
+        "face_details": "N/A unless featuring founder/brand identity - if present, professional headshot quality with studio lighting",
+        "hair": "N/A unless part of founder brand element - if present, polished professional styling",
+        "expression": "N/A unless founder presence - if featured, professional confidence and approachable authority",
+        "clothing": "N/A - print design focus (founder only: professional premium styling if featured)",
+        "pose": {
+            "base": [
+                "structured information hierarchy with clear visual flow: headline > subheading > body > CTA positioned on invisible grid",
+                "print-optimized layout respecting margins, bleeds, and fold lines",
+                "12-column grid alignment with intentional spacing: professional architectural precision in layout",
+                "balanced asymmetric arrangement: left-heavy visual weight with breathing room on right suggesting premium",
+            ],
+            "advanced": [
+                "founder-led positioning: creative identity visible in layout choices and typographic voice",
+                "multi-fold integration: surface 1 headline > surface 2 detailed narrative > surface 3 call-to-action",
+                "layered paper stock visualization: texture suggestions creating perceived premium quality",
+            ]
+        },
+        "environment": {
+            "base": [
+                "clean white or off-white printing canvas: matte finish luxury perception",
+                "subtle paper texture suggestion: linen or laid texture implication without overwhelm",
+                "color blocking with strategic background areas: premium branded backgrounds integrated with restraint",
+            ],
+            "premium": [
+                "foil stamp metallic accent areas: glossy gold/silver foil on premium stock",
+                "die-cut structural interest: shaped edge or window cutout with precision engineering",
+                "print finishing integration: emboss/deboss subtle texture, spot UV gloss on key elements",
+            ]
+        },
+        "lighting": {
+            "base": [
+                "professional studio lighting if photography included: soft key with professional fill",
+                "even non-directional illumination: print-neutral lighting showing product clearly",
+            ],
+            "premium": [
+                "subtle shadow and highlight suggesting depth: three-dimensionality in 2D medium",
+                "rim lighting on product elements: luxury product photography aesthetic",
+            ]
+        },
+        "mood": [
+            "professional trustworthy confidence: brand authority without aggression",
+            "founder-led creative vision: personal brand voice evident in design choices",
+            "premium brand positioning: luxury perception through restraint and precision",
+            "clear purposeful storytelling: information hierarchy shows design intelligence",
+            "memorable brand experience: design sophistication creates lasting impression",
+        ],
+        "camera_style": {
+            "base": [
+                "product photography composition: professional product showcase if items featured",
+                "editorial layout photography: structured composition respecting print architecture",
+            ],
+            "premium": [
+                "flat lay composition: overhead styled photography for print marketing materials",
+                "studio setup visibility: professional production quality apparent in execution",
+            ]
+        },
+        "color_palette": {
+            "base": [
+                "brand color system restricted: 3-4 primary colors maximum (base + one accent color)",
+                "CMYK print-optimized: colors precisely calibrated for print reproduction",
+                "white space as color: negative space designed as active compositional element",
+            ],
+            "premium": [
+                "sophisticated muted primary palette: deep brand color + neutral + strategic white",
+                "single metallic accent: gold or silver foil on premium stock for luxury perception",
+                "zero gradients or trendy color effects: timeless classic palette showing restraint",
+            ]
+        },
+        "quality_keywords": {
+            "base": [
+                "print design, marketing collateral, professional branding, high definition",
+                "print-ready color management, structured hierarchy, premium brand identity",
+            ],
+            "full": [
+                "professional print design, marketing collateral excellence, premium brand presentation",
+                "structured information hierarchy, print-optimized color, CMYK perfect reproduction",
+                "founder-led brand voice, creative positioning, professional marketing communication",
+                "award-winning print design, trending print aesthetic, design excellence in collateral",
+                "luxury brand perception through precision, architectural grid layout, professional restraint",
+                "premium typography hierarchy, brand-consistent composition, print-ready technical excellence",
+                "strategic negative space, founder creative vision, memorable brand experience design",
+            ]
         }
     },
     
