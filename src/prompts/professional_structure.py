@@ -135,109 +135,109 @@ COMPONENT_TEMPLATES = {
     "portrait_transformation": {
         "subject": {
             "women": [
-                "A stunning woman with striking features",
-                "An elegant woman with captivating presence",
-                "A beautiful professional woman",
-                "A radiant woman with confident energy",
+                "A stunning woman with striking features, quiet luxury presence",
+                "An elegant woman with captivating presence, editorial grace",
+                "A beautiful professional woman, refined confidence evident",
+                "A radiant woman with confident energy, timeless sophistication",
             ],
             "men": [
-                "A handsome man with strong features",
-                "An elegant man with commanding presence",
-                "A striking professional man",
-                "A confident man with magnetic energy",
+                "A handsome man with strong features, sculpted magazine aesthetic",
+                "An elegant man with commanding presence, executive refined energy",
+                "A striking professional man, bespoke tailored confidence",
+                "A confident man with magnetic energy, artisanal authenticity",
             ],
             "couple": [
-                "A beautiful couple with complementary features",
-                "An elegant pair with striking presence",
-                "A couple radiating chemistry and connection",
+                "A beautiful couple with complementary features, curated chemistry",
+                "An elegant pair with striking presence, editorial moment captured",
+                "A couple radiating chemistry and connection, tactile authenticity evident",
             ]
         },
         "face_details": {
-            # Professional Secret: Realistic skin textures with emotional resonance
+            # Professional Secret: Realistic skin textures with emotional resonance + luxury perception
             "base": [
-                "natural skin texture with subtle imperfections, defined cheekbones, expressive eyes",
-                "realistic skin with visible character, strong bone structure, piercing gaze",
-                "luminous complexion with natural contours, refined features, intense eyes",
-                "porcelain-like skin with depth, sculpted features, soulful expression",
+                "natural skin texture with subtle imperfections (lived-in luxury), defined sculpted cheekbones, expressive eyes with depth",
+                "realistic complexion showing character and refinement, strong bone structure with precision, piercing gaze with emotional intelligence",
+                "luminous complexion with natural contours and micro-texture detail, refined features suggesting heritage, intense eyes with narrative depth",
+                "porcelain-like skin with dimensional depth and tactile texture, sculpted features with architectural precision, soulful expression with confidence",
             ],
-            "high_quality": "porcelain skin with realistic micro-texture, perfect bone structure without artificiality, eyes with natural catchlights and depth"
+            "high_quality": "porcelain skin with realistic micro-texture detail (hyper-refined craftsmanship), perfect bone structure without digital artificiality, eyes with natural catchlights and soul-deep resonance"
         },
         "hair": [
-            "sleek professionally styled hair with volume and movement",
-            "flowing hair with natural shine and dimension",
-            "meticulously groomed hair with perfect styling and texture",
-            "luxurious hair with rich color depth and professional styling",
-            "elegantly arranged hair with movement and shine",
+            "sleek professionally styled hair with volume, movement and refined texture detail",
+            "flowing hair with natural shine, dimensional color depth, tactile movement",
+            "meticulously groomed hair with perfect styling, precision grooming detail, bespoke arrangement",
+            "luxurious hair with rich color depth, artisanal texture (lived-in elegance), premium styling presence",
+            "elegantly arranged hair with curated movement, architectural volume, shine suggesting premium care",
         ],
         "expression": {
-            # Professional Secret: Emotional expression guidance for storytelling
+            # Professional Secret: Emotional expression guidance for storytelling + quiet luxury confidence
             "natural": [
-                "genuine subtle smile with relaxed jaw, confident composed demeanor",
-                "thoughtful expression with depth in eyes, serene confidence",
-                "warm genuine smile reaching the eyes, approachable warmth",
-                "composed dignified expression with quiet confidence",
-                "radiant authentic joy with natural eye crinkle",
+                "genuine subtle smile with relaxed jaw showing authenticity, confident composed demeanor (editorial sophistication)",
+                "thoughtful expression with depth in eyes, serene confidence suggesting narrative intelligence",
+                "warm genuine smile reaching the eyes with natural crinkle (tactile authenticity), approachable refinement",
+                "composed dignified expression with quiet confidence (luxury restraint), serene presence",
+                "radiant authentic joy with natural eye crinkle and imperfect beauty, luminous warmth",
             ],
             "emotional": [
-                "passionate intensity in gaze, controlled emotional depth",
-                "vulnerable authentic emotion balanced with confidence",
-                "contemplative depth with emotional resonance",
-                "playful confidence with sparkling eyes",
-                "mysterious allure with engaging presence",
+                "passionate intensity in gaze, controlled emotional depth with cinematic quality",
+                "vulnerable authentic emotion balanced with quiet confidence, lived-in sincerity",
+                "contemplative depth with emotional resonance, introspective narrative power",
+                "playful confidence with sparkling eyes, curated spontaneity",
+                "mysterious allure with engaging presence, bespoke enigmatic beauty",
             ]
         },
         "clothing": [
-            "immaculate tailored professional blazer in complementary color",
-            "elegant designer gown with sophisticated silhouette",
-            "refined luxury fashion piece with impeccable tailoring",
-            "high-end designer outfit with premium fabric appearance",
-            "bespoke fashion statement with perfect fit and styling",
+            "immaculate tailored professional blazer in complementary color, brushed fabric texture with precise seaming detail",
+            "elegant designer gown with sophisticated silhouette, luxurious material draping (silk, cashmere, linen blend) with subtle sheen",
+            "refined luxury fashion piece with impeccable tailoring, bespoke construction detail, architectural line work",
+            "high-end designer outfit with premium fabric appearance (Italian leather, brushed wool, smoked silk), material contrast visible",
+            "bespoke fashion statement with perfect fit and styling, craftsmanship detail evident (stitching, seaming, material layering)",
         ],
         "pose": [
-            "confident upright posture with squared shoulders, slight head tilt",
-            "elegant seated position with perfect spinal alignment, relaxed arms",
-            "dynamic three-quarter turn pose with engaged posture",
-            "refined standing pose with weight balanced, expressive hand placement",
-            "poised position with natural grace and presence",
+            "confident upright posture with squared shoulders, slight head tilt showing architectural precision",
+            "elegant seated position with perfect spinal alignment, relaxed arms with refined hand positioning",
+            "dynamic three-quarter turn pose with engaged posture, monumental proportional confidence",
+            "refined standing pose with weight balanced gracefully, expressive hand placement showing refinement detail",
+            "poised position with natural grace and presence, curated spontaneity suggesting confidence",
         ],
         "environment": [
-            "minimalist studio setting with neutral backdrop",
-            "luxury venue with refined background elements",
-            "contemporary professional space with subtle architectural elements",
-            "elegant interior with tasteful background blur",
-            "sophisticated environment with neutral but engaging backdrop",
+            "minimalist studio setting with neutral backdrop, negative space strategically composed, breathing room evident",
+            "luxury venue with refined background elements (travertine surfaces, brushed brass accents, warm wood), material contrast visible",
+            "contemporary professional space with subtle architectural elements (tall ceilings, clean lines, monolithic forms)",
+            "elegant interior with tasteful background blur, sophisticated layering suggesting gallery-inspired setting",
+            "sophisticated environment with neutral but engaging backdrop, intentional emptiness as design element",
         ],
         "lighting": {
-            # Professional Secret: Cinematic lighting with color grading
-            "base": "professional three-point lighting with key light from 45 degrees, rim light separating subject from background, fill light at 50% key intensity",
-            "cinematic": "cinematic studio lighting with soft key light creating dimension, subtle rim light with warm color grading, global illumination effect",
-            "portrait": "flattering portrait lighting with golden ratio placement, modeled light catching planes of face, professional color temperature",
-            "glamour": "glamorous dramatic lighting with controlled shadows emphasizing bone structure, high-key setup with luminous quality",
+            # Professional Secret: Cinematic intentional lighting showing restraint and control
+            "base": "professional three-point lighting with soft key light from 45 degrees creating dimensional modeling, rim light subtly separating subject with warmth, fill light at 50% showing control and sophistication",
+            "cinematic": "cinematic studio lighting with directional soft key light creating professional dimension, subtle warm rim light with premium color grading, volumetric light suggesting editorial campaign aesthetic",
+            "portrait": "flattering editorial portrait lighting with precision placement, soft diffused daylight quality catching planes with architectural precision, golden-hour highlights with controlled warmth",
+            "glamour": "sophisticated glamour lighting showing restraint: soft key + fill + gentle rim, controlled shadows emphasizing bone structure without harshness, luminous quality suggesting luxury",
         },
         "mood": [
-            "confidence and poise radiating from powerful presence",
-            "sophisticated elegance with refined energy",
-            "professional authority balanced with approachability",
-            "serene composure with magnetic appeal",
-            "passionate intensity with controlled emotional depth",
+            "quiet confidence and editorial poise radiating from controlled presence",
+            "sophisticated elegance with refined energy, luxury understatement evident",
+            "professional authority balanced with approachability, bespoke confidence",
+            "serene composure with magnetic appeal, curated stillness",
+            "passionate intensity with controlled emotional depth, artisanal authenticity",
         ],
         "camera_style": {
-            # Professional Secret: Professional camera language
-            "standard": "professional 50mm portrait lens, f/2.8 aperture for flattering subject separation, shallow depth of field isolating subject",
-            "glamour": "85mm portrait lens, f/1.4 aperture, extreme subject isolation with creamy background bokeh",
-            "fashion": "professional 70mm equivalent, f/2.0 aperture, dramatic perspective with elongated features flattery",
-            "editorial": "35mm lens, f/2.5 aperture, slightly wider field capturing environment context while maintaining subject focus",
+            # Professional Secret: Specific premium camera equipment language
+            "standard": "shot on Hasselblad X2D, 50mm lens, f/2.8 aperture creating flattering subject separation with natural bokeh, shallow depth of field isolating subject beautifully",
+            "glamour": "85mm portrait lens (Zeiss Milvus), f/1.4 aperture, extreme subject isolation with creamy premium background bokeh, editorial photography aesthetic",
+            "fashion": "professional 70mm equivalent (medium-format), f/2.0 aperture, dramatic perspective with elongated features flattery used in luxury fashion campaigns",
+            "editorial": "35mm lens on medium-format body, f/2.5 aperture, slightly wider environmental context capturing luxury hotel campaign aesthetic while maintaining sharp subject focus",
         },
         "color_palette": {
-            # Professional Secret: Strong color grading specifications
-            "warm": "rich warm tones with golden hour color grading, warm highlights and cool shadows, slight orange-brown cast in shadows",
-            "cool": "cool sophisticated tones with cyan-blue shadows, warm skin highlights, professional cool color grading",
-            "neutral_luxe": "neutral professional tones with lifted shadows, controlled contrast, premium color grading",
-            "vibrant": "saturated rich colors with dramatic color grading, high contrast between subject and background",
+            # Professional Secret: Restrained luxury color grading showing discipline
+            "warm": "restrained warm tones with golden-hour color grading (luxury restraint), warm highlights balanced with cool sophisticated shadows, slight warm cast suggesting premium film",
+            "cool": "cool sophisticated tones with controlled cyan-blue shadows, warm skin tones preserved, professional restrained color grading showing editorial discipline",
+            "neutral_luxe": "neutral professional tones (charcoal + ivory palette) with lifted shadows, controlled contrast (muted palette), premium color grading suggesting quiet luxury",
+            "vibrant": "saturated but controlled colors with editorial color grading restraint, strategic high-contrast elements balanced with breathing room",
         },
         "quality_keywords": {
-            "base": "8k resolution, ultra high definition, professional photography, highly detailed, sharp focus",
-            "full": "8k resolution, ultra high definition, professional photography, highly detailed, sharp focus, masterpiece, trending on artstation, award-winning, cinematic lighting, color graded, volumetric lighting, ray tracing, photorealistic, studio quality, pristine condition",
+            "base": "8k resolution, ultra high definition, professional photography, highly detailed, sharp focus, editorial campaign aesthetic",
+            "full": "8k resolution, ultra high definition, professional photography, highly detailed, sharp focus, masterpiece, award-winning editorial quality, cinematic premium lighting, professional color graded, volumetric atmospheric light, photorealistic with tactile imperfections, studio quality, pristine production, trending on vogue british-vogue editorial",
         }
     },
     
@@ -645,102 +645,103 @@ COMPONENT_TEMPLATES = {
     # -----------------------------------------------------------------------
     # WOMEN TRANSFORMATION CATEGORY (women_transform)
     # H1 FIX: Converted from array to dict format for consistency
+    # EXPENSIVE FEEL FRAMEWORK INTEGRATED: Material contrast, controlled lighting, negative space, camera language, color discipline, physical imperfection, editorial references
     # -----------------------------------------------------------------------
     "women_transform": {
         "subject": {
             "base": [
-                "Using reference image, transform the subject into the new scenario",
-                "Based on reference image, reimagine the person in",
-                "Reference image as base, transform into",
-                "Using the person from reference image in",
+                "Using reference image, transform the subject into the new scenario with quiet luxury authenticity",
+                "Based on reference image, reimagine the person in a scene with editorial sophistication",
+                "Reference image as base, transform into a curated moment with bespoke composition",
+                "Using the person from reference image in a scenario suggesting architectural grace",
             ]
         },
         "face_details": {
             "base": [
-                "natural skin texture and appearance",
-                "realistic complexion and features",
-                "authentic natural appearance",
-                "genuine skin tones and texture",
+                "natural skin texture and appearance with subtle imperfections (lived-in luxury, tactile realism)",
+                "realistic complexion and features preserving authentic character, refined bone structure",
+                "authentic natural appearance with micro-texture detail, genuine emotional depth visible",
+                "genuine skin tones and texture showing character refinement, luminous yet grounded",
             ]
         },
         "hair": {
             "base": [
-                "with hair matching reference appearance and length",
-                "hair color and style as in reference",
-                "original hair preserving color and cut",
-                "natural hair texture with scenario styling",
+                "with hair matching reference appearance and length, curated yet effortless styling",
+                "hair color and style as in reference with subtle shine suggesting premium care",
+                "original hair preserving color and cut with movement and dimensional texture",
+                "natural hair texture with scenario styling showing architectural arrangement detail",
             ]
         },
         "expression": {
             "base": [
-                "with natural engaging expression",
-                "showing authentic warm expression",
-                "genuine relaxed expression",
-                "friendly natural demeanor",
+                "with natural engaging expression showing authentic confidence, editorial presence",
+                "showing authentic warm expression with narrative depth, quiet confidence evident",
+                "genuine relaxed expression suggesting bespoke authenticity, serene presence",
+                "friendly natural demeanor with sophisticated refinement, curated spontaneity",
             ]
         },
         "clothing": {
             "base": [
-                "wearing scenario-appropriate outfit reflecting the setting",
-                "dressed authentically for the transformation context",
-                "in styled clothing suited to the scenario",
-                "with wardrobe choices matching the scene",
+                "wearing scenario-appropriate outfit reflecting setting with material contrast (brushed fabric + silk, leather + linen blend)",
+                "dressed authentically with precision tailoring, texture detail evident, bespoke construction",
+                "in styled clothing with hyper-refined detailing (stitching visible, material layering), editorial sophistication",
+                "with wardrobe choices matching scene through luxury restraint, monochromatic or single-accent discipline",
             ]
         },
         "pose": {
             "base": [
-                "positioned naturally in the scene",
-                "positioned authentically in the environment",
-                "naturally engaged with the setting",
-                "comfortably positioned in the scenario",
+                "positioned naturally in scene showing monumental architectural grace, intentional spacing",
+                "positioned authentically with strategic negative space composition, natural yet composed",
+                "naturally engaged with setting through curated spontaneity, gallery-inspired framing",
+                "comfortably positioned showing refined presence, elegant asymmetric balance",
             ]
         },
         "environment": {
             "base": [
-                "in a beautiful transformation scenario",
-                "within the scenic environment",
-                "in the atmospheric setting",
-                "situated in the scenario backdrop",
+                "in a beautiful transformation scenario with material texture (travertine, brushed wood, soft fabric) contrasts",
+                "within the scenic environment showing intentional empty space (breathing room), architectural minimalism",
+                "in the atmospheric setting with controlled lighting suggesting hotel luxury campaign",
+                "situated in scenario backdrop featuring tall ceilings, monolithic forms, gallery-inspired proportions",
             ]
         },
         "lighting": {
             "base": [
-                "with warm natural lighting",
-                "with cinematic atmospheric lighting",
-                "with professional scenic lighting",
-                "with golden hour lighting quality",
+                "with warm natural lighting showing controlled softness, soft directional daylight from windows",
+                "with cinematic atmospheric lighting using soft key + gentle rim, editorial photography quality",
+                "with professional scenic lighting suggesting studio setup, intentional shadow play showing restraint",
+                "with golden hour lighting quality (warm highlights, cool sophisticated shadows) controlled and composed",
             ]
         },
         "mood": {
             "base": [
-                "capturing authentic moment and emotion",
-                "conveying genuine narrative mood",
-                "reflecting the scenario atmosphere",
-                "showing genuine emotional resonance",
+                "capturing authentic moment and emotion with quiet confidence, editorial narrative",
+                "conveying genuine narrative mood with luxury sophistication, serene presence",
+                "reflecting scenario atmosphere with curated authenticity, bespoke narrative feeling",
+                "showing genuine emotional resonance with refined restraint, artisanal presence",
             ]
         },
         "camera_style": {
             "base": [
-                "professional portrait composition, 85mm focal length feel",
-                "cinematic framing with depth",
-                "professional photography aesthetic",
-                "editorial quality composition",
+                "shot on medium-format (Hasselblad), 85mm equivalent, f/2.0 aperture, editorial quality composition",
+                "cinematic framing with depth and precision, soft grain suggesting premium film aesthetic",
+                "professional photography with anamorphic lens quality feel, architectural framing precision",
+                "editorial quality composition, 35-50mm luxury hotel campaign aesthetic, shallow depth of field",
             ]
         },
         "color_palette": {
             "base": [
-                "with warm color grading and natural tones",
-                "with cinematic color palette",
-                "with professional color grading",
-                "with authentic scenario color treatment",
+                "with warm color grading and restrained natural tones (charcoal + ivory palette), muted luxury",
+                "with cinematic color palette showing discipline, warm highlights balanced with cool shadows",
+                "with professional color grading restraint, desaturated luxury tones, sophisticated muted aesthetic",
+                "with authentic scenario color treatment using single-accent approach (burnt orange OR electric blue), quiet luxury",
             ]
         },
         "quality_keywords": {
             "base": [
-                "high definition, sharp detail, authentic photography",
-                "masterpiece photography, award-winning quality",
-                "professional portrait quality",
-                "cinematic photography excellence",
+                "high definition, sharp detail, authentic photography, tactile realism with imperfections",
+                "masterpiece photography, award-winning quality, editorial luxury campaign feel",
+                "professional portrait quality, sophisticated restraint, bespoke artisanal aesthetic",
+                "cinematic photography excellence, quiet luxury positioning, refined presence",
             ]
         }
     },
@@ -748,102 +749,103 @@ COMPONENT_TEMPLATES = {
     # -----------------------------------------------------------------------
     # MEN TRANSFORMATION CATEGORY (men_transform)
     # H1 FIX: Converted from array to dict format for consistency
+    # EXPENSIVE FEEL FRAMEWORK INTEGRATED: Material contrast, controlled lighting, negative space, camera language, color discipline, physical imperfection, editorial references
     # -----------------------------------------------------------------------
     "men_transform": {
         "subject": {
             "base": [
-                "Using reference image, transform the subject into the new scenario",
-                "Based on reference image, reimagine the person in",
-                "Reference image as base, transform into",
-                "Using the person from reference image in",
+                "Using reference image, transform the subject into the new scenario with quiet luxury authority",
+                "Based on reference image, reimagine the person in a scene with premium editorial restraint",
+                "Reference image as base, transform into a moment suggesting architectural masculine elegance",
+                "Using the person from reference image in a scenario with bespoke professional positioning",
             ]
         },
         "face_details": {
             "base": [
-                "natural skin texture and appearance",
-                "realistic complexion and features",
-                "authentic natural appearance",
-                "genuine skin tones and texture",
+                "natural skin texture and appearance with character lines (lived-in luxury, authentic seasoning)",
+                "realistic complexion and features showing refined maturity, strong angular structure",
+                "authentic natural appearance with micro-texture depth, confident presence evident",
+                "genuine skin tones showing tactile realism, sculpted features suggesting executive refinement",
             ]
         },
         "hair": {
             "base": [
-                "with hair and facial hair as in reference",
-                "hair cut and beard style matching reference",
-                "original styling with scenario-appropriate grooming",
-                "natural hair preserving length and facial hair",
+                "with hair and facial hair as in reference showing precision grooming detail",
+                "hair cut and beard style matching reference with architectural precision, curated authenticity",
+                "original styling with scenario-appropriate grooming showing bespoke attention",
+                "natural hair preserving length and facial hair with dimensional texture, lived-in sophistication",
             ]
         },
         "expression": {
             "base": [
-                "with confident natural expression",
-                "showing authentic composed demeanor",
-                "genuine engaging expression",
-                "natural confident presence",
+                "with confident natural expression showing quiet strength, editorial authority",
+                "showing authentic composed demeanor suggesting narrative depth, refined presence",
+                "genuine engaging expression with intellectual depth, curated confidence",
+                "natural confident presence showing restraint and emotional intelligence, bespoke authority",
             ]
         },
         "clothing": {
             "base": [
-                "wearing scenario-appropriate attire reflecting the setting",
-                "dressed authentically for the transformation context",
-                "in styled clothing suited to the scenario",
-                "with wardrobe choices matching the scene",
+                "wearing scenario-appropriate attire with material contrast (brushed wool + silk, leather + linen), texture visible",
+                "dressed authentically with architectural tailoring precision, bespoke construction detail evident",
+                "in styled clothing with hyper-refined details (stitching visible, seam work), luxury restraint",
+                "with wardrobe choices showing monochromatic discipline or single-accent luxury, editorial sophistication",
             ]
         },
         "pose": {
             "base": [
-                "positioned naturally in the scene",
-                "positioned with confident presence",
-                "naturally engaged with the setting",
-                "comfortably positioned in the scenario",
+                "positioned naturally showing monumental confidence, architectural grace in spacing",
+                "positioned with assured professional presence, gallery-inspired compositional balance",
+                "naturally engaged with setting through curated authenticity, refined asymmetric stance",
+                "comfortably positioned showing executive presence, intentional spatial arrangement",
             ]
         },
         "environment": {
             "base": [
-                "in a compelling transformation scenario",
-                "within the scenic environment",
-                "in the atmospheric setting",
-                "situated in the scenario backdrop",
+                "in a compelling transformation scenario featuring material contrasts (travertine + brushed brass, glass + warm wood)",
+                "within the scenic environment showing intentional negative space (breathing room), minimalist luxury",
+                "in the atmospheric setting with controlled lighting suggesting premium hotel or boutique architecture",
+                "situated in scenario backdrop with tall proportions, monolithic forms, gallery-inspired scale",
             ]
         },
         "lighting": {
             "base": [
-                "with strong natural lighting",
-                "with dramatic cinematic lighting",
-                "with professional atmospheric lighting",
-                "with cinematic light quality",
+                "with strong natural lighting using soft directional daylight, controlled golden-hour warmth",
+                "with dramatic cinematic lighting (editorial discipline), soft key + subtle rim light, restraint evident",
+                "with professional atmospheric lighting suggesting luxury penthouse or boutique setting",
+                "with cinematic light quality showing three-dimensionality, moody sophisticated shadow play",
             ]
         },
         "mood": {
             "base": [
-                "capturing authentic moment and presence",
-                "conveying genuine narrative mood",
-                "reflecting the scenario atmosphere",
-                "showing powerful emotional resonance",
+                "capturing authentic moment with quiet confidence and editorial presence",
+                "conveying genuine narrative authority with luxury sophistication, serene strength",
+                "reflecting scenario atmosphere with refined restraint, artisanal masculine energy",
+                "showing powerful emotional resonance with intellectual depth, bespoke presence",
             ]
         },
         "camera_style": {
             "base": [
-                "professional portrait composition, 85mm focal length feel",
-                "cinematic framing with depth",
-                "professional photography aesthetic",
-                "editorial quality composition",
+                "shot on medium-format (Hasselblad), 85mm equivalent, f/2.0 aperture, editorial masculinity",
+                "cinematic framing with depth and architectural precision, soft grain quality",
+                "professional photography using anamorphic lens aesthetic, premium executive portraiture",
+                "editorial quality composition, luxury hotel campaign framing, shallow depth of field with character",
             ]
         },
         "color_palette": {
             "base": [
-                "with sophisticated color grading and natural tones",
-                "with cinematic color palette",
-                "with professional color treatment",
-                "with authentic scenario color tone",
+                "with sophisticated color grading and restrained tones (charcoal + ivory + warm grey), muted masculinity",
+                "with cinematic color palette showing discipline, warm highlights balanced with cool shadows",
+                "with professional color treatment emphasizing tonal minimalism, desaturated luxury",
+                "with authentic scenario color tone using single-accent restraint (burnt orange OR slate blue), quiet luxury",
             ]
         },
         "quality_keywords": {
             "base": [
-                "high definition, sharp detail, authentic photography",
-                "masterpiece photography, award-winning quality",
-                "professional portrait quality",
-                "cinematic photography excellence",
+                "high definition, sharp detail, authentic photography, tactile imperfections evident",
+                "masterpiece photography, award-winning quality, editorial masculine luxury",
+                "professional portrait quality, sophisticated restraint, bespoke executive aesthetic",
+                "cinematic photography excellence, quiet luxury positioning, refined authority presence",
             ]
         }
     },
@@ -851,118 +853,119 @@ COMPONENT_TEMPLATES = {
     # -----------------------------------------------------------------------
     # COUPLES TRANSFORMATION CATEGORY (couples_transform)
     # H1 FIX: Converted from array to dict format for consistency
+    # EXPENSIVE FEEL FRAMEWORK INTEGRATED: Material contrast, controlled lighting, negative space, camera language, color discipline, physical imperfection, editorial references, micro-details
     # -----------------------------------------------------------------------
     "couples_transform": {
         "subject": {
             "base": [
-                "Using reference images, transform the couple into a romantic intimate moment",
-                "Using reference images, transform the couple into an adventure together",
-                "Using reference images, capture the couple having joyful fun together",
-                "Using reference images, transform the couple into a tender connection moment",
-                "Based on reference images, reimagine the couple in a passionate scenario",
-                "Based on reference images, reimagine the couple sharing a quiet intimate moment",
-                "Reference images as base, transform the couple into a romantic setting",
-                "Using both people from reference images in a beautiful couple scenario",
+                "Using reference images, transform the couple into a romantic intimate moment with quiet luxury aesthetic",
+                "Using reference images, transform the couple into an adventure together with editorial sophistication",
+                "Using reference images, capture the couple having joyful connection with bespoke authenticity",
+                "Using reference images, transform the couple into a tender moment suggesting luxury hotel campaign",
+                "Based on reference images, reimagine the couple in a passionate scenario with architectural grace",
+                "Based on reference images, reimagine the couple sharing a quiet intimate moment with curated restraint",
+                "Reference images as base, transform the couple into a romantic setting with material elegance",
+                "Using both people from reference images in a beautiful couple scenario showing editorial chemistry",
             ]
         },
         "relationship_context": {
             "base": [
-                "newlyweds celebrating their wedding",
-                "long-time partners in committed romance",
-                "childhood sweethearts reconnecting",
-                "adventure partners exploring together",
-                "parents capturing intimate family moment",
-                "friends discovering secret connection",
-                "professional partners with hidden chemistry",
-                "distant lovers reunited by chance",
+                "newlyweds celebrating their wedding with quiet luxury joy, premium brand campaign aesthetic",
+                "long-time partners in committed romance, seasoned authenticity with refined connection",
+                "childhood sweethearts reconnecting, lived-in chemistry with bespoke nostalgia",
+                "adventure partners exploring together with artistic partnership energy, monumental experiences",
+                "parents capturing intimate family moment, generational love with editorial grace",
+                "friends discovering secret connection, authentic chemistry with surprising depth",
+                "professional partners with hidden chemistry, workplace restraint meeting passionate authenticity",
+                "distant lovers reunited by chance, editorial moment of recognition and reunion elegance",
             ]
         },
         "face_details": {
             "base": [
-                "both with natural skin texture and appearance",
-                "with realistic complexion and features for both",
-                "both showing authentic natural appearance",
-                "genuine natural appearance for both individuals",
+                "both with natural skin texture and appearance showing character, lived-in authenticity",
+                "with realistic complexion and features for both preserving individual character and refinement",
+                "both showing authentic natural appearance with micro-texture detail (tactile realism)",
+                "genuine natural appearance for both individuals suggesting emotional depth and narrative",
             ]
         },
         "hair": {
             "base": [
-                "with hair matching reference appearance and length for both",
-                "hair color and style as in reference images for both",
-                "original hair preserving length and cut for both",
-                "natural hair texture with scenario styling for both",
+                "with hair matching reference appearance and length for both, curated yet effortless movement",
+                "hair color and style as in reference images for both with dimensional texture and shine",
+                "original hair preserving length and cut for both with romantic movement suggesting premium care",
+                "natural hair texture with scenario styling for both showing precision architectural grooming",
             ]
         },
         "expression": {
             "base": [
-                "with natural genuine expressions showing connection",
-                "showing authentic affection and chemistry",
-                "genuine relaxed expressions between them",
-                "natural warm interaction between both",
+                "with natural genuine expressions showing emotional connection, editorial authenticity",
+                "showing authentic affection and chemistry with quiet confidence, bespoke intimacy",
+                "genuine relaxed expressions between them suggesting narrative depth, curated spontaneity",
+                "natural warm interaction between both showing refined intimacy, luxury understatement",
             ]
         },
         "clothing": {
             "base": [
-                "wearing scenario-appropriate outfits for the couple",
-                "dressed for the new scenario with coordinated styling",
-                "styled appropriately for the couple setting",
-                "in contextual costumes matching the scenario",
+                "wearing scenario-appropriate outfits with complementary material contrast (silk + linen, leather + cashmere)",
+                "dressed for the new scenario with coordinated styling showing precision detail and texture visibility",
+                "styled appropriately for couple setting with architectural tailoring and bespoke construction evident",
+                "in contextual costumes matching scenario with hyper-refined detailing (stitching visible, seaming work)",
             ]
         },
         "pose": {
             "base": [
-                "positioned naturally showing couple connection",
-                "positioned together in the scene authentically",
-                "naturally engaged with each other and setting",
-                "comfortably positioned showing relationship",
+                "positioned naturally showing couple connection with intentional negative space composition",
+                "positioned together in scene authentically with gallery-inspired spatial arrangement",
+                "naturally engaged with each other and setting through curated asymmetric balance",
+                "comfortably positioned showing relationship with monumental architectural grace and spacing",
             ]
         },
         "environment": {
             "base": [
-                "in a beautiful couple transformation scenario",
-                "within the scenic romantic environment",
-                "in the atmospheric couple setting",
-                "situated in the scenario backdrop together",
+                "in a beautiful couple transformation scenario featuring material contrasts (travertine + brass, glass + wood)",
+                "within the scenic romantic environment showing intentional breathing room and minimal composition",
+                "in the atmospheric couple setting with luxury hotel campaign aesthetic and precision lighting",
+                "situated in scenario backdrop together with tall proportions, monolithic forms, gallery-inspired scale",
             ]
         },
         "lighting": {
             "base": [
-                "with warm romantic lighting flattering both",
-                "with cinematic atmospheric lighting for couple",
-                "with professional lighting enhancing connection",
-                "with golden intimate lighting quality",
+                "with warm romantic lighting flattering both using soft directional daylight, controlled golden-hour warmth",
+                "with cinematic atmospheric lighting for couple showing three-dimensionality and editorial restraint",
+                "with professional lighting enhancing connection through soft key + gentle rim, sophisticated shadows",
+                "with golden intimate lighting quality (warm highlights balanced with cool shadows), volumetric atmosphere",
             ]
         },
         "mood": {
             "base": [
-                "capturing authentic couple moment and connection",
-                "conveying genuine relationship and emotion",
-                "reflecting the scenario with couple chemistry",
-                "showing genuine emotional resonance between them",
+                "capturing authentic couple moment and connection with quiet luxury confidence",
+                "conveying genuine relationship and emotion with editorial sophistication and restraint",
+                "reflecting the scenario with couple chemistry, bespoke narrative authenticity",
+                "showing genuine emotional resonance between them with refined presence and artisanal energy",
             ]
         },
         "camera_style": {
             "base": [
-                "professional couple portrait composition, 85mm focal length feel",
-                "cinematic framing showing connection and depth",
-                "professional couple photography aesthetic",
-                "editorial quality couple composition",
+                "shot on medium-format (Hasselblad), 85mm equivalent, f/2.0 aperture, professional couple editorial",
+                "cinematic framing showing connection and depth with architectural precision, soft film grain",
+                "professional couple photography using anamorphic lens aesthetic, premium editorial quality",
+                "editorial quality couple composition, luxury hotel campaign aesthetic, shallow depth of field",
             ]
         },
         "color_palette": {
             "base": [
-                "with warm intimate color grading and natural tones",
-                "with cinematic romantic color palette",
-                "with professional balanced color treatment",
-                "with authentic scenario color harmony",
+                "with warm intimate color grading using restrained natural tones (charcoal + ivory palette), muted romance",
+                "with cinematic romantic color palette showing discipline, warm highlights balanced with cool sophisticated shadows",
+                "with professional balanced color treatment emphasizing desaturated luxury tones and tonal minimalism",
+                "with authentic scenario color harmony using single-accent approach (burnt orange OR soft blue), quiet luxury",
             ]
         },
         "quality_keywords": {
             "base": [
-                "high definition, sharp detail, authentic couple photography",
-                "masterpiece couple photography, award-winning quality",
-                "professional couple portrait quality",
-                "cinematic couple photography excellence",
+                "high definition, sharp detail, authentic couple photography, tactile imperfections evident",
+                "masterpiece couple photography, award-winning quality, editorial luxury campaign feel",
+                "professional couple portrait quality, sophisticated restraint, bespoke romantic aesthetic",
+                "cinematic couple photography excellence, quiet luxury positioning, refined intimate presence",
             ]
         }
     }
