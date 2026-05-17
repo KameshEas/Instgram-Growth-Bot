@@ -61,6 +61,68 @@ def is_component_na(component_data: Any) -> bool:
     return False
 
 
+def parse_json_response(text: str) -> dict:
+    """Lightweight JSON parsing helper for tests and utilities.
+
+    Attempts to parse direct JSON, extract JSON from markdown code blocks,
+    or extract raw JSON object/array substrings. Returns a dict on success
+    and a dict containing an "error" key on failure.
+    """
+    text = (text or "").strip()
+    if not text:
+        return {"error": "Empty response - no content to parse"}
+
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, dict):
+            return parsed
+        if isinstance(parsed, list):
+            return {"prompts": parsed}
+    except json.JSONDecodeError:
+        pass
+
+    # Try extracting from ```json code block
+    if "```json" in text:
+        try:
+            start = text.find("```json") + len("```json")
+            end = text.rfind("```")
+            if end > start:
+                snippet = text[start:end].strip()
+                try:
+                    parsed = json.loads(snippet)
+                    if isinstance(parsed, dict):
+                        return parsed
+                    if isinstance(parsed, list):
+                        return {"prompts": parsed}
+                except json.JSONDecodeError:
+                    pass
+        except Exception:
+            pass
+
+    # Try extracting raw JSON object or array by finding outer braces/brackets
+    obj_start = text.find("{")
+    arr_start = text.find("[")
+    try:
+        if arr_start != -1 and (obj_start == -1 or arr_start < obj_start):
+            end = text.rfind("]")
+            if end > arr_start:
+                snippet = text[arr_start:end+1]
+                parsed = json.loads(snippet)
+                if isinstance(parsed, list):
+                    return {"prompts": parsed}
+        elif obj_start != -1:
+            end = text.rfind("}")
+            if end > obj_start:
+                snippet = text[obj_start:end+1]
+                parsed = json.loads(snippet)
+                if isinstance(parsed, dict):
+                    return parsed
+    except Exception:
+        pass
+
+    return {"error": "Failed to parse JSON response (no valid JSON found)"}
+
+
 # ============================================================================
 # COMPONENT ORDER (M1 FIX: Single Source of Truth)
 # ============================================================================

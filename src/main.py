@@ -238,6 +238,9 @@ class InstagramGrowthBot:
     def __init__(self):
         self.client = init_groq()
         self.model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+        # Enhancement cache used by the professional enhancement pipeline (M4 fix)
+        # Tests and enhancement code expect this attribute to exist as a dict.
+        self._enhancement_cache = {}
         if PROMPT_LOG_ENABLED:
             _plog.init_prompt_log_db()
             _plog.purge_expired_cache()

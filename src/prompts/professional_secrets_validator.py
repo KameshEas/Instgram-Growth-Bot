@@ -8,7 +8,7 @@ prompts, ensuring consistent quality across all transformation categories.
 
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
-from professional_structure import PROFESSIONAL_SECRETS_KEYWORDS  # M3 FIX: Import from single source of truth
+from src.prompts.professional_structure import PROFESSIONAL_SECRETS_KEYWORDS  # M3 FIX: Import from single source of truth
 
 # ============================================================================
 # PROFESSIONAL SECRETS KEYWORDS

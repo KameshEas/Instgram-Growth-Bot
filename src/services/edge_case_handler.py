@@ -332,52 +332,34 @@ class EdgeCaseHandler:
         except Exception:
             return False
 
-    async def get_clarifying_question(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Return a structured clarifying question with suggested fields.
+    async def get_clarifying_question(self, data: Dict[str, Any]) -> str:
+        """Return a concise clarifying question as plain text.
 
-        Returns a dict containing:
-          - question: human-friendly prompt to ask the user
-          - fields: a list of field names we expect in the clarification
-
-        This allows callers to present a guided multi-field clarification UI
-        (or parse structured key:value responses from the user).
+        This function returns a short human-friendly question string suitable for
+        asking the user for clarification. Callers that need structured fields
+        can still use their own heuristics or parse the question text.
         """
         try:
             handling = await self._handle_input(data, "content_generator")
-            # Default fields we request for visual prompts
+            # Default fields we request for visual prompts (used only to craft the text)
             suggested_fields = ["subject", "colors", "mood", "shot_type", "must_have", "must_not_have"]
 
             if not handling.alerts:
-                return {
-                    "question": "Could you provide a bit more detail? (e.g. subject, colors, mood, shot type)",
-                    "fields": suggested_fields,
-                }
+                return "Could you provide a bit more detail? (e.g. subject, colors, mood, shot type)"
 
             # Prioritise actionable alerts
             for a in handling.alerts:
                 if a.case_type == EdgeCaseType.MISSING_CRITICAL:
-                    return {
-                        "question": f"I need the '{a.field}' value — could you provide it?",
-                        "fields": [a.field],
-                    }
+                    return f"I need the '{a.field}' value — could you provide it?"
                 if a.case_type == EdgeCaseType.VAGUE_REQUEST:
-                    return {
-                        "question": f"Could you be more specific about {a.field}? For example: subject, colors, mood, or style.",
-                        "fields": suggested_fields,
-                    }
+                    return f"Could you be more specific about {a.field}? For example: subject, colors, mood, or style."
                 if a.case_type == EdgeCaseType.INVALID_FORMAT:
-                    return {
-                        "question": f"The field '{a.field}' looks malformed — can you rephrase it?",
-                        "fields": [a.field],
-                    }
+                    return f"The field '{a.field}' looks malformed — can you rephrase it?"
 
             # Generic fallback
-            return {
-                "question": "Could you clarify what you mean so I can generate a better prompt?",
-                "fields": suggested_fields,
-            }
+            return "Could you clarify what you mean so I can generate a better prompt?"
         except Exception:
-            return {"question": "Could you provide a bit more detail for the request?", "fields": ["subject", "colors", "mood"]}
+            return "Could you provide a bit more detail for the request?"
 
 
 class EdgeCaseHandlerFactory:
