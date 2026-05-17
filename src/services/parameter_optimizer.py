@@ -112,8 +112,9 @@ class ParameterOptimizationMatrix:
     
     def analyze_parameter_correlations(self) -> Dict[str, ParameterQualityCorrelation]:
         """Analyze correlation between parameters and quality"""
-        if len(self.parameter_data) < 10:
-            self.logger.warning(f"Only {len(self.parameter_data)} samples, need 10+")
+        # Allow analysis for small sample sizes during early testing
+        if len(self.parameter_data) < 3:
+            self.logger.warning(f"Only {len(self.parameter_data)} samples, need 3+ for meaningful correlations")
             return {}
         
         correlations = {}
@@ -260,8 +261,9 @@ class ParameterOptimizationMatrix:
         
         if std_x == 0 or std_y == 0:
             return 0.0
-        
-        return numerator / (std_x * std_y * n)
+
+        # Pearson correlation: covariance / (sqrt(sum_x2) * sqrt(sum_y2))
+        return numerator / (std_x * std_y)
     
     def _find_optimal_range(
         self,

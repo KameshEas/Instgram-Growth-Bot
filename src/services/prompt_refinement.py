@@ -1,4 +1,4 @@
-"""
+﻿"""
 Automatic Prompt Refinement Service
 Iteratively improves prompts based on evaluation feedback
 """
@@ -278,13 +278,11 @@ class PromptRefiner:
             return "No refinements performed yet."
         
         summary = f"""
-╔════════════════════════════════════════════════════════════╗
-║              REFINEMENT HISTORY SUMMARY                     ║
-╚════════════════════════════════════════════════════════════╝
+    REFINEMENT HISTORY
 
-Total refinements: {len(self.refinement_history)}
+    Total refinements: {len(self.refinement_history)}
 
-"""
+    """
         
         for step in self.refinement_history:
             improvement = step.score_after - step.score_before
@@ -303,7 +301,7 @@ Iteration {step.iteration}:
     def export_refinement_history(self, filepath: str) -> None:
         """Export refinement history to file"""
         try:
-            with open(filepath, 'w') as f:
+            with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(self.get_refinement_summary())
                 f.write("\n\nDetailed History:\n")
                 f.write("=" * 60 + "\n\n")
@@ -333,3 +331,4 @@ class RefinerFactory:
         if RefinerFactory._refiner is None:
             RefinerFactory._refiner = PromptRefiner()
         return RefinerFactory._refiner
+

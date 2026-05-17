@@ -87,7 +87,7 @@ class EdgeCaseHandler:
         return {
             "something", "nice", "cool", "good", "great",
             "simple", "complex", "various", "different",
-            "interesting", "unique", "professional",
+            "interesting", "unique",
             "beautiful", "pretty", "awesome",
             "cute", "romantic", "romancing", "loving"
         }

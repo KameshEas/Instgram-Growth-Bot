@@ -1293,9 +1293,10 @@ Each variation should be a complete, ready-to-brief design brief that a designer
             # Extract briefs from response
             briefs = result.get("briefs", [])
             if briefs:
+                # Normalize return shape: provide a dedicated `brief` object containing `briefs`
                 return {
                     "status": "success",
-                    "brief": result,
+                    "brief": {"briefs": briefs},
                     "sections": [b.get("title", f"Brief {i+1}") for i, b in enumerate(briefs)],
                     "total_sections": len(briefs),
                 }
