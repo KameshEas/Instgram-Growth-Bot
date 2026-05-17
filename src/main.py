@@ -15,6 +15,7 @@ from pathlib import Path
 from groq import Groq
 from datetime import datetime
 from dotenv import load_dotenv
+from src.prompts.formulas import get_formula, compose_prompt_from_formula
 
 # Load environment variables from .env file in the project root
 env_path = Path(__file__).parent.parent / ".env"
@@ -636,6 +637,23 @@ Return JSON with:
         if category in transform_categories and reference_image_text:
             reference_line = f"\n\nREFERENCE IMAGE PROVIDED: {reference_image_text}\nUse this description to anchor facial identity preservation across all variants."
 
+        # Build a formula scaffold to bias generated prompts when available
+        formula_scaffold = ""
+        try:
+            formula_def = get_formula(category)
+            if formula_def:
+                components_map = {
+                    "scenario": user_context_safe or "",
+                    "lighting": "",
+                    "styling": "",
+                    "outfit": "",
+                    "accessories": "",
+                    "composition": "",
+                }
+                formula_scaffold = compose_prompt_from_formula(formula_def, components_map, user_context_safe)
+        except Exception as e:
+            logger.debug(f"Formula scaffold generation failed: {e}")
+
         # Use specialized prompt template for transformation tasks
         if category in transform_categories:
             # For transformation with CUSTOM prompt, use a simplified template that respects user's requirement
@@ -646,6 +664,8 @@ Return JSON with:
 Category: {category_desc}{niche_line}{context_line}
 
 USER'S TRANSFORMATION REQUIREMENT: {user_context_safe}
+
+BASE FORMULA SCAFFOLD: {formula_scaffold}
 
 ABSOLUTE PRIORITY: IDENTITY LOCK (NO EXCEPTIONS)
 - IDENTITY MUST BE PIXEL-PERFECT IDENTICAL TO REFERENCE IMAGE
@@ -709,6 +729,8 @@ Return ONLY valid JSON (no markdown, no text before/after):
             prompt = f"""You are an expert AI image generation prompt engineer for identity-locked portrait transformations.
 
 Category: {category_desc}{niche_line}{context_line}{reference_line}{transformation_directive}{artistic_style_emphasis}
+
+BASE FORMULA SCAFFOLD: {formula_scaffold}
 
 ABSOLUTE PRIORITY: IDENTITY LOCK (NO EXCEPTIONS)
 - IDENTITY MUST BE PIXEL-PERFECT IDENTICAL TO REFERENCE IMAGE
@@ -1010,6 +1032,8 @@ Return ONLY valid JSON (no markdown, no extra text):
             prompt = f"""You are an expert AI image generation prompt engineer creating CONCISE, ready-to-use prompts.
 
 Category: {category_desc}{niche_line}{context_line}
+
+BASE FORMULA SCAFFOLD: {formula_scaffold}
 
 Instructions:
 - Create {count} distinct, complementary prompts (each ~100-150 words max)
