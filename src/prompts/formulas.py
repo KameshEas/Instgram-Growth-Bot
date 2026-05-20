@@ -59,6 +59,57 @@ TRANSFORMATION_FORMULA_COMPONENTS = [
 ]
 
 
+LOGO_PROMPT_FORMULA_COMPONENTS = [
+    {
+        "key": "brand_foundation",
+        "template": "Brand foundation: brand name {BRAND_NAME}, tagline: {TAGLINE}, industry: {INDUSTRY}, brand tone: {BRAND_TONE}, target audience: {TARGET_AUDIENCE}.",
+    },
+    {
+        "key": "purpose_deliverables",
+        "template": "Purpose & deliverables: primary usage {PRIMARY_USAGE}; deliverables: include High-Resolution PNG (transparent background), design system package with color tokens, typography, spacing, usage guidelines; variant_count: {VARIANT_COUNT}.",
+    },
+    {
+        "key": "logo_type_concept",
+        "template": "Logo type & concept: {LOGO_TYPE} (wordmark/lettermark/emblem/combination); concept notes: {CONCEPT_NOTES}.",
+    },
+    {
+        "key": "visual_identity_constraints",
+        "template": "Visual identity constraints: preferred colors {PREFERRED_COLORS}; forbidden colors {FORBIDDEN_COLORS}; color harmony guidance: {COLOR_HARMONY}.",
+    },
+    {
+        "key": "typography_lettering",
+        "template": "Typography & lettering: font style {FONT_STYLE}; typography constraints: {TYPOGRAPHY_CONSTRAINTS}.",
+    },
+    {
+        "key": "icon_mark_details",
+        "template": "Icon/mark details: shape language {SHAPE_LANGUAGE}; negative space guidance: {NEGATIVE_SPACE}; symbol specifics: {SYMBOL_SPECIFICS}.",
+    },
+    {
+        "key": "layout_variants",
+        "template": "Layout & variants: layout options {LAYOUT_OPTIONS}; clear space rules: {CLEAR_SPACE}; minimum size px: {MIN_SIZE_PX}.",
+    },
+    {
+        "key": "color_variants",
+        "template": "Color variants required: full-color {FULL_COLOR}, monochrome {MONOCHROME}, single-color {SINGLE_COLOR}, reversed {REVERSED}.",
+    },
+    {
+        "key": "export_specs",
+        "template": "Export & production specs: PNG resolution {PNG_RESOLUTION}, DPI {DPI}, background {BACKGROUND}, additional PNG sizes {ADDITIONAL_PNG_SIZES}.",
+    },
+    {
+        "key": "accessibility_contrast",
+        "template": "Accessibility & contrast: contrast target {CONTRAST_TARGET}; color-blind-friendly variants: {COLOR_BLIND_FRIENDLY}.",
+    },
+    {
+        "key": "mockups_contexts",
+        "template": "Background & mockups: mockup contexts {MOCKUP_CONTEXTS}; cropping/canvas guidance: {CROPPING_GUIDANCE}.",
+    },
+    {
+        "key": "negative_constraints",
+        "template": "Constraints & IP safety: do not imitate trademarked logos or copyrighted artwork; avoid photographic textures; require original, vector-friendly shapes; no text/trademark copying.",
+    },
+]
+
 PROMPT_FORMULAS: Dict[str, Dict[str, Any]] = {
     "women_transform": {
         "components": TRANSFORMATION_FORMULA_COMPONENTS,
@@ -134,6 +185,9 @@ PROMPT_FORMULAS: Dict[str, Dict[str, Any]] = {
     },
 }
 
+# Register logo_create formula (High-Resolution PNG + design system)
+PROMPT_FORMULAS['logo_create'] = {"components": LOGO_PROMPT_FORMULA_COMPONENTS}
+
 
 def get_formula(category: str) -> Optional[Dict[str, Any]]:
     """Return the formula dict for a normalized category name, or None."""
@@ -207,6 +261,39 @@ def compose_prompt_from_formula(formula_def: Dict[str, Any], components: Dict[st
             "FOCUS_QUALITY": components.get("focus_quality", "sharp facial focus"),
             "PORTRAIT_REALISM": components.get("portrait_realism", "high photorealism"),
             "EDITORIAL_FRAMING": components.get("editorial_framing", "professional editorial crop"),
+            "BRAND_NAME": components.get("brand_name", ""),
+            "TAGLINE": components.get("tagline", ""),
+            "INDUSTRY": components.get("industry", ""),
+            "BRAND_TONE": components.get("brand_tone", ""),
+            "TARGET_AUDIENCE": components.get("target_audience", ""),
+            "PRIMARY_USAGE": components.get("primary_usage", ""),
+            "VARIANT_COUNT": components.get("variant_count", 3),
+            "LOGO_TYPE": components.get("logo_type", ""),
+            "CONCEPT_NOTES": components.get("concept_notes", ""),
+            "PREFERRED_COLORS": components.get("preferred_colors", ""),
+            "FORBIDDEN_COLORS": components.get("forbidden_colors", ""),
+            "COLOR_HARMONY": components.get("color_harmony", ""),
+            "FONT_STYLE": components.get("font_style", ""),
+            "TYPOGRAPHY_CONSTRAINTS": components.get("typography_constraints", ""),
+            "SHAPE_LANGUAGE": components.get("shape_language", ""),
+            "NEGATIVE_SPACE": components.get("negative_space", ""),
+            "SYMBOL_SPECIFICS": components.get("symbol_specifics", ""),
+            "LAYOUT_OPTIONS": components.get("layout_options", ""),
+            "CLEAR_SPACE": components.get("clear_space", ""),
+            "MIN_SIZE_PX": components.get("min_size_px", ""),
+            "FULL_COLOR": components.get("full_color", "yes"),
+            "MONOCHROME": components.get("monochrome", "yes"),
+            "SINGLE_COLOR": components.get("single_color", "yes"),
+            "REVERSED": components.get("reversed", "yes"),
+            "PNG_RESOLUTION": components.get("png_resolution", "4000x4000"),
+            "DPI": components.get("dpi", 300),
+            "BACKGROUND": components.get("background", "transparent"),
+            "ADDITIONAL_PNG_SIZES": components.get("additional_png_sizes", "2000x2000,1024x1024,32x32"),
+            "CONTRAST_TARGET": components.get("contrast_target", "WCAG AA"),
+            "COLOR_BLIND_FRIENDLY": components.get("color_blind_friendly", "false"),
+            "MOCKUP_CONTEXTS": components.get("mockup_contexts", "app icon, social avatar, signage, packaging"),
+            "CROPPING_GUIDANCE": components.get("cropping_guidance", "center-crop for icon; safe margins for signage"),
+            "NEGATIVE_CONSTRAINTS": components.get("negative_constraints", ""),
             "LIGHTING": components.get("lighting", ""),
             "STYLING": components.get("styling") or components.get("style") or "",
             "OUTFIT": components.get("outfit", ""),

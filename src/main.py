@@ -599,6 +599,7 @@ Return JSON with:
         reference_image_text: str = None,
         temperature: float = None,
         guidance: float = None,
+        components: dict = None,
     ) -> dict:
         """Generate AI-crafted, niche-tailored image generation prompts for a given category.
         
@@ -656,6 +657,77 @@ Return JSON with:
                 formula_scaffold = compose_prompt_from_formula(formula_def, components_map, user_context_safe)
         except Exception as e:
             logger.debug(f"Formula scaffold generation failed: {e}")
+
+        # Specialized handling for logo creation (High-Resolution PNG + design system)
+        logo_categories = {"logo_create"}
+        if category in logo_categories:
+            # Prefer structured `components` when provided by caller (Telegram / Mobile)
+            comp = components or {}
+            # Build logo-specific components map from provided inputs or sensible defaults
+            components_map_logo = {
+                "brand_name": (comp.get("brand_name") if comp and comp.get("brand_name") else user_context_safe or niche_safe or "BrandName"),
+                "tagline": comp.get("tagline", ""),
+                "industry": comp.get("industry") if comp and comp.get("industry") else niche_safe or "",
+                "brand_tone": comp.get("brand_tone", ""),
+                "target_audience": comp.get("target_audience", ""),
+                "primary_usage": comp.get("primary_usage", "web, app, print"),
+                "variant_count": comp.get("variant_count", count or 3),
+                "logo_type": comp.get("logo_type", "combination"),
+                "preferred_colors": comp.get("preferred_colors", ""),
+                "png_resolution": comp.get("png_resolution", "4000x4000"),
+                "dpi": comp.get("dpi", 300),
+                "background": comp.get("background", "transparent"),
+                "additional_png_sizes": comp.get("additional_png_sizes", "2000x2000,1024x1024,32x32"),
+            }
+
+            try:
+                logo_formula_def = get_formula(category)
+                logo_scaffold = ""
+                if logo_formula_def:
+                    logo_scaffold = compose_prompt_from_formula(logo_formula_def, components_map_logo, user_context_safe)
+
+                prompt = f"""You are an expert brand identity and logo design prompt engineer.
+
+Category: {category_desc}{niche_line}{context_line}
+
+BRAND BRIEF: {user_context_safe}
+
+BASE FORMULA SCAFFOLD: {logo_scaffold}
+
+PRIORITY: Deliver High-Resolution PNG files + a compact design system package.
+
+REQUIREMENTS:
+- Produce {count} distinct logo concepts (each with variations).
+- Output should include instructions for PNG export: {components_map_logo['png_resolution']} px, {components_map_logo['dpi']} DPI, transparent background.
+- Include design system tokens: colors.json (hex tokens), typography.md (font suggestions), spacing.md (grid/clear-space), usage.md (do/don't).
+- Provide full-color, monochrome, single-color, and reversed variants.
+- Negative: Do not imitate existing trademarks or copyrighted logos; avoid photographic textures; prefer geometric/vector-friendly shapes.
+
+Return JSON with:
+{{
+  "prompts": [
+     {{"prompt": "<detailed prompt instructing image generator (DALL-E 3/Midjourney/SD) to create a high-res PNG logo and variants>", "variant": "<description>"}}
+  ],
+  "deliverables": {{ "png_specs": ["{components_map_logo['brand_name']}_logo_primary_{components_map_logo['png_resolution']}.png"], "design_system_files": ["colors.json","typography.md","spacing.md","usage.md"] }}
+}}
+"""
+
+                return self._call_groq_with_fallback(
+                    command="generate_logo_prompts",
+                    cache_key=self._make_cache_key(
+                        "generate_logo_prompts",
+                        niche=niche,
+                        action=category,
+                        topic=user_context_safe[:50],
+                    ),
+                    prompt=prompt,
+                    chat_id=chat_id,
+                    temperature=temperature if temperature is not None else 0.6,
+                    ttl_hours=None,
+                )
+            except Exception as e:
+                logger.error(f"Logo formula generation failed: {e}")
+                # fall through to default handling if something unexpected occurs
 
         # Use specialized prompt template for transformation tasks
         if category in transform_categories:

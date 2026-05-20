@@ -233,9 +233,10 @@ class TelegramBotHandler:
             "  /generate `[category]` — AI image prompts\n"
             "  /categories — Browse all prompt categories\n"
             "  /search `[keyword]` — Find prompts by keyword\n"
-            "  /inspire `[topic]` — 3 creative content angles\n\n"
-            "💬 *Free-text chat*\n"
-            "  Just type any question — I'll answer as your Instagram coach!\n\n"
+                "🎨 *Prompt Library*"
+                "  /generate `[category]` — AI image prompts"
+                "  /logo_create `[key=value ...]` — Generate logo concepts (High-Res PNG + design system)\n"
+                "  /categories — Browse all prompt categories"
             "💡 Tip: Run /setup first for personalised responses."
         )
         await update.message.reply_text(text, parse_mode="Markdown")
@@ -1509,6 +1510,68 @@ class TelegramBotHandler:
         except Exception as e:
             await update.message.reply_text(f"❌ Error: {e}")
             logger.error(f"generate_command error: {e}")
+        async def logo_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+            """Handle /logo_create key=value flags to generate logo prompts and deliverables."""
+            # Example: /logo_create brand_name="Acme Inc" preferred_colors="#ff0000,#00ff00" png_resolution=4000x4000 dpi=300 variant_count=3
+            args = context.args or []
+            if not args:
+                await update.message.reply_text(
+                    "Usage: /logo_create brand_name=\"Acme Inc\" preferred_colors=\"#ff0000,#00ff00\" png_resolution=4000x4000 dpi=300 variant_count=3 logo_type=combination",
+                    parse_mode="Markdown",
+                )
+                return
+
+            import shlex
+            try:
+                toks = shlex.split(" ".join(args))
+            except Exception:
+                toks = args
+
+            kv = {}
+            for t in toks:
+                if "=" in t:
+                    k, v = t.split("=", 1)
+                    kv[k.strip()] = v.strip()
+
+            if not kv:
+                kv["brand_name"] = " ".join(args)
+
+            components = {
+                "brand_name": kv.get("brand_name", "").strip('"'),
+                "tagline": kv.get("tagline", "").strip('"'),
+                "industry": kv.get("industry", "").strip('"'),
+                "brand_tone": kv.get("brand_tone", "").strip('"'),
+                "preferred_colors": kv.get("preferred_colors", "").strip('"'),
+                "logo_type": kv.get("logo_type", "combination").strip('"'),
+                "variant_count": int(kv.get("variant_count", 3)) if kv.get("variant_count") else 3,
+                "png_resolution": kv.get("png_resolution", "4000x4000").strip('"'),
+                "dpi": int(kv.get("dpi", 300)) if kv.get("dpi") else 300,
+                "background": kv.get("background", "transparent").strip('"'),
+                "additional_png_sizes": kv.get("additional_png_sizes", "2000x2000,1024x1024,32x32").strip('"'),
+            }
+
+            await update.message.reply_text(f"⏳ Generating logo prompts for *{components['brand_name'] or 'brand'}*...", parse_mode="Markdown")
+            try:
+                result = await self.orchestrator.execute({
+                    "command": "/generate",
+                    "category": "logo_create",
+                    "components": components,
+                    "chat_id": update.message.chat_id,
+                    "niche": self._get_profile(update.message.chat_id).get("niche", ""),
+                })
+
+                if result and result.get("status") == "success":
+                    prompts = result.get("prompts", [])
+                    for p in prompts[:3]:
+                        text = p.get("prompt") if isinstance(p, dict) else str(p)
+                        for chunk in self._send_long(text):
+                            await update.message.reply_text(chunk)
+                    await update.message.reply_text("✅ Logo prompt generation complete. Review deliverables in the job details.")
+                else:
+                    await update.message.reply_text(f"❌ Failed to generate logo prompts: {result}")
+            except Exception as e:
+                await update.message.reply_text(f"❌ Error: {e}")
+                logger.error(f"logo_command error: {e}")
 
     async def categories_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """List all prompt categories."""
@@ -1777,6 +1840,7 @@ def _build_app(handler: "TelegramBotHandler") -> "Application":
     app.add_handler(CommandHandler("monetize", handler.monetize_command))
     app.add_handler(CommandHandler("analytics", handler.analytics_command))
     app.add_handler(CommandHandler("generate", handler.generate_command))
+    app.add_handler(CommandHandler("logo_create", handler.logo_command))
     app.add_handler(CommandHandler("categories", handler.categories_command))
     app.add_handler(CommandHandler("search", handler.search_command))
     app.add_handler(CommandHandler("inspire", handler.inspire_command))

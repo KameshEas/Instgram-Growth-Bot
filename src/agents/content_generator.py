@@ -143,6 +143,7 @@ class ContentGeneratorAgent(BaseAgent):
                 count=count,
                 user_context=self._build_user_context(data),
                 chat_id=data.get("chat_id"),
+                components=data.get("components"),
             )
             
             if isinstance(ai_result, dict) and "prompts" in ai_result and not ai_result.get("error"):
