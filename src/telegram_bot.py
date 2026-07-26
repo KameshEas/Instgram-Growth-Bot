@@ -1175,7 +1175,7 @@ class TelegramBotHandler:
 
     # ── Universal Prompts Response Handler ────────────────────────────────────────
 
-    async def _handle_universal_prompts_response(self, update: Update, result: dict, category: str):
+    async def _handle_universal_prompts_response(self, update: Update, context: ContextTypes.DEFAULT_TYPE, result: dict, category: str):
         """Format and send universal prompt response."""
         try:
             variations = result.get("variations", [])
@@ -1736,7 +1736,7 @@ class TelegramBotHandler:
             if result and result.get("status") == "success":
                 # Use unified prompt handler for all categories with variations
                 if "variations" in result:
-                    await self._handle_universal_prompts_response(update, result, category)
+                    await self._handle_universal_prompts_response(update, context, result, category)
                 # Keep legacy handlers for compatibility with old response shapes
                 elif is_design_brief and "brief" in result:
                     await self._handle_design_brief_response(update, result, category)
