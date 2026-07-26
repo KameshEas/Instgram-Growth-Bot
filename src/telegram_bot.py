@@ -1645,8 +1645,15 @@ class TelegramBotHandler:
 
     async def generate_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /generate [category] [level] ["custom concept"] or design brief."""
-        full_text = update.message.text
-        text_after_cmd = full_text.replace("/generate", "", 1).strip()
+        # Handle both regular messages and callback-triggered invocations
+        if context.args:
+            # Called from button callback with category in context.args
+            text_after_cmd = " ".join(context.args)
+            context.args = None  # Clear for next call
+        else:
+            # Regular /generate command
+            full_text = update.message.text if update.message else ""
+            text_after_cmd = full_text.replace("/generate", "", 1).strip()
 
         if not text_after_cmd:
             await update.message.reply_text(
