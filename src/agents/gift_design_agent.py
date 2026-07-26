@@ -10,7 +10,6 @@ from src.prompts.templates import (
     list_professional_roles,
     get_role_metadata,
     get_role_guidance,
-    GIFT_DESIGN_SYSTEM_PROMPT,
 )
 from src.services.agent_evaluation_integration import EvaluationHookFactory
 from src.services.parameter_recommendation_engine import ParameterRecommendationFactory

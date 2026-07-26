@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Instagram Growth Bot - Minimal Implementation
 Uses Groq API + pure Python (requests, no async frameworks)
@@ -350,7 +350,7 @@ class InstagramGrowthBot:
             _plog.purge_expired_cache()
         logger.info("[OK] Bot initialized with Groq API and retry handler")
 
-    # ── Private helpers ──────────────────────────────────────────────────────
+    # â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _build_aesthetic_preferences_prompt(
         self,
@@ -374,7 +374,7 @@ class InstagramGrowthBot:
 
         # Build aesthetic instruction
         aesthetic_instruction = f"""
-🎨 AESTHETIC PREFERENCES & BLEND GUIDANCE:
+ðŸŽ¨ AESTHETIC PREFERENCES & BLEND GUIDANCE:
 User's aesthetic blend: {aesthetic_prefs.blend_level.value}
 - Attire style: {aesthetic_prefs.blend_level.value} blend (from traditional to modern)
 - Jewelry preference: {aesthetic_prefs.jewelry_style.value}
@@ -390,7 +390,7 @@ MANDATE: Generate {len(scenario_names)} COMPLETELY DIFFERENT prompts using diffe
             scenario = scenarios.get(scenario_name, {})
             if scenario:
                 aesthetic_instruction += f"""
-{i}️⃣ SCENARIO: {scenario_name.replace('_', ' ').title()}
+{i}ï¸âƒ£ SCENARIO: {scenario_name.replace('_', ' ').title()}
    - Setting: {scenario.get('setting', 'N/A')}
    - Pose: {scenario.get('pose', 'N/A')}
    - Expression: {scenario.get('expression', 'N/A')}
@@ -499,12 +499,12 @@ Return ONLY valid JSON (no markdown, no text before/after):
         """Centralised Groq call with DB logging and tiered fallback cache.
 
         Flow:
-        1. Check fresh cache → return immediately on hit (unless ttl_hours=None).
-        2. Call Groq → on success log + cache + return result.
-        3. On failure → log error → serve stale cache with _stale flag.
-        4. Nothing cached → return error dict.
+        1. Check fresh cache â†’ return immediately on hit (unless ttl_hours=None).
+        2. Call Groq â†’ on success log + cache + return result.
+        3. On failure â†’ log error â†’ serve stale cache with _stale flag.
+        4. Nothing cached â†’ return error dict.
         """
-        # Step 1 — fresh cache check (SKIP if ttl_hours=None, meaning no caching for this request)
+        # Step 1 â€” fresh cache check (SKIP if ttl_hours=None, meaning no caching for this request)
         if PROMPT_LOG_ENABLED and ttl_hours is not None:  # Only use cache if caching is enabled (ttl_hours set)
             cached = _plog.get_cached_response(cache_key)
             if cached:
@@ -574,7 +574,7 @@ Return ONLY valid JSON (no markdown, no text before/after):
                     )
                 return result
 
-            # Parse failure — log what we got
+            # Parse failure â€” log what we got
             raw_response = response.choices[0].message.content[:500]  # First 500 chars
             logger.error(
                 f"[ERROR L1] {command}: JSON parse failed after {latency_ms}ms latency. "
@@ -582,7 +582,7 @@ Return ONLY valid JSON (no markdown, no text before/after):
                 f"Response preview: {raw_response}..."
             )
             
-            # Parse failure — try stale cache as fallback (only if caching enabled)
+            # Parse failure â€” try stale cache as fallback (only if caching enabled)
             if PROMPT_LOG_ENABLED and ttl_hours is not None:  # Only fall back to stale cache if this request uses caching
                 _plog.log_prompt_response(
                     command=command, prompt_hash=cache_key, prompt_text=prompt,
@@ -658,7 +658,7 @@ Style: {style}
 Generate the optimal set of Instagram captions for this account. Decide the best number based on the topic and account stage. For each caption include a compelling hook, main message, and strong call-to-action.
 
 Return JSON with:
-- captions: list of caption objects, each with: hook (opening line ≤15 words), body (main message), cta (call-to-action), format_type (Reel/Carousel/Static/Story)
+- captions: list of caption objects, each with: hook (opening line â‰¤15 words), body (main message), cta (call-to-action), format_type (Reel/Carousel/Static/Story)
 - hashtags: list of relevant hashtags tailored to this niche and region (you decide the right quantity and mix)
 - virality_score: estimated score 0-100 with brief reasoning
 - posting_tip: one actionable tip specific to this content and account stage"""
@@ -708,7 +708,7 @@ Niche: {niche}
 
 {scraped_block}
 
-Provide a comprehensive trend analysis. Let the data and niche guide how many hashtags and ideas to surface — do not limit yourself to a fixed count.
+Provide a comprehensive trend analysis. Let the data and niche guide how many hashtags and ideas to surface â€” do not limit yourself to a fixed count.
 
 Return JSON with:
 - trending_hashtags: list of objects with hashtag, relevance_to_niche (0-100), why_it_works
@@ -749,7 +749,7 @@ Return JSON with:
 Account context:
 {context_block}
 
-Create a personalised engagement strategy for this account. Base all recommendations on the specific niche, region, and account stage — do not use generic one-size-fits-all numbers.
+Create a personalised engagement strategy for this account. Base all recommendations on the specific niche, region, and account stage â€” do not use generic one-size-fits-all numbers.
 
 Return JSON with:
 - daily_engagement_plan: specific daily actions tailored to this niche and stage (the AI determines right volume/frequency)
@@ -828,7 +828,7 @@ Generate {count} distinct, optimized prompts for {style_hint}. Return ONLY valid
             topic=user_idea[:50] if user_idea else "",
         )
 
-        # NO CACHE for custom ideas — user wants fresh generation each time
+        # NO CACHE for custom ideas â€” user wants fresh generation each time
         cache_ttl = None if user_idea else 24
 
         result = self._call_groq_with_fallback(
@@ -855,642 +855,6 @@ Generate {count} distinct, optimized prompts for {style_hint}. Return ONLY valid
                 }
 
         return result or {"status": "error", "error": "No variations generated"}
-
-    def generate_image_prompts(
-        self,
-        category: str = "general_photography",
-        niche: str = "",
-        follower_count: int = None,
-        region: str = "",
-        count: int = 3,
-        user_context: str = "",
-        chat_id: int = None,
-        reference_image_text: str = None,
-        temperature: float = None,
-        guidance: float = None,
-        components: dict = None,
-        aesthetic_preferences: Optional[AestheticPreferences] = None,
-        occasion: Optional[str] = None,
-    ) -> dict:
-        """Generate AI-crafted, niche-tailored image generation prompts with flexible aesthetic preferences.
-
-        Supports blend-based aesthetic customization (100% traditional to 100% modern) with scenario
-        variation based on occasion, not rigid categories. Enables global fusion aesthetics.
-
-                                            temperature=temperature if temperature is not None else 0.8,
-            reference_image_text: Optional description of reference image for categories like design_gifts
-                                 (e.g., "couple photo for personalized gift design")
-        """
-        # ── Aesthetic Preferences Setup ──────────────────────────────────────
-        # Generate preferences from input or niche/tier
-        if not aesthetic_preferences:
-            aesthetic_preferences = PreferenceGenerator.extract_from_niche_and_tier(
-                niche=niche,
-                follower_count=follower_count
-            )
-
-        # Use provided occasion or get from preferences
-        if not occasion:
-            occasion = aesthetic_preferences.occasion
-
-        # Log preferences for analytics
-        PreferenceGenerator.log_preferences(aesthetic_preferences)
-
-        # Get attire recommendations for blend level
-        attire_options = get_attire_for_blend(
-            aesthetic_preferences.blend_level,
-            occasion
-        )
-
-        # Get jewelry recommendations
-        jewelry_rec = get_jewelry_for_style(
-            aesthetic_preferences.jewelry_style,
-            ", ".join(attire_options[:2]) if attire_options else "outfit"
-        )
-
-        # Get makeup guidance
-        makeup_guidance = get_makeup_for_vibe(aesthetic_preferences.makeup_vibe)
-
-        # Get scenarios for this occasion
-        scenarios = get_scenarios_for_occasion(occasion)
-        scenario_names = select_diverse_scenarios(occasion, count=count)
-
-        CATEGORY_DESC = {
-            "general_photography":  "lifestyle, street, travel, and editorial photography",
-            "women_professional":   "professional/corporate female portrait photography",
-            "women_transform":      "female portrait transformation with reference-based identity preservation and scenario-specific generation",
-            "men_professional":     "professional/corporate male portrait photography",
-            "men_transform":        "male portrait transformation with reference-based identity preservation and scenario-specific generation",
-            "couples_transform":    "couples portrait transformation with relationship-context awareness and dual-identity preservation through reference foundation",
-            "design_posters":       "social media poster and graphic design",
-            "design_gifts":         "personalized gift design and custom merchandise",
-            "ui_ux_design":         "UI/UX screen and interface design",
-            "brand_identity":       "brand identity and logo design",
-            "illustration_art":     "digital illustration and concept art",
-            "animation_motion":     "animation and motion graphics",
-            "photography_styles":   "fine-art and editorial photography styles",
-            "print_design":         "print collateral and marketing design",
-            "product_3d":           "3D product visualisation and rendering",
-            "reel_scripts":         "Instagram Reel short-form video scripts",
-        }
-
-        transform_categories = {"women_transform", "men_transform", "couples_transform"}
-        category_desc = CATEGORY_DESC.get(category, category.replace("_", " "))
-        
-        # Sanitize niche and user_context to prevent quote/JSON breaking
-        niche_safe = (niche or "").replace('"', "'").replace("\n", " ").strip()[:100]
-        user_context_safe = (user_context or "").replace('"', "'").replace("\n", " ").strip()[:200]
-        
-        niche_line = f"\nNiche/brand: {niche_safe}" if niche_safe else ""
-        context_line = f"\nUser requirement: {user_context_safe}" if user_context_safe else ""
-        
-        # Build reference image context for transformations
-        reference_line = ""
-        if category in transform_categories and reference_image_text:
-            reference_line = f"\n\nREFERENCE IMAGE PROVIDED: {reference_image_text}\nUse this description to anchor facial identity preservation across all variants."
-
-        # Build a formula scaffold to bias generated prompts when available
-        formula_scaffold = ""
-        try:
-            formula_def = get_formula(category)
-            if formula_def:
-                components_map = {
-                    "scenario": user_context_safe or "",
-                    "lighting": "",
-                    "styling": "",
-                    "outfit": "",
-                    "accessories": "",
-                    "composition": "",
-                }
-                formula_scaffold = compose_prompt_from_formula(
-                    formula_def,
-                    components_map,
-                    user_context_safe,
-                    niche=niche,
-                    follower_count=follower_count,
-                    region=region,
-                )
-        except Exception as e:
-            logger.debug(f"Formula scaffold generation failed: {e}")
-
-        # Specialized handling for logo creation (High-Resolution PNG + design system)
-        logo_categories = {"logo_create"}
-        if category in logo_categories:
-            # Prefer structured `components` when provided by caller (Telegram / Mobile)
-            comp = components or {}
-            # Build logo-specific components map from provided inputs or sensible defaults
-            components_map_logo = {
-                "brand_name": (comp.get("brand_name") if comp and comp.get("brand_name") else user_context_safe or niche_safe or "BrandName"),
-                "tagline": comp.get("tagline", ""),
-                "industry": comp.get("industry") if comp and comp.get("industry") else niche_safe or "",
-                "brand_tone": comp.get("brand_tone", ""),
-                "target_audience": comp.get("target_audience", ""),
-                "primary_usage": comp.get("primary_usage", "web, app, print"),
-                "variant_count": comp.get("variant_count", count or 3),
-                "logo_type": comp.get("logo_type", "combination"),
-                "preferred_colors": comp.get("preferred_colors", ""),
-                "png_resolution": comp.get("png_resolution", "4000x4000"),
-                "dpi": comp.get("dpi", 300),
-                "background": comp.get("background", "transparent"),
-                "additional_png_sizes": comp.get("additional_png_sizes", "2000x2000,1024x1024,32x32"),
-            }
-
-            try:
-                logo_formula_def = get_formula(category)
-                logo_scaffold = ""
-                if logo_formula_def:
-                    logo_scaffold = compose_prompt_from_formula(
-                        logo_formula_def,
-                        components_map_logo,
-                        user_context_safe,
-                        niche=niche,
-                        follower_count=follower_count,
-                        region=region,
-                    )
-
-                prompt = f"""You are an expert brand identity and logo design prompt engineer.
-
-Category: {category_desc}{niche_line}{context_line}
-
-BRAND BRIEF: {user_context_safe}
-
-BASE FORMULA SCAFFOLD: {logo_scaffold}
-
-PRIORITY: Deliver High-Resolution PNG files + a compact design system package.
-
-REQUIREMENTS:
-- Produce {count} distinct logo concepts (each with variations).
-- Output should include instructions for PNG export: {components_map_logo['png_resolution']} px, {components_map_logo['dpi']} DPI, transparent background.
-- Include design system tokens: colors.json (hex tokens), typography.md (font suggestions), spacing.md (grid/clear-space), usage.md (do/don't).
-- Provide full-color, monochrome, single-color, and reversed variants.
-- Negative: Do not imitate existing trademarks or copyrighted logos; avoid photographic textures; prefer geometric/vector-friendly shapes.
-
-Return JSON with:
-{{
-  "prompts": [
-     {{"prompt": "<detailed prompt instructing image generator (DALL-E 3/Midjourney/SD) to create a high-res PNG logo and variants>", "variant": "<description>"}}
-  ],
-  "deliverables": {{ "png_specs": ["{components_map_logo['brand_name']}_logo_primary_{components_map_logo['png_resolution']}.png"], "design_system_files": ["colors.json","typography.md","spacing.md","usage.md"] }}
-}}
-"""
-
-                return self._call_groq_with_fallback(
-                    command="generate_logo_prompts",
-                    cache_key=self._make_cache_key(
-                        "generate_logo_prompts",
-                        niche=niche,
-                        action=category,
-                        topic=user_context_safe[:50],
-                    ),
-                    prompt=prompt,
-                    chat_id=chat_id,
-                    temperature=temperature if temperature is not None else 0.6,
-                    ttl_hours=None,
-                )
-            except Exception as e:
-                logger.error(f"Logo formula generation failed: {e}")
-                # fall through to default handling if something unexpected occurs
-
-        # Use specialized prompt template for transformation tasks
-        if category in transform_categories:
-            # For transformation with CUSTOM prompt, use a simplified template that respects user's requirement
-            if user_context_safe and user_context_safe.strip():
-                # CUSTOM TRANSFORMATION: User-driven requirement with aesthetic preferences
-                # Parse custom requirement to extract location and mood
-                from src.prompts.custom_scenario_parser import CustomScenarioParser
-                from src.prompts.scene_styling_cohesion import SceneStylingCohesion
-
-                location, mood = CustomScenarioParser.extract_location(user_context_safe)
-                custom_scenario_section = CustomScenarioParser.build_custom_scenario_section(
-                    location, mood, user_context_safe, count
-                )
-
-                # Get cohesive styling (costume, hairstyle, accessories)
-                styling_section = SceneStylingCohesion.build_styling_prompt_section(
-                    location=location,
-                    mood=mood,
-                    user_context=user_context_safe,
-                    blend_level=aesthetic_preferences.blend_level.value if aesthetic_preferences else "50/50",
-                    jewelry_style=aesthetic_preferences.jewelry_style.value if aesthetic_preferences else "fusion",
-                )
-
-                prompt = f"""You are an expert AI image generation prompt engineer for identity-locked portrait transformations.
-
-Category: {category_desc}{niche_line}{context_line}
-
-USER'S TRANSFORMATION REQUIREMENT: {user_context_safe}
-
-{custom_scenario_section}
-
-{styling_section}
-
-BASE FORMULA SCAFFOLD: {formula_scaffold}
-
-ABSOLUTE PRIORITY: IDENTITY LOCK (NO EXCEPTIONS)
-- IDENTITY MUST BE PIXEL-PERFECT IDENTICAL TO REFERENCE IMAGE
-- Face direction/angle/pose/expression: CAN CHANGE to fit the user's requirement
-- Everything else about the face: CANNOT CHANGE (not even 1% alteration)
-
-FACIAL FEATURE PRESERVATION (DO NOT ALTER EVEN SLIGHTLY):
-Preserve identically: Eye shape, size, spacing, iris color, pupil shape | Nose structure, tip, nostrils, width | Mouth shape, lip fullness, corners | Cheekbone height and prominence | Jawline shape and definition | Face shape | Skin tone (exact match) | Skin texture | Forehead, chin structure | Face proportions | Unique facial characteristics, birthmarks, asymmetries | Eyebrow shape, thickness, arch, spacing | Hairline position and shape
-
-Forbidden: Any beautification, skin smoothing, feature alteration, plastic surgery effects, artificial perfection, identity change
-
-BODY & PHYSIQUE LOCK (DO NOT ALTER — SAME RIGOR AS FACE):
-Preserve identically: Body type and build (slim/athletic/curvy/heavyset — exactly as in reference) | Height and apparent proportions | Shoulder width | Torso length and waist shape | Arm and leg proportions | Overall silhouette
-Forbidden: Body slimming, body reshaping, idealized/generic body substitution, waist-cinching, muscle enhancement, height alteration, any body proportion that does not match the reference photo
-
-SCENE TRANSFORMATION (WHAT CAN CHANGE):
-- Hair direction, style, color (completely new) | Makeup type (new, not from reference) | Clothing/costume (scene-appropriate) | Face angle and pose (optimize for requirement) | Expression | Lighting (preserve skin texture while enhancing mood) | Background
-
-TECHNICAL REQUIREMENTS:
-Composition: Framing MUST match the pose described above — waist-up medium close-up ONLY for simple standing/seated portrait poses; use 3/4-body or full-body framing whenever the pose involves sitting on ground/sand, walking, hiking, or any pose showing legs/lower body in motion. 50mm portrait lens style, eye-level or slight angle. Face remains the sharpest, most detailed element regardless of framing.
-Face Clarity: Sharpest element, fully visible, most detailed
-Hands: Anatomically correct, properly detailed if visible
-Lighting: Soft, preserving skin texture (no over-smoothing)
-Background: Minimal, blurred, supporting
-Skin Texture: Natural with visible pores, no artificial smoothing
-Realism: Strict photorealism
-
-NEGATION INSTRUCTIONS:
-Negative: "avoid beautification, avoid face smoothing, avoid skin enhancement, avoid retouching, avoid feature alteration, avoid plastic surgery effects, avoid artificial perfection, avoid Photoshop effects, avoid feature reshaping, avoid identity change, avoid body shape distortion, avoid body slimming, avoid unrealistic body proportions, avoid body-face scale mismatch, avoid generic idealized body double, avoid ill-fitting or mismatched costume"
-
-INSTRUCTION:
-- Create {count} DISTINCT transformation prompts (each 100-160 words), each showing a DIFFERENT creative interpretation of the user's requirement
-- ⚠️ CRITICAL: ALL PROMPTS MUST USE THE SAME LOCATION — vary ONLY pose, body position, expression, and activity
-- Each prompt MUST preserve facial identity absolutely while varying ONLY: pose, clothing styling, lighting nuance, and expression
-- Location/scenery MUST REMAIN IDENTICAL across all {count} prompts
-- Ensure each prompt is visually distinct ONLY in pose and activity, not in location
-- DO NOT add template scenarios (Bride/Professional/Casual) — use ONLY the user's requirement location/mood to drive the generation
-- Each prompt MUST start with facial feature preservation statement
-- Each prompt MUST END with explicit negation instructions
-
-RESPONSE FORMAT (MANDATORY - SINGLE JSON OBJECT WITH ALL {count} PROMPTS IN ONE ARRAY):
-Your entire response is ONLY this structure, nothing before/after:
-{{"prompts": [{{"prompt": "...", "interpretation": "..."}}, {{"prompt": "...", "interpretation": "..."}}, {{"prompt": "...", "interpretation": "..."}}], "tip": "..."}}"""
-                return self._call_groq_with_fallback(
-                    command="generate_image_prompts",
-                    cache_key=self._make_cache_key(
-                        "generate_image_prompts",
-                        niche=niche,
-                        action=category,
-                        topic=user_context_safe[:50],
-                    ),
-                    prompt=prompt,
-                    chat_id=chat_id,
-                    temperature=temperature if temperature is not None else 0.8,
-                    ttl_hours=None,  # NO CACHE for custom prompts
-                )
-            
-            # For transformation without custom prompt, use aesthetic preferences for scene selection
-            aesthetic_pref_section = self._build_aesthetic_preferences_prompt(
-                aesthetic_preferences,
-                scenarios,
-                scenario_names,
-                niche
-            )
-
-            prompt = f"""You are an expert AI image generation prompt engineer for identity-locked portrait transformations.
-
-Category: {category_desc}{niche_line}{context_line}{reference_line}
-
-{aesthetic_pref_section}
-
-BASE FORMULA SCAFFOLD: {formula_scaffold}
-
-ABSOLUTE PRIORITY: IDENTITY LOCK (NO EXCEPTIONS)
-- IDENTITY MUST BE PIXEL-PERFECT IDENTICAL TO REFERENCE IMAGE
-- Face direction/angle/pose/expression: CAN CHANGE per scene
-- Everything else about the face: CANNOT CHANGE (not even 1% alteration)
-
-FACIAL FEATURE PRESERVATION (DO NOT ALTER EVEN SLIGHTLY):
-✓ PRESERVE EXACTLY: Eye shape, size, spacing, iris color, pupil shape | Nose structure, tip, nostrils, width | Mouth shape, lip fullness, corners | Cheekbone height and prominence | Jawline shape and definition | Face shape (oval/round/square) | Skin tone (exact match, no warming/cooling) | Skin texture (pores, natural blemishes, texture patterns) | Forehead width and height | Chin structure and projection | Face proportions (distance between features) | Unique facial characteristics, birthmarks, asymmetries | Eyebrow shape, thickness, arch, spacing | Hairline position and shape
-
-✗ ABSOLUTELY FORBIDDEN: Any skin smoothing or artificial enhancement | Any beautification or retouching | Any feature adjustment (bigger eyes, smaller nose, fuller lips, etc.) | Any facial structure alteration | Any skin tone warming, cooling, or lightening | Any feature reshaping or refinement | Any asymmetry correction | Filters, effects, or stylization that change facial appearance | Any micro-alterations that change identity perception
-
-BODY & PHYSIQUE LOCK (DO NOT ALTER — SAME RIGOR AS FACE):
-Preserve identically: Body type and build (slim/athletic/curvy/heavyset — exactly as in reference) | Height and apparent proportions | Shoulder width | Torso length and waist shape | Arm and leg proportions | Overall silhouette
-Forbidden: Body slimming, body reshaping, idealized/generic body substitution, waist-cinching, muscle enhancement, height alteration, any body proportion that does not match the reference photo
-
-SCENE TRANSFORMATION (WHAT CAN CHANGE):
-- Hair direction, style, color (completely new - NOT from reference) | Makeup type and intensity (NEW - NOT from reference) | Clothing/costume (completely new scene-appropriate attire) | Face direction, angle, pose (optimize for scene) | Expression, micro-expressions (appropriate to scene action) | Lighting intensity and direction (preserve skin texture while enhancing mood) | Background elements (soft, blurred, non-distracting)
-
-ACCESSORY & STYLING HARMONY (CRITICAL COORDINATION RULES):
-⭐ JEWELRY & ACCESSORIES MUST COORDINATE WITH OUTFIT:
-- Earrings: Metal tone and style must complement outfit colors (gold accessories with warm tones, silver with cool tones, rose gold versatile)
-- Jewelry color: Match primary outfit color palette (if wearing purple, use complementary metal; if wearing jewel tones, use gold)
-- Necklace (if any): Length and material must suit outfit neckline and formality level
-- Bindi (if applicable): Color MUST harmonize with outfit color scheme — warm outfit = warm/red tones, cool outfit = blue/purple tones, neutral outfit = gold/jewel tones
-- Bindi placement: Must be centered, appropriate to face structure, visible and color-coordinated
-- Bracelets: Metal and style must match jewelry/accessories theme (matching earrings tone and formality)
-- Overall coherence: All accessories work together as unified styling set, never mismatched metals or clashing colors
-- Style consistency: Formal outfit = refined/elegant accessories; casual outfit = simple/approachable accessories; traditional = culturally appropriate styling
-
-TECHNICAL REQUIREMENTS:
-Composition: Framing MUST match the pose described above — waist-up medium close-up ONLY for simple standing/seated portrait poses; use 3/4-body or full-body framing whenever the pose involves sitting on ground/sand, walking, hiking, or any pose showing legs/lower body in motion. 50mm portrait lens style, eye-level or slight angle. Face remains the sharpest, most detailed element regardless of framing.
-Face Clarity: Sharpest element, fully visible, unobstructed, most detailed
-Hands: Anatomically correct, naturally positioned, properly detailed (if visible)
-Lighting: Directional but soft, preserving skin texture detail (avoid over-smoothing)
-Background: Minimal, blurred, supporting (never competing with face)
-Depth: Shallow depth of field isolating face
-Skin Texture: Natural with visible pores, no artificial smoothing
-Realism: Strict photorealism, no cartoon/stylization
-
-NEGATION INSTRUCTIONS (Critical for AI models):
-- Negative: "avoid beautification, avoid face smoothing, avoid skin enhancement, avoid retouching, avoid feature alteration, avoid plastic surgery effects, avoid artificial perfection, avoid Photoshop effects, avoid feature reshaping, avoid identity change, avoid mismatched accessories, avoid body shape distortion, avoid body slimming, avoid unrealistic body proportions, avoid body-face scale mismatch, avoid generic idealized body double, avoid ill-fitting or mismatched costume"
-
-4-LAYER STRUCTURE FOR EACH PROMPT:
-Layer 1 (Identity Lock): "Preserve [specific facial feature list] identically from reference image. Do not alter facial structure in any way."
-Layer 2 (Composition): "[Scene-specific camera angle], 50mm portrait aesthetic, face sharp and detailed, shallow depth of field"
-Layer 3 (Transformation): "[Scene-specific costume/styling/action] with accessories coordinated to outfit colors and style"
-Layer 4 (Prohibitions): "Negative prompt: avoid beautification, avoid smoothing, avoid retouching, avoid feature alteration"
-
-SCENE VARIATION MANDATE (CRITICAL FOR DIVERSITY):
-⚠️ YOU MUST CREATE {count} PROMPTS WITH COMPLETELY DIFFERENT SCENARIOS
-- Each prompt MUST use a different transformation scenario from the list below
-- Scenario rotation example (for 3 prompts): Prompt 1=Bride, Prompt 2=Professional, Prompt 3=Casual
-- If fewer scenarios needed, cycle through: Bride → Professional → Casual → Party → Cultural → Artistic → Outdoor → Minimalist
-- ENFORCE DIVERSITY: Each scenario must have distinct pose, body position, environment, and styling
-- VALIDATE BEFORE OUTPUT: Confirm each prompt is visually distinct (different scene context)
-
-SCENE-SPECIFIC TRANSFORMATION SCENARIOS (CHOOSE DIFFERENT ONE FOR EACH PROMPT):
-
-1️⃣ BRIDE/FORMAL WEDDING:
-   - Setting: Luxurious wedding venue (bridal suite, garden, hall, decorated space)
-   - Pose: Standing confident with deliberate positioning (hand on hip, hand on dress, crossed arms, or elegant hand placement)
-   - Body Position: Upright, poised, formal stance showing confidence and elegance
-   - Face Angle: Direct to camera with gentle head tilt, or profile/3-quarter angle looking thoughtful
-   - Makeup: Full bridal makeup (enhanced eyes, defined brows, lip color, luminous skin)
-   - Attire: Wedding dress/bridal wear, embellished/elegant (saree, lehenga, gown, traditional bridal, etc.)
-   - Jewelry: Statement bridal jewelry (earrings, necklace, bangles, coordinated with outfit)
-   - Hair: Bridal hairstyle (updo, half-up, braided, or with bridal accessories like flowers/tiara)
-   - Expression: Radiant, joyful, confident, gentle, romantic
-   - Lighting: Warm flattering light, romantic golden hour feel, soft directional light
-   - Background: Decorated, elegant, complementary to bridal theme (venue details softly blurred)
-
-2️⃣ PROFESSIONAL/CORPORATE:
-   - Setting: Professional environment (office interior, glass background, corporate space, studio)
-   - Pose: Power pose or confident seated (leaning on desk, hand on chest, arms crossed confidently, or seated at desk)
-   - Body Position: Upright, commanding, formal professional posture
-   - Face Angle: Direct eye contact with camera (confident direct gaze) or slight angle showing approachability
-   - Makeup: Professional polished makeup (minimal but refined, matte finish, professional colors)
-   - Attire: Business formal wear (blazer, suit, professional dress, business casual), well-tailored
-   - Jewelry: Minimal professional jewelry (simple earrings, professional watch/bracelet, understated)
-   - Hair: Professional neat styling (bun, sleek waves, professional cut, salon-finished)
-   - Expression: Confident, professional, commanding, approachable yet authoritative
-   - Lighting: Corporate studio lighting (bright, neutral, even, professional headshot aesthetic)
-   - Background: Corporate/office elements softly blurred, professional backdrop
-
-3️⃣ CASUAL/RELAXED:
-   - Setting: Casual environment (cafe, park bench, relaxed indoor space, casual cafe ambiance)
-   - Pose: Relaxed comfortable positioning (leaning against wall, casual seated, relaxed standing, natural arm placement)
-   - Body Position: Relaxed, at-ease posture, comfortable and approachable
-   - Face Angle: Natural over-shoulder look, slight head tilt, soft angle showing approachability
-   - Makeup: Natural minimal makeup (enhanced but fresh-faced, natural tones, effortless look)
-   - Attire: Casual comfortable clothing (jeans, casual dress, sweater, relaxed fit, approachable style)
-   - Jewelry: Simple casual accessories (minimal earrings, simple bracelet, casual watch if any)
-   - Hair: Natural styled hair (loose waves, casual bun, natural texture, undone elegance)
-   - Expression: Warm, friendly, genuine smile, relaxed, approachable, natural
-   - Lighting: Soft natural or cafe lighting, warm tones, soft shadows, intimate feel
-   - Background: Casual setting elements (cafe interior, park, relaxed background slightly blurred)
-
-4️⃣ PARTY/GLAMOROUS EVENT:
-   - Setting: Upscale party/event venue (cocktail party, gala, nightclub, celebration space, elegant event)
-   - Pose: Dynamic energetic positioning (standing with attitude, hand gesture, confident stance, engaging pose)
-   - Body Position: Confident, expressive, dynamic posture showing energy and presence
-   - Face Angle: Engaging angle (slightly turned with eye contact over shoulder, or frontal with direct gaze)
-   - Makeup: Glamorous bold makeup (dramatic eyes, defined lips, luminous glow, statement makeup)
-   - Attire: Evening formal wear (cocktail dress, designer dress, saree, formal gown, glamorous outfit)
-   - Jewelry: Statement jewelry (chandelier earrings, bold necklace, multiple bracelets, coordinated ensemble)
-   - Hair: Glamorous styling (loose curls, voluminous waves, elegant updo, salon-quality shine)
-   - Expression: Confident, radiant, engaging, fun, social, glowing
-   - Lighting: Warm flattering light, evening/event lighting with subtle glow, mood lighting
-   - Background: Event venue elements (elegant decor, venue details, sophisticated background)
-
-5️⃣ CULTURAL/TRADITIONAL:
-   - Setting: Cultural/traditional setting (temple, cultural space, traditional backdrop, culturally appropriate environment)
-   - Pose: Respectful traditional positioning (standing gracefully, culturally appropriate gesture, traditional pose elements)
-   - Body Position: Graceful, dignified, respectful posture honoring cultural context
-   - Face Angle: Direct frontal or slight profile angle, serene and composed expression angle
-   - Makeup: Traditional makeup (cultural-appropriate colors, traditional cosmetics, authentic styling)
-   - Attire: Traditional cultural dress (authentic regional clothing, cultural attire, traditional styling)
-   - Jewelry: Traditional jewelry (cultural-appropriate metals and designs, authentic cultural jewelry, coordinated)
-   - Hair: Traditional styling (cultural-appropriate hairstyle, traditional accessories, authentic styling)
-   - Expression: Serene, dignified, respectful, culturally-aligned, graceful
-   - Lighting: Warm respectful lighting, honoring cultural aesthetics, soft authentic feel
-   - Background: Culturally appropriate background (traditional elements, respectful cultural setting)
-
-6️⃣ ARTISTIC/CREATIVE:
-   - Setting: Artistic environment (artist studio, creative space, artistic backdrop, gallery-like setting)
-   - Pose: Creative expressive positioning (artistic gesture, unique angle, unconventional but flattering pose)
-   - Body Position: Expressive, creative posture, artistic and unique positioning
-   - Face Angle: Unconventional flattering angle (profile, dramatic angle, artistic angle that showcases creativity)
-   - Makeup: Creative artistic makeup (subtle artistic elements, creative colors or techniques, artist-inspired)
-   - Attire: Artistic/creative clothing (bohemian wear, artistic style, creative fashion, expressive clothing)
-   - Jewelry: Artistic accessories (bohemian jewelry, artistic pieces, creative jewelry, curated collection)
-   - Hair: Creative styling (artistic arrangement, textured, unique but flattering, creative hair direction)
-   - Expression: Creative, thoughtful, artistic, inspired, unique
-   - Lighting: Artistic lighting (dramatic, mood lighting, studio lights creating artistic effect)
-   - Background: Artistic elements (studio details, creative backdrop, artistic environment)
-
-7️⃣ OUTDOOR/ADVENTURE:
-   - Setting: Outdoor natural setting (garden, nature, outdoor landscape, park, natural backdrop)
-   - Pose: Active comfortable outdoor positioning (standing naturally in landscape, active engaged pose, adventure-ready)
-   - Body Position: Relaxed active posture, at-ease in natural environment, engaged with setting
-   - Face Angle: Natural angle with setting (looking toward landscape, engaged with environment, natural outdoor angle)
-   - Makeup: Natural outdoor makeup (fresh-faced, sun-kissed, natural look appropriate for outdoors)
-   - Attire: Casual outdoor wear (outdoor clothing, adventure-appropriate, casual sporty or relaxed casual)
-   - Jewelry: Minimal nature-friendly accessories (simple jewelry, adventure-appropriate, minimal metal)
-   - Hair: Natural outdoor styling (loose, windswept, natural texture, outdoor-appropriate)
-   - Expression: Fresh, energized, connection to nature, genuine, outdoor-friendly
-   - Lighting: Natural sunlight (golden hour, soft natural light, outdoor natural lighting)
-   - Background: Natural outdoor scenery (landscape elements, nature, outdoor environment)
-
-8️⃣ MINIMALIST/MODERN CONTEMPORARY:
-   - Setting: Modern minimalist space (clean background, contemporary setting, modern studio, sleek space)
-   - Pose: Clean modern positioning (simple elegant stance, contemporary pose, minimal but striking)
-   - Body Position: Refined, minimalist posture, clean lines, contemporary elegance
-   - Face Angle: Direct contemporary angle (frontal or slight angle, modern portrait aesthetic)
-   - Makeup: Minimalist refined makeup (clean lines, modern tones, refined simplicity)
-   - Attire: Modern contemporary clothing (minimalist fashion, contemporary outfit, clean lines, modern aesthetic)
-   - Jewelry: Minimal modern jewelry (geometric, minimalist pieces, contemporary jewelry, or no jewelry)
-   - Hair: Clean modern styling (sleek, minimalist, contemporary cut, modern aesthetic)
-   - Expression: Composed, modern, confident, refined, contemporary
-   - Lighting: Clean modern lighting (studio light, bright contemporary, clean shadows)
-   - Background: Minimalist backdrop (plain or subtle, contemporary, clean modern space)
-
-POSE DIVERSITY ENFORCEMENT:
-✓ MANDATORY: Each of {count} prompts MUST have:
-  - DIFFERENT body position type (standing vs seated vs leaning vs dynamic)
-  - DIFFERENT face angle (frontal vs profile vs 3/4 angle vs over-shoulder)
-  - DIFFERENT hand/arm positioning (hands down vs hands active vs hands placed vs arm gesture)
-  - DIFFERENT environmental context (indoor vs outdoor, venue type, background style)
-  - DIFFERENT pose intent (confident vs relaxed vs energetic vs composed vs graceful)
-  - DIFFERENT body language (formal vs casual vs creative vs active vs traditional)
-
-SPECIAL SCENE ROTATION RULE (if {count}=3):
-- Prompt 1: Use Bride/Formal Wedding scenario
-- Prompt 2: Use Professional/Corporate scenario  
-- Prompt 3: Use Casual/Relaxed scenario
-
-SPECIAL SCENE ROTATION RULE (if {count}=6):
-- Prompt 1: Bride/Formal Wedding
-- Prompt 2: Professional/Corporate
-- Prompt 3: Casual/Relaxed
-- Prompt 4: Party/Glamorous Event
-- Prompt 5: Cultural/Traditional
-- Prompt 6: Artistic/Creative
-
-INSTRUCTIONS FOR PROMPT GENERATION:
-- Create {count} DISTINCT transformation prompts (each 100-160 words, compressed/dense)
-- ENFORCE THE SCENE ROTATION (mandatory scenario assignment per prompt above)
-- EACH PROMPT MUST START with explicit facial feature preservation statement
-- EACH PROMPT MUST SPECIFY THE SCENE SCENARIO being used (e.g., "Bride Scenario: wedding formal attire")
-- EACH PROMPT MUST INCLUDE accessory-outfit coordination specifics
-- EACH PROMPT MUST SPECIFY different pose, body position, and face angle than other prompts
-- EACH PROMPT MUST SPECIFY different environmental context than other prompts
-- EACH PROMPT MUST END with explicit "Negative: [forbidden list]"
-- Use direct language, minimize explanation, maximize clarity
-- Repeat identity anchors 2-3 times in different forms for redundancy
-- Order: Facial Preservation (most emphasized) → Composition → Scene → Negatives
-- Test prompts work on DALL-E 3, Midjourney, Stable Diffusion
-- CRITICAL VALIDATION: Before returning JSON, verify each prompt uses a different scenario and has distinct pose/position/environment
-
-SPECIAL INSTRUCTION FOR REFERENCE-BASED TRANSFORMATIONS:
-- Every transformation shares the EXACT SAME FACE (facial features immutable)
-- Face angle/pose/expression: OPTIMIZE per scene (never locked, varies by scenario)
-- Body position/clothing/environment/styling: COMPLETELY NEW AND UNIQUE per scene
-- The person must be recognizable across all transformations by facial features alone
-- But the scenes, poses, environments, and styling must be VISUALLY DISTINCT and different
-
-CRITICAL: Return a SINGLE JSON object (not multiple objects, no markdown, no text before/after) with this EXACT structure:
-{{"prompts": [{{"prompt": "<prompt text>", "scene": "<scenario>"}}], "analysis": "<analysis>", "tip": "<tip>"}}"""
-        elif category == "design_gifts":
-            # Specialized template for gift design with optional reference image support
-            if reference_image_text:
-                # Reference-based personalized gift design (e.g., couple in design)
-                prompt = f"""You are an expert AI design prompt engineer specializing in personalized gift designs using reference images.
-
-Category: {category_desc}{niche_line}{context_line}
-
-REFERENCE IMAGE USAGE:
-- PRESERVE (identical to reference): Facial features, appearance, physical characteristics, identity
-- VARY/CHANGE (different for each prompt): Costumes, styling, clothing, hairstyle, makeup, accessories, jewelry
-- MAINTAIN RECOGNIZABILITY: People must remain clearly identifiable but in different outfit/styling contexts
-
-Gift Design with Reference Requirements:
-- Create {count} distinct, creative gift design concepts incorporating the reference image
-- Each prompt should be optimized for DALL-E 3, Midjourney, or Stable Diffusion
-- Designs should be printable on merchandise (mugs, t-shirts, posters, art prints, etc.)
-- Preserve facial identity while varying costumes/styling creatively for each design variation
-- CRITICAL: DO NOT use the same costume/clothing across prompts — each design needs DIFFERENT outfits and styles
-
-For each design prompt, include:
-1. CONCEPT: Design theme and emotional appeal with reference integration
-2. VISUAL STYLE: Specific artistic direction (watercolor, digital illustration, modern vector, etc.)
-3. COMPOSITION: How reference people integrate with design elements
-4. COLOR SCHEME: Specific colors or palettes suited for the gift and reference
-5. TEXT/TYPOGRAPHY: Personalized text, calligraphy, or messaging integrated elegantly
-6. COSTUME/STYLING: UNIQUE outfit and styling appropriate to the design concept (NOT from reference, DIFFERENT in each prompt)
-7. DECORATIVE ELEMENTS: Supporting design elements that complement reference and costume
-8. CONTEXT: Where/how this design would be used (mug, t-shirt, poster, canvas print, etc.)
-
-Instructions:
-- Create {count} DISTINCT personalized gift design prompts (each ~140-200 words)
-- Emphasize reference facial identity preservation with VARIED costumes and creative styling
-- **COSTUME DIFFERENTIATION (MANDATORY)**: Prompt 1 costume style MUST be completely different from Prompt 2, which MUST be different from Prompt 3, etc.
-  * Example: If Prompt 1 uses formal/elegant attire → Prompt 2 must use casual/relaxed clothing → Prompt 3 must use traditional/cultural or themed clothing
-  * NEVER repeat similar outfit styles, color schemes, or clothing types across different prompts
-  * Each design gets its own distinct costume identity
-- Facial features, appearance, and identity MUST remain consistent and recognizable across all prompts
-- Each must be production-ready for print on demand with high resolution
-- Vary design themes, scenes, outfits, text placements, and decorative approaches creatively
-- Ensure reference people remain clearly identifiable in all prompts despite outfit changes
-- Choose outfit styles that naturally fit each design's unique theme and context
-
-Return ONLY valid JSON (no markdown, no extra text):
-{{
-  "prompts": [
-    {{"prompt": "<design prompt with reference integration and UNIQUE creative OUTFIT for each, 140-200 words>", "scene": "<design theme>"}}
-  ],
-  "tip": "<actionable tip for personalized gift designs with consistent identity but varied creative styling>"
-}}"""
-            else:
-                # Standard text-based gift design (no reference image)
-                prompt = f"""You are an expert AI design prompt engineer specializing in personalized gift designs and merchandise.
-
-Category: {category_desc}{niche_line}{context_line}
-
-Gift Design Requirements:
-- Create {count} distinct, creative gift design concepts
-- Each prompt should be optimized for DALL-E 3, Midjourney, or Stable Diffusion
-- Designs should be printable on merchandise (mugs, t-shirts, posters, etc.)
-- Include specific style guidance (modern, vintage, minimalist, ornate, etc.)
-- Consider personalization elements that make the gift unique and meaningful
-
-For each design prompt, include:
-1. CONCEPT: What the design represents and its emotional appeal
-2. VISUAL STYLE: Specific artistic direction (e.g., watercolor, digital illustration, 3D render)
-3. COMPOSITION: Layout, focal point, use of space
-4. COLOR SCHEME: Specific colors or palettes suited for the gift
-5. DETAILS: Specific elements, patterns, typography, or decorative features
-6. CONTEXT: Where/how this design would be used (mug, shirt, poster, etc.)
-7. PERSONALIZATION: How it could be customized for the recipient
-
-Instructions:
-- Create {count} DISTINCT gift design prompts (each ~100-150 words)
-- Each must be production-ready for print on demand
-- Include quality indicators (high resolution, professional finish)
-- Consider both aesthetic appeal and printability
-- Vary designs across prompts to offer different style options
-
-Return ONLY valid JSON (no markdown, no extra text):
-{{
-  "prompts": [
-    {{"prompt": "<design prompt optimized for image generation>", "scene": "<gift type/style>"}}
-  ],
-  "tip": "<actionable tip for best gift design results>"
-}}"""
-        else:
-            # Standard template for non-transformation, non-gift categories
-            prompt = f"""You are an expert AI image generation prompt engineer creating CONCISE, ready-to-use prompts.
-
-Category: {category_desc}{niche_line}{context_line}
-
-BASE FORMULA SCAFFOLD: {formula_scaffold}
-
-Instructions:
-- Create {count} distinct, complementary prompts (each ~100-150 words max)
-- Each must work directly in DALL-E 3, Midjourney, or Stable Diffusion
-- NO generic filler — be specific about scene, mood, lighting, style
-- Vary settings/angles across prompts
-
-IMPORTANT: Keep prompts CONCISE and focused on visual elements.
-
-Return ONLY valid JSON (no markdown, no extra text):
-{{
-  "prompts": [
-    {{"prompt": "<full ready-to-use prompt, 100-150 words>", "scene": "<3-5 word scene label>"}}
-  ],
-  "tip": "<one actionable tip for best results>"
-}}"""
-
-        cache_key = self._make_cache_key(
-            "generate_image_prompts",
-            niche=niche,
-            action=category,
-            topic=user_context_safe[:50] if user_context_safe else str(count),  # Include custom prompt content to prevent cache collision
-        )
-        # NO CACHE for custom prompts — user wants fresh generation each time
-        cache_ttl = None if user_context_safe else 24  # Custom prompts: no cache; standard: 24h cache
-        return self._call_groq_with_fallback(
-            command="generate_image_prompts",
-            cache_key=cache_key,
-            prompt=prompt,
-            chat_id=chat_id,
-            temperature=temperature if temperature is not None else 0.8,
-            ttl_hours=cache_ttl,
-        )
 
     def enhance_prompts_with_professional_structure(
         self,
@@ -1658,154 +1022,6 @@ Return ONLY valid JSON (no markdown, no extra text):
             }
         }
 
-    def generate_design_brief(
-        self,
-        category: str = "design_posters",
-        user_input: str = "",
-        niche: str = "",
-        brand_context: dict = None,
-        chat_id: int = None,
-    ) -> dict:
-        """Generate comprehensive design briefs from user input — 3 creative variations."""
-        from src.prompts.templates import DESIGN_BRIEF_SYSTEM_PROMPT
-        
-        if brand_context is None:
-            brand_context = {}
-
-        niche_line = f"\nBrand/Niche: {niche}" if niche else ""
-        brand_line = f"\nBrand context: {brand_context}" if brand_context else ""
-
-        # Build combined prompt (system instructions + user request)
-        prompt = f"""{DESIGN_BRIEF_SYSTEM_PROMPT}
-
----
-
-Design Category: {category.replace("_", " ").title()}
-
-User's Design Concept:
-{user_input}{niche_line}{brand_line}
-
-Create 3 distinct, professional design brief variations that incorporate ALL of the user's content and messaging.
-
-Each variation should be a complete, ready-to-brief design brief that a designer can execute immediately."""
-
-        cache_key = self._make_cache_key(
-            "generate_design_brief",
-            category=category,
-            niche=niche,
-        )
-        
-        # NO CACHE for custom design briefs — user wants fresh generation each time
-        cache_ttl = None if user_input and user_input.strip() else 24
-        result = self._call_groq_with_fallback(
-            command="generate_design_brief",
-            cache_key=cache_key,
-            prompt=prompt,
-            chat_id=chat_id,
-            temperature=0.85,
-            ttl_hours=cache_ttl,
-        )
-
-        # Parse and structure response
-        if result and isinstance(result, dict):
-            if "error" in result:
-                return result
-            
-            # Extract briefs from response
-            briefs = result.get("briefs", [])
-            if briefs:
-                # Normalize return shape: provide a dedicated `brief` object containing `briefs`
-                return {
-                    "status": "success",
-                    "brief": {"briefs": briefs},
-                    "sections": [b.get("title", f"Brief {i+1}") for i, b in enumerate(briefs)],
-                    "total_sections": len(briefs),
-                }
-        
-        return result
-
-    def generate_gift_design_concepts(
-        self,
-        product_type: str,
-        concept_idea: str,
-        personalization: dict = None,
-        chat_id: int = None,
-        niche: str = "",
-    ) -> dict:
-        """Generate 3 gift design concepts with briefs + AI image generation prompts."""
-        from src.prompts.templates import GIFT_DESIGN_SYSTEM_PROMPT, get_gift_product_meta
-
-        if personalization is None:
-            personalization = {}
-
-        product_meta = get_gift_product_meta(product_type)
-        
-        # Build personalization context
-        brand_colors_str = ""
-        if personalization.get("brand_colors"):
-            brand_colors_str = f"\nBrand colors: {', '.join(personalization['brand_colors'])}"
-        
-        tone_str = ""
-        if personalization.get("tone"):
-            tone = personalization["tone"]
-            tone_desc = personalization.get("tone_description", "")
-            tone_str = f"\nDesign tone: {tone.title()} ({tone_desc})" if tone_desc else f"\nDesign tone: {tone.title()}"
-        
-        occasion_str = f"\nOccasion: {personalization.get('occasion', '').title()}" if personalization.get("occasion") else ""
-        recipient_str = f"\nRecipient type: {personalization.get('recipient_type', '').title()}" if personalization.get("recipient_type") else ""
-
-        # Build combined prompt
-        prompt = f"""{GIFT_DESIGN_SYSTEM_PROMPT}
-
----
-
-PRODUCT: {product_type.replace("_", " ").title()}
-Specifications:
-- Printable Area: {product_meta.get("printable_area")}
-- Constraints: {product_meta.get("constraints")}
-
-USER'S CONCEPT: {concept_idea}{brand_colors_str}{tone_str}{occasion_str}{recipient_str}
-
-Create 3 DISTINCT, production-ready gift design concepts that incorporate ALL of the user's messaging and preferences.
-Each concept should include a design brief and 2 image generation prompts (DALL-E 3 + Midjourney optimized).
-All prompts must be ready to paste directly into image generation tools."""
-
-        cache_key = self._make_cache_key(
-            "generate_gift_design",
-            product_type=product_type,
-            tone=personalization.get("tone", ""),
-            occasion=personalization.get("occasion", ""),
-            niche=niche,
-        )
-
-        # NO CACHE for custom gift designs — user wants fresh generation each time
-        cache_ttl = None if concept_idea and concept_idea.strip() else 24
-        result = self._call_groq_with_fallback(
-            command="generate_gift_design_concepts",
-            cache_key=cache_key,
-            prompt=prompt,
-            chat_id=chat_id,
-            temperature=0.85,
-            ttl_hours=cache_ttl,
-        )
-
-        # Parse and structure response
-        if result and isinstance(result, dict):
-            if "error" in result:
-                return result
-
-            concepts = result.get("concepts", [])
-            if concepts:
-                return {
-                    "status": "success",
-                    "concepts": concepts,
-                    "concept_count": len(concepts),
-                    "product_type": product_type,
-                    "design_tip": "Each concept includes a design brief and two image generation prompts ready for DALL-E 3 or Midjourney.",
-                }
-
-        return result
-
     def monetization_ideas(
         self,
         niche: str,
@@ -1830,7 +1046,7 @@ All prompts must be ready to paste directly into image generation tools."""
 Account context:
 {context_block}
 
-Suggest the most suitable monetization strategies for this specific account. Identify which revenue streams genuinely fit this niche and audience size — do not default to a fixed list. All revenue projections should reflect realistic ranges for this specific niche and market, not arbitrary numbers.
+Suggest the most suitable monetization strategies for this specific account. Identify which revenue streams genuinely fit this niche and audience size â€” do not default to a fixed list. All revenue projections should reflect realistic ranges for this specific niche and market, not arbitrary numbers.
 
 Include:
 - Recommended revenue streams (only those that genuinely fit this niche and size)
@@ -1853,9 +1069,9 @@ Format as JSON."""
             logger.info("[OK] Generated monetization ideas for %s+ followers", follower_count)
         return result
 
-    # ─────────────────────────────────────────────────────────────────────
-    #  Phase 4 — new AI methods (all inject user-profile context)
-    # ─────────────────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    #  Phase 4 â€” new AI methods (all inject user-profile context)
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _profile_ctx(self, niche: str = "", audience_size: str = "", goals: list = None) -> str:
         """Build a short profile-context string to inject into every system prompt."""
@@ -1866,7 +1082,7 @@ Format as JSON."""
             parts.append(f"audience size: {audience_size}")
         if goals:
             parts.append(f"goals: {', '.join(goals)}")
-        return f" The user's Instagram profile — {'; '.join(parts)}." if parts else ""
+        return f" The user's Instagram profile â€” {'; '.join(parts)}." if parts else ""
 
     def caption_generator(self, post_description: str, niche: str = "",
                           audience_size: str = "", chat_id: int = None) -> dict:
@@ -1901,7 +1117,7 @@ Generate a hashtag pack for the topic: \"{topic}\"
 
 Return JSON with exactly these keys:
 - broad: list of high-reach hashtags (1M+ posts, no # prefix)
-- niche: list of mid-range hashtags (100K–1M posts, no # prefix)
+- niche: list of mid-range hashtags (100Kâ€“1M posts, no # prefix)
 - micro: list of micro/specific hashtags (<100K posts, no # prefix)
 - tip: one-sentence usage tip"""
 
@@ -1924,7 +1140,7 @@ Return JSON with exactly these keys:
 - rewritten_bio: the new bio text (max 150 chars)
 - hook: opening line that grabs attention
 - value_prop: what the audience gets from following
-- cta: call-to-action (e.g. "DM for collabs ↓")
+- cta: call-to-action (e.g. "DM for collabs â†“")
 - keywords: list of 5 SEO keywords included in the bio
 - char_count: character count of rewritten_bio"""
 
@@ -1945,7 +1161,7 @@ Create a 7-post weekly content calendar for an Instagram account.
 Return JSON with exactly these keys:
 - week_theme: an overarching theme for the week (max 10 words)
 - posts: list of 7 objects, one per day, each with:
-    - day: Monday/Tuesday/…/Sunday
+    - day: Monday/Tuesday/â€¦/Sunday
     - format: Reel | Carousel | Story | Static Post
     - topic: specific post topic (max 10 words)
     - caption_angle: hook or emotional angle (max 15 words)
@@ -1969,7 +1185,7 @@ Recommend the optimal posting schedule.
 
 Return JSON with exactly these keys:
 - best_times: list of objects each with time (e.g. "8:00 AM IST"), day_type (weekday/weekend), reason (max 15 words)
-- weekly_schedule: object mapping Monday–Sunday to a recommended format (Reel/Carousel/Story/Rest)
+- weekly_schedule: object mapping Mondayâ€“Sunday to a recommended format (Reel/Carousel/Story/Rest)
 - frequency: recommended posts per week (integer)
 - timezone_note: note about audience timezone assumptions
 - pro_tip: one sentence on timing strategy"""
@@ -2010,7 +1226,7 @@ Return JSON with exactly these keys:
 Perform an advisory profile audit and provide actionable recommendations.
 
 Return JSON with exactly these keys:
-- score: estimated profile health score 0–100 (integer) based on typical accounts in this niche
+- score: estimated profile health score 0â€“100 (integer) based on typical accounts in this niche
 - checklist: list of objects each with:
     - area: Bio | Highlights | Feed Aesthetic | Posting Frequency | Hashtag Strategy | Engagement
     - status: Good | Needs Work | Critical
@@ -2040,7 +1256,7 @@ Return JSON with exactly these keys:
 
         system = (
             "You are an expert Instagram growth coach. Give concise, actionable advice. "
-            "Use plain text — no markdown headers, no bullet stars. Keep replies under 300 words."
+            "Use plain text â€” no markdown headers, no bullet stars. Keep replies under 300 words."
             + ctx
         )
         start = time.time()
@@ -2085,7 +1301,7 @@ Return JSON with exactly these keys:
                 )
             return "Sorry, I couldn't process that. Please try again."
 
-    # ── New AI methods (Phase 1 additions) ──────────────────────────────────
+    # â”€â”€ New AI methods (Phase 1 additions) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def get_engagement_action(
         self,
@@ -2116,7 +1332,7 @@ Return JSON with exactly these keys:
 Account context:
 {context_block}
 
-Provide the most impactful growth tips for this specific account. Prioritise by expected impact. All numbers, frequencies, and content ratios should be reasoned from the niche and account stage — do not use generic defaults.
+Provide the most impactful growth tips for this specific account. Prioritise by expected impact. All numbers, frequencies, and content ratios should be reasoned from the niche and account stage â€” do not use generic defaults.
 
 Return JSON with:
 - tips: list of tip objects, each with: priority, tip (title), detail (specific actionable guidance for this niche), impact (expected outcome explained), effort_level""",
@@ -2126,7 +1342,7 @@ Return JSON with:
 Account context:
 {context_block}
 
-Design a complete hashtag strategy for this account. Determine the optimal tier breakdown, quantities, and rotation approach based on the niche competition and account size — do not default to a fixed split.
+Design a complete hashtag strategy for this account. Determine the optimal tier breakdown, quantities, and rotation approach based on the niche competition and account size â€” do not default to a fixed split.
 
 Return JSON with:
 - strategy: object with breakdown (tiers with counts and reach ranges appropriate for this niche), rotation_approach, research_method, best_practices
@@ -2137,7 +1353,7 @@ Return JSON with:
 Account context:
 {context_block}
 
-Recommend an optimal posting schedule for this specific account. Base timing on the niche audience's behaviour and the target region — do not use generic peak hours.
+Recommend an optimal posting schedule for this specific account. Base timing on the niche audience's behaviour and the target region â€” do not use generic peak hours.
 
 Return JSON with:
 - schedule: list of time slots with time, timezone, day_type (weekday/weekend), reason (why this time for this audience)
@@ -2150,10 +1366,10 @@ Return JSON with:
 Account context:
 {context_block}
 
-Write comment templates specifically for the {niche or 'this'} niche. Templates should feel genuine and niche-appropriate — not generic. Include guidance on personalising each one.
+Write comment templates specifically for the {niche or 'this'} niche. Templates should feel genuine and niche-appropriate â€” not generic. Include guidance on personalising each one.
 
 Return JSON with:
-- templates: object with categories (e.g., praise, question, relatable, call_to_action) — each with niche-specific template strings
+- templates: object with categories (e.g., praise, question, relatable, call_to_action) â€” each with niche-specific template strings
 - personalization_guide: how to adapt these templates to feel authentic
 - engagement_rules: guidelines for effective commenting in this specific niche""",
 
@@ -2213,17 +1429,17 @@ Return JSON with:
 Account context:
 {context_block}
 
-Generate a realistic {report_type} analytics report for this account covering the {period}. Base all estimates on what is typical for accounts of this size, niche, and stage. Do not use generic fixed numbers — reason from the specific context provided.
+Generate a realistic {report_type} analytics report for this account covering the {period}. Base all estimates on what is typical for accounts of this size, niche, and stage. Do not use generic fixed numbers â€” reason from the specific context provided.
 
 Return JSON with:
 - report_type: "{report_type}"
 - period: "{period}"
-- metrics: realistic estimated metrics for this account (new_followers, engagement_rate, reach, impressions, saves, shares, comments — values should be plausible for this niche/size/stage)
+- metrics: realistic estimated metrics for this account (new_followers, engagement_rate, reach, impressions, saves, shares, comments â€” values should be plausible for this niche/size/stage)
 - top_performing_content: what format and topic type likely performs best for this niche
 - insights: list of data-driven observations specific to this niche and account stage
 - growth_trajectory: honest assessment of the growth path if current strategy is maintained
 - recommendations: prioritised list of actions to improve performance
-- note: AI-estimated projections based on account profile — connect real analytics for precise data"""
+- note: AI-estimated projections based on account profile â€” connect real analytics for precise data"""
 
         cache_key = self._make_cache_key(
             "generate_analytics_report", niche=niche,
@@ -2262,7 +1478,7 @@ Return JSON with:
 Account context:
 {context_block}
 
-Provide a detailed monetization analysis. Identify the revenue streams most suited to this niche and account stage — do not default to a fixed list. All revenue estimates should reflect realistic ranges for this specific niche and market.
+Provide a detailed monetization analysis. Identify the revenue streams most suited to this niche and account stage â€” do not default to a fixed list. All revenue estimates should reflect realistic ranges for this specific niche and market.
 
 Return JSON with:
 - recommended_streams: list of revenue stream objects suited to this account, each with:
@@ -2271,7 +1487,7 @@ Return JSON with:
 - priority_order: which stream to start with and why
 - monthly_projection_total: combined realistic monthly revenue range
 - 90_day_roadmap: step-by-step monetization plan
-- note: Projections are AI estimates based on account profile — actual results depend on execution and audience quality"""
+- note: Projections are AI estimates based on account profile â€” actual results depend on execution and audience quality"""
 
         cache_key = self._make_cache_key(
             "project_monetization", niche=niche, account_stage="", region=region,
@@ -2339,7 +1555,7 @@ Return JSON with:
 
 Content idea{context_note}: \"{content_idea}\"
 
-Evaluate the viral potential of this content idea. Base your assessment on the specific niche and audience — do not use generic keyword matching or fixed formulas.
+Evaluate the viral potential of this content idea. Base your assessment on the specific niche and audience â€” do not use generic keyword matching or fixed formulas.
 
 Return JSON with:
 - viral_score: estimated score 0-100
@@ -2413,7 +1629,7 @@ Return JSON with:
 Current trending topics:
 {trends_str}
 
-Generate creative content ideas based on these trends. Tailor ideas to the specific niche and audience — do not use generic templates.
+Generate creative content ideas based on these trends. Tailor ideas to the specific niche and audience â€” do not use generic templates.
 
 Return JSON with:
 - content_ideas: list of idea objects, each with:
@@ -2484,3 +1700,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
