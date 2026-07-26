@@ -31,11 +31,12 @@ os.makedirs("data", exist_ok=True)
 
 
 def escape_md(text: str) -> str:
-    """Escape special characters for Telegram legacy Markdown v1."""
+    """Escape special characters for Telegram legacy Markdown v1 (but NOT backticks - they're for code blocks)."""
     # Handle non-string inputs gracefully
     if not isinstance(text, str):
         text = str(text)
-    for ch in ("*", "_", "`", "["):
+    # Note: Don't escape backticks - they're used for code blocks
+    for ch in ("*", "_", "["):
         text = text.replace(ch, "\\" + ch)
     return text
 
@@ -1178,9 +1179,14 @@ class TelegramBotHandler:
     async def _handle_universal_prompts_response(self, update: Update, context: ContextTypes.DEFAULT_TYPE, result: dict, category: str):
         """Format and send universal prompt response."""
         try:
+            # Get the message object (works for both regular messages and callback queries)
+            msg_obj = update.message if update.message else (update.callback_query.message if update.callback_query else None)
+            if not msg_obj:
+                return
+
             variations = result.get("variations", [])
             if not variations:
-                await update.message.reply_text("❌ No prompts generated. Try again.")
+                await msg_obj.reply_text("❌ No prompts generated. Try again.")
                 return
 
             cat_display = category.replace("_", " ").title()
@@ -1191,7 +1197,7 @@ class TelegramBotHandler:
             header += f"✨ *{len(variations)} Variations*\n"
             header += "─────────────────────────────────────\n\n"
 
-            await update.message.reply_text(header, parse_mode="Markdown")
+            await msg_obj.reply_text(header, parse_mode="Markdown")
 
             # Send each variation with action buttons
             for idx, var in enumerate(variations, 1):
@@ -1218,7 +1224,7 @@ class TelegramBotHandler:
                     msg += f"*Keywords:* `{keywords_str}`\n"
 
                 for chunk in self._send_long(msg):
-                    await update.message.reply_text(chunk, parse_mode="Markdown")
+                    await msg_obj.reply_text(chunk, parse_mode="Markdown")
 
                 # Add action buttons for each prompt
                 # Store prompt data in context for later retrieval (Phase 2)
@@ -1237,13 +1243,13 @@ class TelegramBotHandler:
                      InlineKeyboardButton("📋 Copy", callback_data=f"copy_prompt_{idx}"),
                      InlineKeyboardButton("✏️ Refine", callback_data=f"refine_prompt_{idx}")],
                 ])
-                await update.message.reply_text(
+                await msg_obj.reply_text(
                     "👇 Actions:",
                     reply_markup=action_buttons
                 )
 
                 if idx < len(variations):
-                    await update.message.reply_text("─────────────────────────────────────")
+                    await msg_obj.reply_text("─────────────────────────────────────")
 
             # Save to history (Phase 2)
             try:
@@ -1272,7 +1278,7 @@ class TelegramBotHandler:
                  InlineKeyboardButton("🏠 Menu", callback_data="back_menu")],
             ])
 
-            await update.message.reply_text(
+            await msg_obj.reply_text(
                 summary,
                 parse_mode="Markdown",
                 reply_markup=summary_buttons
@@ -1280,7 +1286,7 @@ class TelegramBotHandler:
 
         except Exception as e:
             logger.error(f"Universal prompts formatting error: {e}")
-            await update.message.reply_text(f"❌ Error formatting prompts: {e}")
+            await msg_obj.reply_text(f"❌ Error formatting prompts: {e}")
 
     # ── Legacy Design Brief Response Handler (kept for compatibility) ────────────────────────────────────────
 
