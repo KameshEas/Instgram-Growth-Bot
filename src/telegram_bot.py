@@ -1655,8 +1655,13 @@ class TelegramBotHandler:
             full_text = update.message.text if update.message else ""
             text_after_cmd = full_text.replace("/generate", "", 1).strip()
 
+        # Get the message object (works for both regular messages and callback queries)
+        msg_obj = update.message if update.message else (update.callback_query.message if update.callback_query else None)
+        if not msg_obj:
+            return
+
         if not text_after_cmd:
-            await update.message.reply_text(
+            await msg_obj.reply_text(
                 "🎨 *Generate Prompts & Design Briefs*\n\n"
                 "Usage:\n"
                 "  `/generate [category]`\n"
@@ -1699,29 +1704,30 @@ class TelegramBotHandler:
                     if is_design_brief else
                     f"⏳ *Generating AI Prompts*\n\n📁 Category: {cat_display}\n💭 Creating variations...")
 
-        wait_msg_obj = await update.message.reply_text(wait_msg, parse_mode="Markdown")
+        wait_msg_obj = await msg_obj.reply_text(wait_msg, parse_mode="Markdown")
 
         # Store message ID for potential status update
         context.user_data["progress_msg_id"] = wait_msg_obj.message_id
 
         try:
             # Get user profile for context
-            profile = self._get_profile(update.message.chat_id)
+            chat_id = update.effective_chat.id
+            profile = self._get_profile(chat_id)
             niche = profile.get("niche", "")
-            
+
             result = await self.orchestrator.execute({
                 "command": "/generate",
                 "category": category,
                 "custom_prompt": custom_prompt,
                 "user_input": custom_prompt,  # For design briefs
                 "level": level,
-                "chat_id": update.message.chat_id,
+                "chat_id": chat_id,
                 "niche": niche,
             })
             # If agent requests clarification, ask user a single question and persist state
             if result and result.get("status") == "clarify":
                 question = result.get("question", "Could you clarify your request?")
-                await update.message.reply_text(f"❓ {question}")
+                await msg_obj.reply_text(f"❓ {question}")
                 # Save minimal input to resume after clarification
                 pending = {
                     "question": question,
@@ -1731,7 +1737,7 @@ class TelegramBotHandler:
                         "custom_prompt": custom_prompt,
                         "user_input": custom_prompt,
                         "level": level,
-                        "chat_id": update.message.chat_id,
+                        "chat_id": chat_id,
                         "niche": niche,
                     }
                 }
@@ -1751,7 +1757,7 @@ class TelegramBotHandler:
                     await self._handle_gift_design_response(update, result)
                 else:
                     # Fallback for any other response shape
-                    await update.message.reply_text("❌ Unexpected response format. Please try again.")
+                    await msg_obj.reply_text("❌ Unexpected response format. Please try again.")
                 logger.info(f"[OK] /generate category={category}, design_brief={is_design_brief}")
             else:
                 err = result.get("error", "Unknown error") if isinstance(result, dict) else str(result)
@@ -1771,7 +1777,7 @@ class TelegramBotHandler:
                     [InlineKeyboardButton("❓ Get Help", callback_data="cmd_help")],
                 ])
 
-                await update.message.reply_text(
+                await msg_obj.reply_text(
                     error_msg,
                     parse_mode="Markdown",
                     reply_markup=recovery_buttons
@@ -1789,7 +1795,7 @@ class TelegramBotHandler:
                 [InlineKeyboardButton("🏠 Main Menu", callback_data="back_menu"),
                  InlineKeyboardButton("📚 Get Help", callback_data="cmd_help")],
             ])
-            await update.message.reply_text(
+            await msg_obj.reply_text(
                 error_msg,
                 parse_mode="Markdown",
                 reply_markup=recovery_buttons
