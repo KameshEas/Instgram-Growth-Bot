@@ -117,10 +117,15 @@ class PreferenceGenerator:
         if user_input_lower in PreferenceGenerator.BLEND_MAPPINGS:
             return PreferenceGenerator.BLEND_MAPPINGS[user_input_lower]
 
-        # Check partial matches
-        for key, value in PreferenceGenerator.BLEND_MAPPINGS.items():
+        # Check partial matches: prioritize patterns with % or / (more specific) over simple words
+        # Sort: (1) has % or /, (2) by length descending, (3) alphabetically
+        def sort_key(key):
+            has_special = -1 if '%' in key or '/' in key else 0
+            return (has_special, -len(key), key)
+
+        for key in sorted(PreferenceGenerator.BLEND_MAPPINGS.keys(), key=sort_key):
             if key in user_input_lower:
-                return value
+                return PreferenceGenerator.BLEND_MAPPINGS[key]
 
         # Default if no match
         return BlendLevel.HALF_BLEND
@@ -136,9 +141,9 @@ class PreferenceGenerator:
         if user_input_lower in PreferenceGenerator.JEWELRY_MAPPINGS:
             return PreferenceGenerator.JEWELRY_MAPPINGS[user_input_lower]
 
-        for key, value in PreferenceGenerator.JEWELRY_MAPPINGS.items():
+        for key in sorted(PreferenceGenerator.JEWELRY_MAPPINGS.keys(), key=len, reverse=True):
             if key in user_input_lower:
-                return value
+                return PreferenceGenerator.JEWELRY_MAPPINGS[key]
 
         return JewelryStyle.FUSION
 
@@ -153,9 +158,9 @@ class PreferenceGenerator:
         if user_input_lower in PreferenceGenerator.MAKEUP_MAPPINGS:
             return PreferenceGenerator.MAKEUP_MAPPINGS[user_input_lower]
 
-        for key, value in PreferenceGenerator.MAKEUP_MAPPINGS.items():
+        for key in sorted(PreferenceGenerator.MAKEUP_MAPPINGS.keys(), key=len, reverse=True):
             if key in user_input_lower:
-                return value
+                return PreferenceGenerator.MAKEUP_MAPPINGS[key]
 
         return MakeupVibe.MODERN
 
@@ -170,9 +175,9 @@ class PreferenceGenerator:
         if user_input_lower in PreferenceGenerator.COLOR_MAPPINGS:
             return PreferenceGenerator.COLOR_MAPPINGS[user_input_lower]
 
-        for key, value in PreferenceGenerator.COLOR_MAPPINGS.items():
+        for key in sorted(PreferenceGenerator.COLOR_MAPPINGS.keys(), key=len, reverse=True):
             if key in user_input_lower:
-                return value
+                return PreferenceGenerator.COLOR_MAPPINGS[key]
 
         return ColorPalette.JEWEL_TONES
 

@@ -80,17 +80,18 @@ def init_groq():
 # Utility function for robust JSON parsing
 def parse_json_response(text: str) -> dict:
     """Parse JSON from response, handling markdown code blocks, incomplete JSON, and embedded JSON
-    
+
     L1 FIX: Descriptive error messages with context about parsing failure
+    Enhanced: Handles Groq's markdown-formatted responses with embedded JSON
     """
     text = text.strip()
-    
+
     if not text:
         logger.warning("[WARN] JSON parsing failed: empty response text received (expected JSON object or array)")
         return {"error": "Empty response - no content to parse"}
-    
+
     logger.debug(f"[DEBUG] Parsing response (length={len(text)}, first 200 chars: {text[:200]})...")
-    
+
     try:
         # Try direct parsing first
         result = json.loads(text)
@@ -100,6 +101,102 @@ def parse_json_response(text: str) -> dict:
     except json.JSONDecodeError as e:
         logger.debug(f"[DEBUG] Direct JSON parse failed at position {e.pos}: {e.msg}")
         pass
+
+    # Look for our specific response format: "prompts": [...] (single JSON with array)
+    if '"prompts"' in text:
+        try:
+            # Strategy 1: Find a single JSON object with "prompts" array
+            prompts_idx = text.find('"prompts"')
+            if prompts_idx > -1:
+                start_idx = text.rfind('{', 0, prompts_idx)
+                if start_idx > -1:
+                    brace_count = 0
+                    in_string = False
+                    escape_next = False
+                    for i in range(start_idx, len(text)):
+                        char = text[i]
+                        if escape_next:
+                            escape_next = False
+                            continue
+                        if char == '\\':
+                            escape_next = True
+                            continue
+                        if char == '"' and not escape_next:
+                            in_string = not in_string
+                        elif not in_string:
+                            if char == '{':
+                                brace_count += 1
+                            elif char == '}':
+                                brace_count -= 1
+                                if brace_count == 0:
+                                    json_str = text[start_idx:i+1]
+                                    try:
+                                        result = json.loads(json_str)
+                                        if isinstance(result, dict) and 'prompts' in result and isinstance(result['prompts'], list):
+                                            if len(result['prompts']) > 1:  # Multi-prompt response
+                                                logger.debug("[DEBUG] Successfully parsed multi-prompt JSON object")
+                                                return result
+                                    except json.JSONDecodeError:
+                                        pass
+        except Exception as e:
+            logger.debug(f"[DEBUG] Failed to find multi-prompt JSON object: {e}")
+
+        # Strategy 2: Multiple separate JSON objects with "prompts": [{single prompt}]
+        # Collect them and combine into one response
+        try:
+            # Find all JSON objects by matching braces
+            json_objects = []
+            i = 0
+            while i < len(text):
+                if text[i] == '{':
+                    brace_count = 1
+                    start = i
+                    i += 1
+                    in_string = False
+                    escape = False
+                    while i < len(text) and brace_count > 0:
+                        if escape:
+                            escape = False
+                            i += 1
+                            continue
+                        if text[i] == '\\':
+                            escape = True
+                            i += 1
+                            continue
+                        if text[i] == '"':
+                            in_string = not in_string
+                        elif not in_string:
+                            if text[i] == '{':
+                                brace_count += 1
+                            elif text[i] == '}':
+                                brace_count -= 1
+                        i += 1
+                    if brace_count == 0:
+                        json_objects.append(text[start:i])
+                else:
+                    i += 1
+
+            # Extract prompts from found JSON objects
+            if json_objects:
+                all_prompts = []
+                for json_str in json_objects:
+                    try:
+                        obj = json.loads(json_str)
+                        if isinstance(obj, dict):
+                            # Format 1: {"prompts": [{...}]} (array wrapper)
+                            if 'prompts' in obj and isinstance(obj['prompts'], list):
+                                all_prompts.extend(obj['prompts'])
+                            # Format 2: {"prompt": "...", "interpretation": "..."} (direct object)
+                            elif 'prompt' in obj:
+                                all_prompts.append(obj)
+                    except json.JSONDecodeError:
+                        pass
+                if all_prompts:
+                    result = {"prompts": all_prompts, "tip": "Prompts extracted from markdown response"}
+                    logger.debug(f"[DEBUG] Extracted {len(all_prompts)} prompts from {len(json_objects)} JSON objects")
+                    return result
+        except Exception as e:
+            logger.debug(f"[DEBUG] Failed to extract multiple JSON objects: {e}")
     
     # Try extracting from markdown code block with ```json
     if "```json" in text:
@@ -997,13 +1094,9 @@ INSTRUCTION:
 - Each prompt MUST start with facial feature preservation statement
 - Each prompt MUST END with explicit negation instructions
 
-Return ONLY valid JSON (no markdown, no text before/after):
-{{
-  "prompts": [
-    {{"prompt": "<100-160 word prompt preserving identity, using user requirement, with negatives>", "interpretation": "<brief 2-3 word description of this prompt's creative angle>"}}
-  ],
-  "tip": "Identity preservation + user requirement focus technique used"
-}}"""
+RESPONSE FORMAT (MANDATORY - SINGLE JSON OBJECT WITH ALL {count} PROMPTS IN ONE ARRAY):
+Your entire response is ONLY this structure, nothing before/after:
+{{"prompts": [{{"prompt": "...", "interpretation": "..."}}, {{"prompt": "...", "interpretation": "..."}}, {{"prompt": "...", "interpretation": "..."}}], "tip": "..."}}"""
                 return self._call_groq_with_fallback(
                     command="generate_image_prompts",
                     cache_key=self._make_cache_key(
@@ -1235,14 +1328,8 @@ SPECIAL INSTRUCTION FOR REFERENCE-BASED TRANSFORMATIONS:
 - The person must be recognizable across all transformations by facial features alone
 - But the scenes, poses, environments, and styling must be VISUALLY DISTINCT and different
 
-Return ONLY valid JSON (no markdown, no text before/after):
-{{
-  "prompts": [
-    {{"prompt": "<compressed 100-160 word prompt with identity lock, accessory-outfit coordination, and negatives>", "scene": "<transformation type>"}}
-  ],
-  "analysis": "Facial preservation strategy, identity anchors, and accessory coordination approach used",
-  "tip": "Identity lock + accessory harmony technique: [specific method for preserving face and coordinating styling]"
-}}"""
+CRITICAL: Return a SINGLE JSON object (not multiple objects, no markdown, no text before/after) with this EXACT structure:
+{{"prompts": [{{"prompt": "<prompt text>", "scene": "<scenario>"}}], "analysis": "<analysis>", "tip": "<tip>"}}"""
         elif category == "design_gifts":
             # Specialized template for gift design with optional reference image support
             if reference_image_text:
