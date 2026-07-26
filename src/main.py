@@ -1044,11 +1044,22 @@ Return JSON with:
             # For transformation with CUSTOM prompt, use a simplified template that respects user's requirement
             if user_context_safe and user_context_safe.strip():
                 # CUSTOM TRANSFORMATION: User-driven requirement with aesthetic preferences
-                aesthetic_pref_section = self._build_aesthetic_preferences_prompt(
-                    aesthetic_preferences,
-                    scenarios,
-                    scenario_names,
-                    niche
+                # Parse custom requirement to extract location and mood
+                from src.prompts.custom_scenario_parser import CustomScenarioParser
+                from src.prompts.scene_styling_cohesion import SceneStylingCohesion
+
+                location, mood = CustomScenarioParser.extract_location(user_context_safe)
+                custom_scenario_section = CustomScenarioParser.build_custom_scenario_section(
+                    location, mood, user_context_safe, count
+                )
+
+                # Get cohesive styling (costume, hairstyle, accessories)
+                styling_section = SceneStylingCohesion.build_styling_prompt_section(
+                    location=location,
+                    mood=mood,
+                    user_context=user_context_safe,
+                    blend_level=aesthetic_preferences.blend_level.value if aesthetic_preferences else "50/50",
+                    jewelry_style=aesthetic_preferences.jewelry_style.value if aesthetic_preferences else "fusion",
                 )
 
                 prompt = f"""You are an expert AI image generation prompt engineer for identity-locked portrait transformations.
@@ -1057,7 +1068,9 @@ Category: {category_desc}{niche_line}{context_line}
 
 USER'S TRANSFORMATION REQUIREMENT: {user_context_safe}
 
-{aesthetic_pref_section}
+{custom_scenario_section}
+
+{styling_section}
 
 BASE FORMULA SCAFFOLD: {formula_scaffold}
 
@@ -1088,9 +1101,11 @@ Negative: "avoid beautification, avoid face smoothing, avoid skin enhancement, a
 
 INSTRUCTION:
 - Create {count} DISTINCT transformation prompts (each 100-160 words), each showing a DIFFERENT creative interpretation of the user's requirement
-- Each prompt MUST preserve facial identity absolutely while varying pose, clothing, environment, lighting, and mood to match different aspects of the requirement
-- Ensure each prompt is visually distinct in its interpretation of the requirement
-- DO NOT add template scenarios (Bride/Professional/Casual) — use ONLY the user's requirement to drive the generation
+- ⚠️ CRITICAL: ALL PROMPTS MUST USE THE SAME LOCATION — vary ONLY pose, body position, expression, and activity
+- Each prompt MUST preserve facial identity absolutely while varying ONLY: pose, clothing styling, lighting nuance, and expression
+- Location/scenery MUST REMAIN IDENTICAL across all {count} prompts
+- Ensure each prompt is visually distinct ONLY in pose and activity, not in location
+- DO NOT add template scenarios (Bride/Professional/Casual) — use ONLY the user's requirement location/mood to drive the generation
 - Each prompt MUST start with facial feature preservation statement
 - Each prompt MUST END with explicit negation instructions
 
