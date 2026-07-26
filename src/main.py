@@ -102,13 +102,18 @@ def parse_json_response(text: str) -> dict:
         logger.debug(f"[DEBUG] Direct JSON parse failed at position {e.pos}: {e.msg}")
         pass
 
-    # Look for our specific response format: "prompts": [...] (single JSON with array)
-    if '"prompts"' in text:
+    # Look for our specific response formats: "prompts": [...] or "variations": [...]
+    if '"prompts"' in text or '"variations"' in text:
         try:
-            # Strategy 1: Find a single JSON object with "prompts" array
+            # Strategy 1: Find a single JSON object with "prompts" or "variations" array
             prompts_idx = text.find('"prompts"')
-            if prompts_idx > -1:
-                start_idx = text.rfind('{', 0, prompts_idx)
+            variations_idx = text.find('"variations"')
+            # Use whichever exists (or prompts if both exist)
+            search_idx = prompts_idx if prompts_idx > -1 else variations_idx
+            search_key = "prompts" if prompts_idx > -1 else "variations"
+
+            if search_idx > -1:
+                start_idx = text.rfind('{', 0, search_idx)
                 if start_idx > -1:
                     brace_count = 0
                     in_string = False
@@ -132,9 +137,11 @@ def parse_json_response(text: str) -> dict:
                                     json_str = text[start_idx:i+1]
                                     try:
                                         result = json.loads(json_str)
-                                        if isinstance(result, dict) and 'prompts' in result and isinstance(result['prompts'], list):
-                                            if len(result['prompts']) > 1:  # Multi-prompt response
-                                                logger.debug("[DEBUG] Successfully parsed multi-prompt JSON object")
+                                        if isinstance(result, dict):
+                                            # Check for either "prompts" or "variations"
+                                            has_content = (search_key in result and isinstance(result[search_key], list))
+                                            if has_content and len(result[search_key]) >= 1:
+                                                logger.debug(f"[DEBUG] Successfully parsed JSON object with '{search_key}' key")
                                                 return result
                                     except json.JSONDecodeError:
                                         pass
@@ -176,24 +183,30 @@ def parse_json_response(text: str) -> dict:
                 else:
                     i += 1
 
-            # Extract prompts from found JSON objects
+            # Extract prompts/variations from found JSON objects
             if json_objects:
-                all_prompts = []
+                all_items = []
+                response_key = "variations"  # Default to new format
                 for json_str in json_objects:
                     try:
                         obj = json.loads(json_str)
                         if isinstance(obj, dict):
-                            # Format 1: {"prompts": [{...}]} (array wrapper)
-                            if 'prompts' in obj and isinstance(obj['prompts'], list):
-                                all_prompts.extend(obj['prompts'])
+                            # Format 1a: {"variations": [{...}]} (new format)
+                            if 'variations' in obj and isinstance(obj['variations'], list):
+                                all_items.extend(obj['variations'])
+                                response_key = "variations"
+                            # Format 1b: {"prompts": [{...}]} (old format)
+                            elif 'prompts' in obj and isinstance(obj['prompts'], list):
+                                all_items.extend(obj['prompts'])
+                                response_key = "prompts"
                             # Format 2: {"prompt": "...", "interpretation": "..."} (direct object)
                             elif 'prompt' in obj:
-                                all_prompts.append(obj)
+                                all_items.append(obj)
                     except json.JSONDecodeError:
                         pass
-                if all_prompts:
-                    result = {"prompts": all_prompts, "tip": "Prompts extracted from markdown response"}
-                    logger.debug(f"[DEBUG] Extracted {len(all_prompts)} prompts from {len(json_objects)} JSON objects")
+                if all_items:
+                    result = {response_key: all_items, "tip": "Items extracted from markdown response"}
+                    logger.debug(f"[DEBUG] Extracted {len(all_items)} items from {len(json_objects)} JSON objects")
                     return result
         except Exception as e:
             logger.debug(f"[DEBUG] Failed to extract multiple JSON objects: {e}")
@@ -295,7 +308,7 @@ def parse_json_response(text: str) -> dict:
                     try:
                         result = json.loads(json_str)
                         if isinstance(result, list) and result:
-                            return {"prompts": result}  # Wrap array in dict
+                            return {"variations": result}  # Wrap array in dict with new key
                     except json.JSONDecodeError:
                         pass
             else:
