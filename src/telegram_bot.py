@@ -1510,7 +1510,8 @@ class TelegramBotHandler:
         except Exception as e:
             await update.message.reply_text(f"❌ Error: {e}")
             logger.error(f"generate_command error: {e}")
-        async def logo_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    async def logo_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
             """Handle /logo_create key=value flags to generate logo prompts and deliverables."""
             # Example: /logo_create brand_name="Acme Inc" preferred_colors="#ff0000,#00ff00" png_resolution=4000x4000 dpi=300 variant_count=3
             args = context.args or []
