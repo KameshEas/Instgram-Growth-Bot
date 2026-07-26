@@ -189,3 +189,346 @@ def save_user_settings(
         settings_dict["content_mix"] = content_mix
     return update_user_settings(chat_id, **settings_dict)
 
+
+# ── PHASE 2: Favorites & History ──────────────────────────────────────────
+
+def init_favorites_and_history() -> None:
+    """Create favorites and history tables if they don't exist."""
+    with _get_conn() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS favorites (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                chat_id     INTEGER NOT NULL,
+                category    TEXT NOT NULL,
+                title       TEXT,
+                prompt      TEXT NOT NULL,
+                style       TEXT,
+                negative_prompt TEXT,
+                aspect_ratio TEXT,
+                keywords_json TEXT DEFAULT '[]',
+                created_at  TEXT,
+                updated_at  TEXT,
+                FOREIGN KEY(chat_id) REFERENCES user_profiles(chat_id)
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS prompt_history (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                chat_id     INTEGER NOT NULL,
+                category    TEXT NOT NULL,
+                user_input  TEXT,
+                prompt_count INTEGER DEFAULT 3,
+                created_at  TEXT,
+                FOREIGN KEY(chat_id) REFERENCES user_profiles(chat_id)
+            )
+        """)
+        conn.commit()
+    logger.debug("[DB] Favorites and history tables ready")
+
+
+def save_favorite(
+    chat_id: int,
+    category: str,
+    prompt: str,
+    title: Optional[str] = None,
+    style: Optional[str] = None,
+    negative_prompt: Optional[str] = None,
+    aspect_ratio: Optional[str] = None,
+    keywords: Optional[list] = None,
+) -> Dict[str, Any]:
+    """Save a prompt to user's favorites."""
+    init_favorites_and_history()
+    now = datetime.utcnow().isoformat()
+    with _get_conn() as conn:
+        conn.execute(
+            """
+            INSERT INTO favorites
+                (chat_id, category, title, prompt, style, negative_prompt, aspect_ratio, keywords_json, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                chat_id,
+                category,
+                title,
+                prompt,
+                style,
+                negative_prompt,
+                aspect_ratio,
+                json.dumps(keywords or []),
+                now,
+                now,
+            ),
+        )
+        conn.commit()
+        fav_id = conn.lastrowid
+    logger.debug("[DB] Favorite saved (id=%s) for chat_id=%s", fav_id, chat_id)
+    return get_favorite(fav_id)
+
+
+def get_favorite(fav_id: int) -> Optional[Dict[str, Any]]:
+    """Get a favorite by ID."""
+    init_favorites_and_history()
+    with _get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM favorites WHERE id = ?", (fav_id,)
+        ).fetchone()
+    if row is None:
+        return None
+    data = dict(row)
+    data["keywords"] = json.loads(data.pop("keywords_json", "[]") or "[]")
+    return data
+
+
+def get_user_favorites(chat_id: int, limit: int = 10) -> list:
+    """Get all favorites for a user (most recent first)."""
+    init_favorites_and_history()
+    with _get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM favorites WHERE chat_id = ? ORDER BY created_at DESC LIMIT ?",
+            (chat_id, limit),
+        ).fetchall()
+    favorites = []
+    for row in rows:
+        data = dict(row)
+        data["keywords"] = json.loads(data.pop("keywords_json", "[]") or "[]")
+        favorites.append(data)
+    return favorites
+
+
+def delete_favorite(fav_id: int) -> None:
+    """Remove a favorite by ID."""
+    init_favorites_and_history()
+    with _get_conn() as conn:
+        conn.execute("DELETE FROM favorites WHERE id = ?", (fav_id,))
+        conn.commit()
+    logger.debug("[DB] Favorite deleted (id=%s)", fav_id)
+
+
+def save_history(
+    chat_id: int,
+    category: str,
+    user_input: Optional[str] = None,
+    prompt_count: int = 3,
+) -> Dict[str, Any]:
+    """Record a prompt generation in user's history."""
+    init_favorites_and_history()
+    now = datetime.utcnow().isoformat()
+    with _get_conn() as conn:
+        conn.execute(
+            """
+            INSERT INTO prompt_history
+                (chat_id, category, user_input, prompt_count, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (chat_id, category, user_input, prompt_count, now),
+        )
+        conn.commit()
+        hist_id = conn.lastrowid
+    logger.debug("[DB] History recorded (id=%s) for chat_id=%s", hist_id, chat_id)
+    return get_history_entry(hist_id)
+
+
+def get_history_entry(hist_id: int) -> Optional[Dict[str, Any]]:
+    """Get a history entry by ID."""
+    init_favorites_and_history()
+    with _get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM prompt_history WHERE id = ?", (hist_id,)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def get_user_history(chat_id: int, limit: int = 20) -> list:
+    """Get user's prompt generation history (most recent first)."""
+    init_favorites_and_history()
+    with _get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM prompt_history WHERE chat_id = ? ORDER BY created_at DESC LIMIT ?",
+            (chat_id, limit),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def clear_user_history(chat_id: int) -> None:
+    """Clear all history for a user."""
+    init_favorites_and_history()
+    with _get_conn() as conn:
+        conn.execute("DELETE FROM prompt_history WHERE chat_id = ?", (chat_id,))
+        conn.commit()
+    logger.debug("[DB] History cleared for chat_id=%s", chat_id)
+
+
+# ── PHASE 3: Smart Analytics & Recommendations ─────────────────────────────
+
+def get_favorite_by_id(fav_id: int) -> Optional[Dict[str, Any]]:
+    """Get a specific favorite by ID (includes full metadata)."""
+    init_favorites_and_history()
+    with _get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM favorites WHERE id = ?", (fav_id,)
+        ).fetchone()
+    if row is None:
+        return None
+    data = dict(row)
+    data["keywords"] = json.loads(data.pop("keywords_json", "[]") or "[]")
+    return data
+
+
+def search_favorites(chat_id: int, keyword: str, limit: int = 10) -> list:
+    """Search user's favorites by keyword (searches title, style, prompt)."""
+    init_favorites_and_history()
+    search_term = f"%{keyword}%"
+    with _get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM favorites
+               WHERE chat_id = ? AND (
+                   title LIKE ? OR
+                   style LIKE ? OR
+                   prompt LIKE ? OR
+                   keywords_json LIKE ?
+               )
+               ORDER BY created_at DESC LIMIT ?""",
+            (chat_id, search_term, search_term, search_term, search_term, limit),
+        ).fetchall()
+    favorites = []
+    for row in rows:
+        data = dict(row)
+        data["keywords"] = json.loads(data.pop("keywords_json", "[]") or "[]")
+        favorites.append(data)
+    return favorites
+
+
+def get_favorites_by_category(chat_id: int, category: str, limit: int = 10) -> list:
+    """Get all favorites in a specific category."""
+    init_favorites_and_history()
+    with _get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM favorites WHERE chat_id = ? AND category = ? ORDER BY created_at DESC LIMIT ?",
+            (chat_id, category, limit),
+        ).fetchall()
+    favorites = []
+    for row in rows:
+        data = dict(row)
+        data["keywords"] = json.loads(data.pop("keywords_json", "[]") or "[]")
+        favorites.append(data)
+    return favorites
+
+
+def get_category_stats(chat_id: int) -> Dict[str, int]:
+    """Get statistics on favorite categories (most common first)."""
+    init_favorites_and_history()
+    with _get_conn() as conn:
+        rows = conn.execute(
+            """SELECT category, COUNT(*) as count FROM favorites
+               WHERE chat_id = ?
+               GROUP BY category
+               ORDER BY count DESC""",
+            (chat_id,),
+        ).fetchall()
+    stats = {row["category"]: row["count"] for row in rows}
+    return stats
+
+
+def get_generation_stats(chat_id: int) -> Dict[str, Any]:
+    """Get statistics on user's generation activity."""
+    init_favorites_and_history()
+    with _get_conn() as conn:
+        # Total generations
+        total = conn.execute(
+            "SELECT COUNT(*) as count FROM prompt_history WHERE chat_id = ?",
+            (chat_id,),
+        ).fetchone()
+
+        # Most used categories
+        categories = conn.execute(
+            """SELECT category, COUNT(*) as count FROM prompt_history
+               WHERE chat_id = ?
+               GROUP BY category
+               ORDER BY count DESC LIMIT 5""",
+            (chat_id,),
+        ).fetchall()
+
+        # Total favorites
+        fav_count = conn.execute(
+            "SELECT COUNT(*) as count FROM favorites WHERE chat_id = ?",
+            (chat_id,),
+        ).fetchone()
+
+    return {
+        "total_generations": total["count"] if total else 0,
+        "favorite_categories": {row["category"]: row["count"] for row in categories},
+        "total_favorites": fav_count["count"] if fav_count else 0,
+        "favorite_rate": f"{(fav_count['count'] / max(total['count'], 1) * 100):.1f}%" if total and total["count"] > 0 else "0%",
+    }
+
+
+def get_most_used_categories(chat_id: int, limit: int = 5) -> list:
+    """Get user's most frequently generated categories."""
+    init_favorites_and_history()
+    with _get_conn() as conn:
+        rows = conn.execute(
+            """SELECT category, COUNT(*) as count FROM prompt_history
+               WHERE chat_id = ?
+               GROUP BY category
+               ORDER BY count DESC LIMIT ?""",
+            (chat_id, limit),
+        ).fetchall()
+    return [(row["category"], row["count"]) for row in rows]
+
+
+def get_smart_recommendations(chat_id: int) -> list:
+    """Get smart category recommendations based on user's history."""
+    init_favorites_and_history()
+
+    # Get categories user has generated most
+    with _get_conn() as conn:
+        most_used = conn.execute(
+            """SELECT category FROM prompt_history
+               WHERE chat_id = ?
+               GROUP BY category
+               ORDER BY COUNT(*) DESC LIMIT 3""",
+            (chat_id,),
+        ).fetchall()
+
+    recommendations = [row["category"] for row in most_used]
+
+    # If user has favorites, also suggest related categories
+    if recommendations:
+        return recommendations
+
+    # If no history, return popular starters
+    return ["general_photography", "women_professional", "design_posters"]
+
+
+def get_last_generation(chat_id: int) -> Optional[Dict[str, Any]]:
+    """Get the user's most recent generation for quick regenerate."""
+    init_favorites_and_history()
+    with _get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM prompt_history WHERE chat_id = ? ORDER BY created_at DESC LIMIT 1",
+            (chat_id,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def count_user_favorites(chat_id: int) -> int:
+    """Count total favorites for a user."""
+    init_favorites_and_history()
+    with _get_conn() as conn:
+        result = conn.execute(
+            "SELECT COUNT(*) as count FROM favorites WHERE chat_id = ?",
+            (chat_id,),
+        ).fetchone()
+    return result["count"] if result else 0
+
+
+def count_user_history(chat_id: int) -> int:
+    """Count total history entries for a user."""
+    init_favorites_and_history()
+    with _get_conn() as conn:
+        result = conn.execute(
+            "SELECT COUNT(*) as count FROM prompt_history WHERE chat_id = ?",
+            (chat_id,),
+        ).fetchone()
+    return result["count"] if result else 0
+

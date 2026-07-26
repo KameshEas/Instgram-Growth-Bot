@@ -142,8 +142,9 @@ class TelegramBotHandler:
 
     @staticmethod
     def _main_menu_keyboard() -> InlineKeyboardMarkup:
-        """Return the 4-row inline button main menu."""
+        """Return the main menu with all features including Phase 3."""
         buttons = [
+            [InlineKeyboardButton("📷 Generate Prompts", callback_data="cat_select")],
             [InlineKeyboardButton("✍️ Caption", callback_data="cmd_caption"),
              InlineKeyboardButton("#️⃣ Hashtags", callback_data="cmd_hashtags"),
              InlineKeyboardButton("📝 Bio", callback_data="cmd_bio")],
@@ -156,6 +157,48 @@ class TelegramBotHandler:
             [InlineKeyboardButton("🔍 Audit", callback_data="cmd_audit"),
              InlineKeyboardButton("📈 Analytics", callback_data="cmd_analytics"),
              InlineKeyboardButton("👤 Profile", callback_data="cmd_profile")],
+            # Phase 2: Favorites, History, Settings
+            [InlineKeyboardButton("💾 Favorites", callback_data="cmd_favorites"),
+             InlineKeyboardButton("📜 History", callback_data="cmd_history"),
+             InlineKeyboardButton("⚙️ Settings", callback_data="cmd_settings")],
+            # Phase 3: Smart Analytics & Recommendations
+            [InlineKeyboardButton("📊 Stats", callback_data="cmd_stats"),
+             InlineKeyboardButton("🎯 Recommend", callback_data="cmd_recommend"),
+             InlineKeyboardButton("🔄 Regenerate", callback_data="cmd_regenerate")],
+        ]
+        return InlineKeyboardMarkup(buttons)
+
+    @staticmethod
+    def _category_keyboard() -> InlineKeyboardMarkup:
+        """Return inline keyboard for photo category selection."""
+        buttons = [
+            [InlineKeyboardButton("📷 General Photography", callback_data="gen_general_photography")],
+            [InlineKeyboardButton("👩 Women Professional", callback_data="gen_women_professional"),
+             InlineKeyboardButton("👨 Men Professional", callback_data="gen_men_professional")],
+            [InlineKeyboardButton("👩✨ Women Transform", callback_data="gen_women_transform"),
+             InlineKeyboardButton("👨✨ Men Transform", callback_data="gen_men_transform")],
+            [InlineKeyboardButton("💑 Couples Transform", callback_data="gen_couples_transform")],
+            [InlineKeyboardButton("🎨 Design Posters", callback_data="gen_design_posters"),
+             InlineKeyboardButton("🎁 Design Gifts", callback_data="gen_design_gifts")],
+            [InlineKeyboardButton("🖥️ UI/UX Design", callback_data="gen_ui_ux_design"),
+             InlineKeyboardButton("🏢 Brand Identity", callback_data="gen_brand_identity")],
+            [InlineKeyboardButton("🎭 Illustration", callback_data="gen_illustration_art"),
+             InlineKeyboardButton("🎬 Animation", callback_data="gen_animation_motion")],
+            [InlineKeyboardButton("📸 Fine Art", callback_data="gen_photography_styles"),
+             InlineKeyboardButton("📄 Print Design", callback_data="gen_print_design")],
+            [InlineKeyboardButton("◀️ Back to Menu", callback_data="back_menu")],
+        ]
+        return InlineKeyboardMarkup(buttons)
+
+    @staticmethod
+    def _prompt_action_buttons(prompt_id: str = "1") -> InlineKeyboardMarkup:
+        """Return action buttons for generated prompts."""
+        buttons = [
+            [InlineKeyboardButton("💾 Save", callback_data=f"save_prompt_{prompt_id}"),
+             InlineKeyboardButton("🔄 Refine", callback_data=f"refine_prompt_{prompt_id}"),
+             InlineKeyboardButton("📋 Copy", callback_data=f"copy_prompt_{prompt_id}")],
+            [InlineKeyboardButton("🔄 Generate More", callback_data="gen_more"),
+             InlineKeyboardButton("📚 See All", callback_data="see_all_categories")],
         ]
         return InlineKeyboardMarkup(buttons)
 
@@ -209,37 +252,51 @@ class TelegramBotHandler:
         logger.info(f"[OK] /start — user {user.id} ({user.username})")
     
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /help command — show updated command reference."""
+        """Handle /help command — show updated command reference with better organization."""
         text = (
-            "📖 *Instagram Growth Advisor — Commands*\n\n"
-            "⚙️ *Profile Setup*\n"
-            "  /setup — Set your niche, audience & goals\n"
-            "  /profile — View or edit your saved profile\n\n"
+            "📖 *Instagram Growth Advisor — Complete Command Guide*\n\n"
+            "🚀 *Quick Start*\n"
+            "  /start — Main menu with all commands\n"
+            "  /setup — Personalize your profile (niche, audience, goals)\n\n"
+            "📷 *AI Image Prompt Generation*\n"
+            "  /generate — Browse & select photo categories\n"
+            "  /categories — Browse all available categories\n"
+            "  /search `[keyword]` — Find categories by keyword\n"
+            "  /logo_create — Generate high-res PNG logos + design system\n\n"
             "✍️ *Content Creation*\n"
-            "  /caption `[describe your post]` — Viral caption + CTA\n"
-            "  /hashtags `[topic]` — 30 hashtags in 3 tiers\n"
-            "  /bio `[your current bio]` — AI-rewritten bio\n"
-            "  /stories `[topic]` — 5 interactive Story ideas\n\n"
-            "📅 *Planning*\n"
+            "  /caption — Viral captions with CTAs\n"
+            "  /hashtags — 30 trending hashtags in 3 tiers\n"
+            "  /bio — Rewrite your Instagram bio\n"
+            "  /stories — 5 interactive Story ideas\n\n"
+            "📅 *Planning & Strategy*\n"
             "  /ideas — 7-post weekly content calendar\n"
-            "  /schedule — Best posting times for your audience\n\n"
-            "📊 *Growth & Analytics*\n"
-            "  /trends `[niche]` — Trending topics & hashtags\n"
-            "  /engagement `[size]` — Engagement strategy\n"
-            "  /monetize `[niche] [followers]` — Revenue ideas\n"
-            "  /analytics `[daily|weekly|monthly]` — Performance report\n"
+            "  /schedule — Best posting times for your niche\n"
+            "  /trends — Trending topics & hashtags for your niche\n"
+            "  /engagement — Personalized engagement strategy\n"
+            "  /monetize — Revenue & partnership ideas\n\n"
+            "📊 *Analytics & Insights*\n"
+            "  /analytics — Daily/weekly/monthly performance reports\n"
             "  /audit — Profile improvement checklist\n\n"
-            "🎨 *Prompt Library*\n"
-            "  /generate `[category]` — AI image prompts\n"
-            "  /categories — Browse all prompt categories\n"
-            "  /search `[keyword]` — Find prompts by keyword\n"
-                "🎨 *Prompt Library*"
-                "  /generate `[category]` — AI image prompts"
-                "  /logo_create `[key=value ...]` — Generate logo concepts (High-Res PNG + design system)\n"
-                "  /categories — Browse all prompt categories"
-            "💡 Tip: Run /setup first for personalised responses."
+            "⚙️ *Profile Management*\n"
+            "  /profile — View & edit your saved profile\n"
+            "  /set_role — Set your professional role (for personalization)\n"
+            "  /settings — View & manage your preferences\n\n"
+            "💾 *Phase 2: Favorites & History* ✨\n"
+            "  /favorites — View all saved favorite prompts\n"
+            "  /history — See your prompt generation history\n"
+            "  💡 Tip: Use [💾 Save] button when generating prompts!\n\n"
+            "🎯 *Phase 3: Smart Analytics* ✨✨\n"
+            "  /stats — View your generation statistics\n"
+            "  /recommend — Get personalized category recommendations\n"
+            "  /regenerate — Quickly regenerate last request\n"
+            "  💡 Tip: Your history powers smart suggestions!\n\n"
+            "💡 *Pro Tip:* Use /setup first to unlock fully personalized responses!"
         )
-        await update.message.reply_text(text, parse_mode="Markdown")
+        await update.message.reply_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=self._main_menu_keyboard()
+        )
     
     async def content_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /content command - Generate captions"""
@@ -1136,7 +1193,7 @@ class TelegramBotHandler:
 
             await update.message.reply_text(header, parse_mode="Markdown")
 
-            # Send each variation
+            # Send each variation with action buttons
             for idx, var in enumerate(variations, 1):
                 msg = f"*✨ Variation {idx}*\n"
                 msg += "─────────────────────────────────────\n\n"
@@ -1163,13 +1220,63 @@ class TelegramBotHandler:
                 for chunk in self._send_long(msg):
                     await update.message.reply_text(chunk, parse_mode="Markdown")
 
+                # Add action buttons for each prompt
+                # Store prompt data in context for later retrieval (Phase 2)
+                context.user_data[f"prompt_{idx}"] = {
+                    "category": category,
+                    "title": var.get("title"),
+                    "style": var.get("style"),
+                    "prompt": var.get("prompt"),
+                    "negative_prompt": var.get("negative_prompt"),
+                    "aspect_ratio": var.get("aspect_ratio"),
+                    "keywords": var.get("keywords", []),
+                }
+
+                action_buttons = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("💾 Save", callback_data=f"save_fav_{idx}"),
+                     InlineKeyboardButton("📋 Copy", callback_data=f"copy_prompt_{idx}"),
+                     InlineKeyboardButton("✏️ Refine", callback_data=f"refine_prompt_{idx}")],
+                ])
+                await update.message.reply_text(
+                    "👇 Actions:",
+                    reply_markup=action_buttons
+                )
+
                 if idx < len(variations):
                     await update.message.reply_text("─────────────────────────────────────")
 
-            # Final summary
-            summary = f"✅ Generated {len(variations)} prompt variations.\n"
-            summary += "📋 Copy any prompt above and paste it into DALL-E 3, Midjourney, or Flux to generate!"
-            await update.message.reply_text(summary)
+            # Save to history (Phase 2)
+            try:
+                from src.database.user_db import save_history
+                save_history(
+                    chat_id=update.effective_chat.id,
+                    category=category,
+                    user_input=result.get("user_idea", ""),
+                    prompt_count=len(variations)
+                )
+            except Exception as e:
+                logger.warning(f"Failed to save history: {e}")
+
+            # Final summary with next steps
+            summary = f"✅ Generated {len(variations)} prompt variations!\n\n"
+            summary += "*Next Steps:*\n"
+            summary += "📋 Copy any prompt and paste into DALL-E 3, Midjourney, or Flux\n"
+            summary += "💾 Use [💾 Save] button to save favorites\n"
+            summary += "🔄 Use /generate for another category\n"
+            summary += "📜 View history: /history"
+
+            summary_buttons = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔄 Generate More", callback_data="gen_more"),
+                 InlineKeyboardButton("📜 History", callback_data="cmd_history")],
+                [InlineKeyboardButton("💾 Favorites", callback_data="cmd_favorites"),
+                 InlineKeyboardButton("🏠 Menu", callback_data="back_menu")],
+            ])
+
+            await update.message.reply_text(
+                summary,
+                parse_mode="Markdown",
+                reply_markup=summary_buttons
+            )
 
         except Exception as e:
             logger.error(f"Universal prompts formatting error: {e}")
@@ -1415,7 +1522,109 @@ class TelegramBotHandler:
             "cmd_monetize": ("💰 Send: [niche] [followers] (e.g. fitness 50000):", "/monetize"),
         }
 
-        if data in no_arg_cmds:
+        # ── Category Selection Callbacks ──
+        if data == "cat_select":
+            await query.message.reply_text(
+                "📷 *Choose a Photo Category:*\n\nSelect the type of prompts you want to generate:",
+                reply_markup=self._category_keyboard(),
+                parse_mode="Markdown"
+            )
+        elif data.startswith("gen_"):
+            # Extract category from callback (e.g., "gen_women_professional" → "women_professional")
+            category = data.replace("gen_", "")
+            context.user_data["selected_category"] = category
+            await query.message.reply_text(
+                f"📷 *{category.replace('_', ' ').title()}*\n\n"
+                f"Generating prompts... ⏳",
+                parse_mode="Markdown"
+            )
+            # Create fake update to call generate_command
+            fake_update = update
+            context.args = [category]
+            await self.generate_command(fake_update, context)
+        elif data == "back_menu":
+            await query.message.reply_text(
+                "👋 Back to main menu:",
+                reply_markup=self._main_menu_keyboard()
+            )
+        elif data == "cmd_help":
+            await self.help_command(update, context)
+        elif data == "gen_more":
+            category = context.user_data.get("selected_category", "general_photography")
+            await query.message.reply_text(
+                f"🔄 Generating more prompts for *{category.replace('_', ' ').title()}*...",
+                parse_mode="Markdown"
+            )
+            fake_update = update
+            context.args = [category]
+            await self.generate_command(fake_update, context)
+        elif data == "see_all_categories":
+            await query.message.reply_text(
+                "📷 *Available Categories:*",
+                reply_markup=self._category_keyboard(),
+                parse_mode="Markdown"
+            )
+        # ── Prompt Action Callbacks (Phase 2) ──
+        elif data.startswith("save_fav_"):
+            prompt_idx = data.replace("save_fav_", "")
+            await query.answer("💾 Saving to favorites...", show_alert=False)
+            try:
+                from src.database.user_db import save_favorite
+                # Get prompt data from context
+                prompt_data = context.user_data.get(f"prompt_{prompt_idx}", {})
+                if prompt_data and prompt_data.get("prompt"):
+                    fav = save_favorite(
+                        chat_id=update.effective_chat.id,
+                        category=prompt_data.get("category", "general"),
+                        prompt=prompt_data.get("prompt"),
+                        title=prompt_data.get("title"),
+                        style=prompt_data.get("style"),
+                        negative_prompt=prompt_data.get("negative_prompt"),
+                        aspect_ratio=prompt_data.get("aspect_ratio"),
+                        keywords=prompt_data.get("keywords", []),
+                    )
+                    await query.answer("✅ Saved to favorites!", show_alert=True)
+                else:
+                    await query.answer("❌ Could not find prompt data", show_alert=True)
+            except Exception as e:
+                logger.warning(f"Failed to save favorite: {e}")
+                await query.answer(f"❌ Error: {str(e)[:50]}", show_alert=True)
+
+        elif data.startswith("copy_prompt_"):
+            prompt_idx = data.replace("copy_prompt_", "")
+            prompt_data = context.user_data.get(f"prompt_{prompt_idx}", {})
+            if prompt_data and prompt_data.get("prompt"):
+                # Store for user to copy
+                await query.answer("📋 Prompt ready! Copy from above message", show_alert=False)
+            else:
+                await query.answer("❌ Could not find prompt", show_alert=True)
+
+        elif data.startswith("refine_prompt_"):
+            prompt_idx = data.replace("refine_prompt_", "")
+            context.user_data["pending_cmd"] = f"/refine {prompt_idx}"
+            await query.message.reply_text(
+                "✏️ *Refine This Prompt*\n\nDescribe what you'd like to improve or change:"
+            )
+
+        # ── Phase 2 Command Callbacks ──
+        elif data == "cmd_favorites":
+            await self.favorites_command(update, context)
+        elif data == "cmd_history":
+            await self.history_command(update, context)
+        elif data == "cmd_settings":
+            await self.settings_command(update, context)
+        elif data == "cmd_set_role":
+            await self.set_role_command(update, context)
+
+        # ── Phase 3 Callbacks ──
+        elif data == "cmd_stats":
+            await self.stats_command(update, context)
+        elif data == "cmd_recommend":
+            await self.recommend_command(update, context)
+        elif data == "cmd_regenerate":
+            await self.regenerate_command(update, context)
+
+        elif data in no_arg_cmds:
             if data == "cmd_analytics":
                 fake_update = update
                 context.args = ["daily"]
@@ -1477,10 +1686,16 @@ class TelegramBotHandler:
         # Determine if this is a design brief request
         is_design_brief = category in DESIGN_CATEGORIES and custom_prompt
 
-        wait_msg = (f"⏳ Enhancing your concept for *{category}*..."
+        # Phase 2: Enhanced progress indicator
+        cat_display = category.replace("_", " ").title()
+        wait_msg = (f"⏳ *Enhancing your concept*\n\n📁 Category: {cat_display}\n🎨 Style: Custom design"
                     if is_design_brief else
-                    f"⏳ Fetching prompts for *{category}*{' [' + level + ']' if level else ' [mixed]'}...")
-        await update.message.reply_text(wait_msg, parse_mode="Markdown")
+                    f"⏳ *Generating AI Prompts*\n\n📁 Category: {cat_display}\n💭 Creating variations...")
+
+        wait_msg_obj = await update.message.reply_text(wait_msg, parse_mode="Markdown")
+
+        # Store message ID for potential status update
+        context.user_data["progress_msg_id"] = wait_msg_obj.message_id
 
         try:
             # Get user profile for context
@@ -1532,14 +1747,46 @@ class TelegramBotHandler:
                     await update.message.reply_text("❌ Unexpected response format. Please try again.")
                 logger.info(f"[OK] /generate category={category}, design_brief={is_design_brief}")
             else:
-                err = result.get("error", "Unknown") if isinstance(result, dict) else str(result)
-                cats = result.get("available_categories", []) if isinstance(result, dict) else []
-                rep = f"❌ {err}\n\nSee all categories: /categories"
-                if cats:
-                    rep += "\n\n" + "\n".join(f"• {c}" for c in cats[:10])
-                await update.message.reply_text(rep)
+                err = result.get("error", "Unknown error") if isinstance(result, dict) else str(result)
+
+                # Build better error message with recovery options
+                error_msg = "❌ *Couldn't Generate Prompts*\n\n"
+                error_msg += f"_Error: {escape_md(err)}_\n\n"
+                error_msg += "*Quick Fixes:*\n"
+                error_msg += "1️⃣ Try again with a different category\n"
+                error_msg += "2️⃣ Check your category name (use /categories)\n"
+                error_msg += "3️⃣ Try without custom text\n\n"
+                error_msg += "*Recovery Options:*"
+
+                recovery_buttons = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("📚 Browse Categories", callback_data="cat_select"),
+                     InlineKeyboardButton("🔄 Retry", callback_data="gen_more")],
+                    [InlineKeyboardButton("❓ Get Help", callback_data="cmd_help")],
+                ])
+
+                await update.message.reply_text(
+                    error_msg,
+                    parse_mode="Markdown",
+                    reply_markup=recovery_buttons
+                )
         except Exception as e:
-            await update.message.reply_text(f"❌ Error: {e}")
+            error_msg = (
+                "⚠️ *Something Went Wrong*\n\n"
+                f"_Error: {escape_md(str(e)[:100])}_\n\n"
+                "*What to do:*\n"
+                "• Try /start to return to main menu\n"
+                "• Use /help for command guide\n"
+                "• Try again in a moment"
+            )
+            recovery_buttons = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🏠 Main Menu", callback_data="back_menu"),
+                 InlineKeyboardButton("📚 Get Help", callback_data="cmd_help")],
+            ])
+            await update.message.reply_text(
+                error_msg,
+                parse_mode="Markdown",
+                reply_markup=recovery_buttons
+            )
             logger.error(f"generate_command error: {e}")
 
     async def logo_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1606,14 +1853,31 @@ class TelegramBotHandler:
                 logger.error(f"logo_command error: {e}")
 
     async def categories_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """List all prompt categories."""
+        """Show all prompt categories with interactive buttons."""
         try:
-            from src.prompts.templates import list_categories
-            cats = list_categories()
-            msg = "📚 *Prompt Categories*\n\n"
-            msg += "\n".join(f"• `{c}`" for c in cats)
-            msg += "\n\nUsage: `/generate [category]`"
-            await update.message.reply_text(msg, parse_mode="Markdown")
+            msg = (
+                "📷 *Prompt Categories*\n\n"
+                "Choose a category below to generate AI prompts:\n\n"
+                "👇 *Photo Categories:*\n"
+                "  • General photography and lifestyle\n"
+                "  • Professional portraits (women/men)\n"
+                "  • Identity-locked transformations\n"
+                "  • Fine art and editorial photography\n\n"
+                "👇 *Design Categories:*\n"
+                "  • Social media posters\n"
+                "  • Gift designs & merchandise\n"
+                "  • UI/UX interfaces\n"
+                "  • Brand identity & logos\n"
+                "  • Illustrations & art\n"
+                "  • Animation & motion graphics\n"
+                "  • Print design\n\n"
+                "💡 *Tap a category below to get started!*"
+            )
+            await update.message.reply_text(
+                msg,
+                parse_mode="Markdown",
+                reply_markup=self._category_keyboard()
+            )
         except Exception as e:
             await update.message.reply_text(f"❌ Error: {e}")
             logger.error(f"categories_command error: {e}")
@@ -1682,6 +1946,257 @@ class TelegramBotHandler:
         except Exception as e:
             await update.message.reply_text(f"❌ Error: {e}")
             logger.error(f"inspire_command error: {e}")
+
+    # ── PHASE 2: Favorites, History & Settings ───────────────────────────────
+
+    async def favorites_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show user's saved favorite prompts."""
+        try:
+            from src.database.user_db import get_user_favorites
+            chat_id = update.effective_chat.id
+            favorites = get_user_favorites(chat_id, limit=10)
+
+            if not favorites:
+                await update.message.reply_text(
+                    "💾 *Your Favorites*\n\nNo saved prompts yet.\n\n"
+                    "💡 Tip: Use [💾 Save] button when generating prompts to save your favorites!",
+                    parse_mode="Markdown",
+                    reply_markup=self._main_menu_keyboard()
+                )
+                return
+
+            msg = f"💾 *Your Favorite Prompts* ({len(favorites)} saved)\n\n"
+            msg += "─────────────────────────────────\n\n"
+
+            for idx, fav in enumerate(favorites, 1):
+                msg += f"*{idx}. {fav.get('title', 'Prompt')}*\n"
+                msg += f"📁 Category: `{fav.get('category')}`\n"
+                msg += f"🎨 Style: _{fav.get('style', 'N/A')}_\n"
+                msg += f"📝 `{escape_md(fav.get('prompt', '')[:80])}...`\n"
+                msg += f"📅 Saved: {fav.get('created_at', 'N/A')[:10]}\n\n"
+
+            msg += "─────────────────────────────────\n"
+            msg += "🔄 *Coming Soon:* Copy & use favorite buttons"
+
+            for chunk in self._send_long(msg):
+                await update.message.reply_text(chunk, parse_mode="Markdown")
+
+            await update.message.reply_text(
+                "📚 What's next?",
+                reply_markup=self._main_menu_keyboard()
+            )
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error loading favorites: {e}")
+            logger.error(f"favorites_command error: {e}")
+
+    async def history_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show user's prompt generation history."""
+        try:
+            from src.database.user_db import get_user_history
+            chat_id = update.effective_chat.id
+            history = get_user_history(chat_id, limit=15)
+
+            if not history:
+                await update.message.reply_text(
+                    "📜 *Your History*\n\nNo generated prompts yet.\n\n"
+                    "💡 Start generating with /generate or tap [📷 Generate Prompts]!",
+                    parse_mode="Markdown",
+                    reply_markup=self._main_menu_keyboard()
+                )
+                return
+
+            msg = f"📜 *Recent Generations* ({len(history)} total)\n\n"
+            msg += "─────────────────────────────────\n\n"
+
+            for idx, hist in enumerate(history, 1):
+                msg += f"*{idx}.* 📁 `{hist.get('category')}`\n"
+                if hist.get('user_input'):
+                    msg += f"   Input: _{escape_md(hist.get('user_input', '')[:50])}..._\n"
+                msg += f"   📅 {hist.get('created_at', 'N/A')[:10]}\n\n"
+
+            msg += "─────────────────────────────────\n"
+            msg += "💾 Use [💾 Save] to add to favorites"
+
+            for chunk in self._send_long(msg):
+                await update.message.reply_text(chunk, parse_mode="Markdown")
+
+            await update.message.reply_text(
+                "📚 What's next?",
+                reply_markup=self._main_menu_keyboard()
+            )
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error loading history: {e}")
+            logger.error(f"history_command error: {e}")
+
+    async def settings_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show and edit user settings/preferences."""
+        try:
+            from src.database.user_db import get_profile
+            chat_id = update.effective_chat.id
+            profile = get_profile(chat_id)
+
+            if not profile:
+                await update.message.reply_text(
+                    "⚙️ *Settings*\n\nNo profile yet.\n\n"
+                    "💡 Tip: Use /setup to create your profile and unlock personalized features!",
+                    parse_mode="Markdown",
+                )
+                return
+
+            niche = profile.get("niche", "Not set")
+            audience_size = profile.get("audience_size", "Not set")
+            username = profile.get("username", "Not set")
+
+            msg = "⚙️ *Your Settings*\n\n"
+            msg += "─────────────────────────────────\n"
+            msg += f"👤 *Username:* {username}\n"
+            msg += f"🎯 *Niche:* {niche}\n"
+            msg += f"📊 *Audience Size:* {audience_size}\n"
+            msg += "─────────────────────────────────\n\n"
+
+            msg += "*Customize:*\n"
+            msg += "• `/setup` — Edit your profile\n"
+            msg += "• `/set_role` — Set your professional role\n\n"
+
+            msg += "*Preferences:*\n"
+            msg += "• 🌙 Dark mode (coming soon)\n"
+            msg += "• 📬 Notifications (coming soon)\n"
+            msg += "• 🌍 Language (coming soon)\n"
+
+            settings_buttons = InlineKeyboardMarkup([
+                [InlineKeyboardButton("⚙️ Edit Profile", callback_data="cmd_profile"),
+                 InlineKeyboardButton("🎯 Set Role", callback_data="cmd_set_role")],
+                [InlineKeyboardButton("🏠 Main Menu", callback_data="back_menu")],
+            ])
+
+            await update.message.reply_text(
+                msg,
+                parse_mode="Markdown",
+                reply_markup=settings_buttons
+            )
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error loading settings: {e}")
+            logger.error(f"settings_command error: {e}")
+
+    # ── PHASE 3: Smart Analytics & Recommendations ───────────────────────────
+
+    async def stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show user's generation and favorites statistics."""
+        try:
+            from src.database.user_db import get_generation_stats, get_category_stats
+            chat_id = update.effective_chat.id
+
+            stats = get_generation_stats(chat_id)
+            cat_stats = get_category_stats(chat_id)
+
+            msg = "📊 *Your AI Generation Stats*\n\n"
+            msg += "─────────────────────────────────\n"
+            msg += f"📈 *Total Generations:* {stats['total_generations']}\n"
+            msg += f"💾 *Total Favorites:* {stats['total_favorites']}\n"
+            msg += f"⭐ *Favorite Rate:* {stats['favorite_rate']}\n"
+            msg += "─────────────────────────────────\n\n"
+
+            if cat_stats:
+                msg += "*🎯 Favorite Categories:*\n"
+                for idx, (cat, count) in enumerate(list(cat_stats.items())[:5], 1):
+                    cat_display = cat.replace("_", " ").title()
+                    msg += f"{idx}. {cat_display}: {count} saved\n"
+                msg += "\n"
+
+            most_used = stats.get("favorite_categories", {})
+            if most_used:
+                msg += "*📈 Most Used Categories:*\n"
+                for idx, (cat, count) in enumerate(list(most_used.items())[:5], 1):
+                    msg += f"{idx}. {cat.replace('_', ' ').title()}: {count} times\n"
+
+            stats_buttons = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🎯 Recommendations", callback_data="cmd_recommend"),
+                 InlineKeyboardButton("💾 Favorites", callback_data="cmd_favorites")],
+                [InlineKeyboardButton("🏠 Menu", callback_data="back_menu")],
+            ])
+
+            await update.message.reply_text(
+                msg,
+                parse_mode="Markdown",
+                reply_markup=stats_buttons
+            )
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error loading stats: {e}")
+            logger.error(f"stats_command error: {e}")
+
+    async def recommend_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show smart category recommendations based on user history."""
+        try:
+            from src.database.user_db import get_smart_recommendations, get_most_used_categories
+            chat_id = update.effective_chat.id
+
+            recommendations = get_smart_recommendations(chat_id)
+            most_used = get_most_used_categories(chat_id, limit=5)
+
+            msg = "🎯 *Recommended For You*\n\n"
+            msg += "Based on your generation history, try these categories:\n\n"
+
+            if most_used:
+                for idx, (cat, count) in enumerate(most_used, 1):
+                    cat_display = cat.replace("_", " ").title()
+                    emoji = "👩" if "women" in cat else "👨" if "men" in cat else "🎨"
+                    msg += f"{emoji} *{cat_display}*\n"
+                    msg += f"   You've generated {count} times\n"
+            else:
+                msg += "Start generating to get personalized recommendations!\n"
+
+            msg += "\n📝 *Next:*\n"
+            msg += "Tap category below or use /generate [category]"
+
+            rec_buttons = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔄 Regenerate Last", callback_data="cmd_regenerate"),
+                 InlineKeyboardButton("📷 Generate New", callback_data="cat_select")],
+                [InlineKeyboardButton("🏠 Menu", callback_data="back_menu")],
+            ])
+
+            await update.message.reply_text(
+                msg,
+                parse_mode="Markdown",
+                reply_markup=rec_buttons
+            )
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error loading recommendations: {e}")
+            logger.error(f"recommend_command error: {e}")
+
+    async def regenerate_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Regenerate the user's last generation with one click."""
+        try:
+            from src.database.user_db import get_last_generation
+            chat_id = update.effective_chat.id
+
+            last_gen = get_last_generation(chat_id)
+
+            if not last_gen:
+                await update.message.reply_text(
+                    "🔄 *Regenerate Last*\n\n"
+                    "No previous generations found.\n\n"
+                    "💡 Tip: Generate some prompts first with /generate!",
+                    parse_mode="Markdown",
+                    reply_markup=self._main_menu_keyboard()
+                )
+                return
+
+            category = last_gen.get("category", "general_photography")
+            cat_display = category.replace("_", " ").title()
+
+            msg = f"🔄 *Regenerating*\n\n"
+            msg += f"📁 Category: {cat_display}\n"
+            msg += f"⏳ Creating 3 new variations..."
+
+            await update.message.reply_text(msg, parse_mode="Markdown")
+
+            # Trigger generation with last category
+            fake_update = update
+            context.args = [category]
+            await self.generate_command(fake_update, context)
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error: {e}")
+            logger.error(f"regenerate_command error: {e}")
 
     # ── free-text chat handler ────────────────────────────────────────────────
 
