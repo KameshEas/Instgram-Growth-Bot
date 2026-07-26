@@ -8,6 +8,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
     depends_on:
       postgres:
         condition: service_healthy
@@ -16,6 +19,15 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./metrics:/app/metrics
+      - ./data:/app/data
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
 
   # PostgreSQL Database
   postgres:

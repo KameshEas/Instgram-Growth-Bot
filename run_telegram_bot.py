@@ -1,97 +1,44 @@
 #!/usr/bin/env python3
-"""
-Setup and run Telegram bot with proper environment
-This script handles all setup steps before running the bot
-"""
+"""Run Telegram bot with proper environment setup and validation."""
 
-import subprocess
 import sys
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 
-# Get the project root directory
+# Add project root to path
 PROJECT_ROOT = Path(__file__).parent
+sys.path.insert(0, str(PROJECT_ROOT))
 os.chdir(PROJECT_ROOT)
 
-# Load .env file FIRST to get the token — override=True ensures .env wins over system env vars
+# Load environment variables from .env file
+from dotenv import load_dotenv
 env_file = PROJECT_ROOT / ".env"
 if env_file.exists():
     load_dotenv(dotenv_path=str(env_file), override=True)
 else:
-    print("[WARN] .env file not found at:", env_file)
+    print("[WARN] .env file not found — using environment variables or defaults")
 
-# .env is now loaded with override=True — no manual env var manipulation needed
+# Validate required environment variables
+REQUIRED_VARS = ["TELEGRAM_BOT_TOKEN", "GROQ_API_KEY"]
+missing_vars = [var for var in REQUIRED_VARS if not os.getenv(var)]
 
-print("="*60)
-print("Instagram Growth Bot - Telegram Interface Launcher")
-print("="*60)
-print()
-
-# Determine if we're in a virtual environment
-in_venv = sys.prefix != sys.base_prefix
-
-if not in_venv:
-    print("[ERROR] Not running in virtual environment!")
-    print("[INFO] Activate venv first:")
-    print()
-    if os.name == 'nt':  # Windows
-        print("  .\\venv\\Scripts\\activate.bat")
-    else:  # Linux/Mac
-        print("  source venv/bin/activate")
-    print()
+if missing_vars:
+    print(f"[ERROR] Missing required environment variables: {', '.join(missing_vars)}")
+    print(f"[INFO] Set them in .env or as system environment variables")
     sys.exit(1)
 
-print("[OK] Virtual environment activated")
-print(f"[INFO] Python: {sys.executable}")
-print()
+print("[OK] Environment variables validated")
 
-# Check if python-telegram-bot is installed
-print("[INFO] Checking dependencies...")
-try:
-    import telegram
-    print("[OK] python-telegram-bot is installed")
-except ImportError:
-    print("[WARN] python-telegram-bot not found, installing...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "python-telegram-bot"])
-    print("[OK] python-telegram-bot installed")
-
-# Check other dependencies
-deps = ["groq", "dotenv", "requests"]
-for dep in deps:
-    try:
-        __import__(dep)
-        print(f"[OK] {dep} is installed")
-    except ImportError:
-        print(f"[WARN] {dep} not found, installing...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", {
-            "dotenv": "python-dotenv",
-            "groq": "groq"
-        }.get(dep, dep)])
-
-print()
-print("="*60)
-print("[OK] All dependencies ready!")
-print("="*60)
-print()
-
-# Run the telegram bot
-print("[INFO] Starting Telegram bot...")
-print("[INFO] Press Ctrl+C to stop")
-print()
-
-# Import and run
+# Import and run the bot
 try:
     from src.telegram_bot import main_sync
-    
-    # Run the synchronous main function
+    print("[INFO] Starting Telegram bot...")
     main_sync()
-    
 except KeyboardInterrupt:
-    print()
-    print("[OK] Bot stopped by user")
+    print("\n[OK] Bot stopped by user")
+    sys.exit(0)
 except Exception as e:
-    print(f"[ERROR] {e}")
+    print(f"[ERROR] Bot error: {e}")
     import traceback
     traceback.print_exc()
     sys.exit(1)

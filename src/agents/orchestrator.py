@@ -9,6 +9,7 @@ from src.agents.analytics_agent import AnalyticsAgent
 from src.agents.trends_agent import TrendsAgent
 from src.prompts.templates import get_category_meta
 from src.services.edge_case_handler import EdgeCaseHandlerFactory
+from src.services.prompt_sanitizer import PromptSanitizer
 
 if TYPE_CHECKING:
     from src.main import InstagramGrowthBot
@@ -210,9 +211,16 @@ class ContentOrchestratorAgent(BaseAgent):
                             except Exception:
                                 pass
 
+                        # Sanitize custom prompt to prevent injection attacks
+                        sanitized_prompt, warnings = PromptSanitizer.sanitize(effective_prompt)
+                        if warnings:
+                            self.logger.warning(f"Prompt sanitization warnings: {warnings}")
+                        if not sanitized_prompt:
+                            return {"status": "error", "message": "Prompt validation failed. Please try again with valid content."}
+
                         ai_result = self._groq_bot.image_generation_prompts(
                             category=category,
-                            custom_prompt=effective_prompt,
+                            custom_prompt=sanitized_prompt,
                             level=level,
                             reference_image_text=reference_image_desc,
                         )

@@ -16,6 +16,7 @@ from groq import Groq
 from datetime import datetime
 from dotenv import load_dotenv
 from src.prompts.formulas import get_formula, compose_prompt_from_formula
+from src.services.groq_retry_handler import get_retry_handler
 
 # Load environment variables from .env file in the project root
 env_path = Path(__file__).parent.parent / ".env"
@@ -241,10 +242,12 @@ class InstagramGrowthBot:
         # Enhancement cache used by the professional enhancement pipeline (M4 fix)
         # Tests and enhancement code expect this attribute to exist as a dict.
         self._enhancement_cache = {}
+        # Initialize retry handler for Groq API resilience
+        self.retry_handler = get_retry_handler()
         if PROMPT_LOG_ENABLED:
             _plog.init_prompt_log_db()
             _plog.purge_expired_cache()
-        logger.info("[OK] Bot initialized with Groq API")
+        logger.info("[OK] Bot initialized with Groq API and retry handler")
 
     # ── Private helpers ──────────────────────────────────────────────────────
 
@@ -291,7 +294,32 @@ class InstagramGrowthBot:
 
         start = time.time()
         try:
-            response = self.client.chat.completions.create(**call_kwargs)
+            # Wrap Groq API call with retry handler for resilience
+            response, success = self.retry_handler.call_with_retry(
+                self.client.chat.completions.create,
+                **call_kwargs
+            )
+
+            # If retry handler returned error dict, it means API call ultimately failed
+            if not success:
+                duration = time.time() - start
+                latency_ms = int(duration * 1000)
+                logger.error(f"[ERROR] Groq API failed after retries: {response.get('error')}")
+
+                # Try stale cache as fallback
+                if PROMPT_LOG_ENABLED and ttl_hours is not None:
+                    _plog.log_prompt_response(
+                        command=command, prompt_hash=cache_key, prompt_text=prompt,
+                        response_json=None, success=0, error_msg=response.get("error"),
+                        latency_ms=latency_ms, model=self.model, chat_id=chat_id,
+                    )
+                    stale = _plog.get_cached_response(cache_key, ignore_ttl=True)
+                    if stale:
+                        logger.info(f"[FALLBACK] Serving stale cache for {command}")
+                        return {**stale, "_from_cache": True, "_stale": True}
+
+                return response
+
             duration = time.time() - start
             latency_ms = int(duration * 1000)
 
@@ -593,6 +621,8 @@ Return JSON with:
         self,
         category: str = "general_photography",
         niche: str = "",
+        follower_count: int = None,
+        region: str = "",
         count: int = 3,
         user_context: str = "",
         chat_id: int = None,
@@ -654,7 +684,14 @@ Return JSON with:
                     "accessories": "",
                     "composition": "",
                 }
-                formula_scaffold = compose_prompt_from_formula(formula_def, components_map, user_context_safe)
+                formula_scaffold = compose_prompt_from_formula(
+                    formula_def,
+                    components_map,
+                    user_context_safe,
+                    niche=niche,
+                    follower_count=follower_count,
+                    region=region,
+                )
         except Exception as e:
             logger.debug(f"Formula scaffold generation failed: {e}")
 
@@ -684,7 +721,14 @@ Return JSON with:
                 logo_formula_def = get_formula(category)
                 logo_scaffold = ""
                 if logo_formula_def:
-                    logo_scaffold = compose_prompt_from_formula(logo_formula_def, components_map_logo, user_context_safe)
+                    logo_scaffold = compose_prompt_from_formula(
+                        logo_formula_def,
+                        components_map_logo,
+                        user_context_safe,
+                        niche=niche,
+                        follower_count=follower_count,
+                        region=region,
+                    )
 
                 prompt = f"""You are an expert brand identity and logo design prompt engineer.
 

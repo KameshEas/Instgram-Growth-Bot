@@ -3,8 +3,12 @@
 This module provides a compact registry of prompt "formulas" (ordered component
 lists with small templates) and a simple composer to turn a formula + inputs
 into a single assembled prompt string.
+
+Enhanced with context-aware defaults that vary by user niche and follower tier,
+replacing generic hardcoded fallbacks.
 """
 from typing import Dict, Any, Optional
+from src.prompts.context_aware_components import ContextAwareComponentDefaults
 
 
 TRANSFORMATION_FORMULA_COMPONENTS = [
@@ -197,15 +201,36 @@ def get_formula(category: str) -> Optional[Dict[str, Any]]:
     return PROMPT_FORMULAS.get(key)
 
 
-def compose_prompt_from_formula(formula_def: Dict[str, Any], components: Dict[str, Any], user_context: str = "") -> str:
-    """Compose a prompt string from a formula definition.
+def compose_prompt_from_formula(
+    formula_def: Dict[str, Any],
+    components: Dict[str, Any],
+    user_context: str = "",
+    niche: Optional[str] = None,
+    follower_count: Optional[int] = None,
+    region: Optional[str] = None,
+) -> str:
+    """Compose a prompt string from a formula definition with context-aware defaults.
 
-    - `formula_def` is expected to have a `components` list with small template strings.
-    - `components` supplies values used to fill placeholders like {SCENARIO}, {LIGHTING}, etc.
-    - `user_context` is used as a fallback for {SCENARIO}.
+    Args:
+        formula_def: Formula dict with 'components' list containing templates
+        components: Values to fill placeholders like {SCENARIO}, {LIGHTING}, etc.
+        user_context: Fallback for {SCENARIO}
+        niche: User's content niche (e.g., 'fitness', 'fashion') for aware defaults
+        follower_count: User's follower count for tier-aware defaults
+        region: User's region for color palette selection
+
+    Returns:
+        Composed prompt string with filled placeholders and context-aware defaults
     """
     if not formula_def or "components" not in formula_def:
         return ""
+
+    # Build context-aware defaults that vary by niche, tier, and region
+    context_defaults = ContextAwareComponentDefaults.build_context_aware_defaults(
+        niche=niche,
+        follower_count=follower_count,
+        region=region,
+    )
 
     parts = []
     for comp in formula_def["components"]:
@@ -213,19 +238,20 @@ def compose_prompt_from_formula(formula_def: Dict[str, Any], components: Dict[st
         if not text:
             continue
 
+        # Use context-aware defaults instead of hardcoded generic values
         replacements = {
             "SCENARIO": components.get("scenario") or user_context or "",
             "SCENARIO_SUBJECT": components.get("scenario_subject") or components.get("subject") or components.get("scenario") or user_context or "portrait subject",
             "QUALITY_LEVEL": components.get("quality_level", "high quality"),
             "PHOTOGRAPHY_STYLE": components.get("photography_style") or components.get("style") or "photorealistic editorial photography",
-            "CAMERA_ANGLE": components.get("camera_angle", "eye-level portrait angle"),
+            "CAMERA_ANGLE": components.get("camera_angle", context_defaults["camera_angle"]),
             "FACIAL_STRUCTURE": components.get("facial_structure", "facial structure"),
             "EYES": components.get("eyes", "eyes"),
             "NOSE": components.get("nose", "nose"),
             "SMILE": components.get("smile", "smile"),
             "SKIN_TONE": components.get("skin_tone", "skin tone"),
             "FACIAL_PROPORTIONS": components.get("facial_proportions", "facial proportions"),
-            "EMOTION_ADJECTIVES": components.get("emotion_adjectives") or components.get("mood") or "calm, confident",
+            "EMOTION_ADJECTIVES": components.get("emotion_adjectives") or components.get("mood") or context_defaults["emotion_adjectives"],
             "SMILE_BEHAVIOR": components.get("smile_behavior", "natural and subtle"),
             "AUTHENTICITY_CUES": components.get("authenticity_cues", "micro-expressions and relaxed facial muscles"),
             "BODY_ORIENTATION": components.get("body_orientation", "natural three-quarter orientation"),
@@ -246,13 +272,13 @@ def compose_prompt_from_formula(formula_def: Dict[str, Any], components: Dict[st
             "JEWELRY_TYPE": components.get("jewelry_type") or components.get("accessories") or "minimal accessories",
             "CULTURAL_DETAILING": components.get("cultural_detailing", "authentic and context-aware"),
             "ORNAMENT_REALISM": components.get("ornament_realism", "high"),
-            "LIGHTING_STYLE": components.get("lighting_style") or components.get("lighting") or "cinematic portrait lighting",
+            "LIGHTING_STYLE": components.get("lighting_style") or components.get("lighting") or context_defaults["lighting_style"],
             "LIGHT_DIRECTION": components.get("light_direction", "45-degree key light"),
             "LIGHT_TEMPERATURE": components.get("light_temperature", "neutral-warm"),
             "HIGHLIGHT_BEHAVIOR": components.get("highlight_behavior", "controlled, natural highlights"),
             "SHADOW_SOFTNESS": components.get("shadow_softness", "soft"),
             "SKIN_INTERACTION": components.get("skin_interaction", "natural subsurface glow"),
-            "BACKGROUND_COLOR": components.get("background_color", "complementary neutral tones"),
+            "BACKGROUND_COLOR": components.get("background_color", context_defaults["background_color"]),
             "ENVIRONMENT_TYPE": components.get("environment_type", "contextual portrait environment"),
             "DECORATIVE_DESIGN": components.get("decorative_design", "minimal and elegant"),
             "COMPOSITION_STYLE": components.get("composition_style") or components.get("composition") or "clean, balanced composition",
@@ -305,7 +331,7 @@ def compose_prompt_from_formula(formula_def: Dict[str, Any], components: Dict[st
             "PRINTABLE_AREA": components.get("printable_area", ""),
             "CONCEPT": components.get("concept", ""),
             "TONE": components.get("tone", ""),
-            "COLOR_PALETTE": components.get("color_palette", ""),
+            "COLOR_PALETTE": components.get("color_palette", context_defaults["color_palette"]),
             "TYPOGRAPHY": components.get("typography", ""),
             "PRODUCT_CONSTRAINTS": components.get("product_constraints", ""),
             "FOCUS": components.get("focus", ""),

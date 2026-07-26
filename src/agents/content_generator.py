@@ -140,6 +140,8 @@ class ContentGeneratorAgent(BaseAgent):
             ai_result = self._groq_bot.generate_image_prompts(
                 category=category,
                 niche=niche,
+                follower_count=data.get("follower_count"),
+                region=data.get("region", ""),
                 count=count,
                 user_context=self._build_user_context(data),
                 chat_id=data.get("chat_id"),
