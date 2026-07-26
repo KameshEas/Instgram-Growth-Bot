@@ -171,7 +171,7 @@ class InputValidator:
             "gift_design_get_product_specs": ["product_type"],
             "gift_design_list_roles": [],
             "gift_design_get_role_info": [],
-            "content_generator": ["content_prompt"],
+            "content_generator": [],  # No required fields — category-based or custom prompts both supported
             "content_generator_list_categories": [],
             "content_generator_search": [],
             "general": [],
