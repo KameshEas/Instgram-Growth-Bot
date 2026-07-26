@@ -8,6 +8,7 @@ from src.services.input_validator import InputValidatorFactory
 from src.services.conflict_resolver import ConflictResolverFactory
 from src.services.edge_case_handler import EdgeCaseHandlerFactory
 from src.services.error_recovery_system import ErrorRecoverySystemFactory, ErrorType
+from src.prompts.preference_generator import PreferenceGenerator
 
 if TYPE_CHECKING:
     from src.main import InstagramGrowthBot
@@ -137,6 +138,9 @@ class ContentGeneratorAgent(BaseAgent):
                     "message": "AI bot not initialized. Prompts must be generated via AI only.",
                 }
 
+            # Extract aesthetic preferences from input data
+            aesthetic_preferences = PreferenceGenerator.extract_from_dict(data)
+
             ai_result = self._groq_bot.generate_image_prompts(
                 category=category,
                 niche=niche,
@@ -146,6 +150,8 @@ class ContentGeneratorAgent(BaseAgent):
                 user_context=self._build_user_context(data),
                 chat_id=data.get("chat_id"),
                 components=data.get("components"),
+                aesthetic_preferences=aesthetic_preferences,
+                occasion=data.get("occasion", "casual"),
             )
             
             if isinstance(ai_result, dict) and "prompts" in ai_result and not ai_result.get("error"):

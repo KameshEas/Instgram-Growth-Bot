@@ -15,8 +15,12 @@ from pathlib import Path
 from groq import Groq
 from datetime import datetime
 from dotenv import load_dotenv
+from typing import List, Dict, Optional
 from src.prompts.formulas import get_formula, compose_prompt_from_formula
 from src.services.groq_retry_handler import get_retry_handler
+from src.prompts.aesthetic_preferences import AestheticPreferences, get_attire_for_blend, get_jewelry_for_style, get_makeup_for_vibe
+from src.prompts.scenario_pools import get_scenarios_for_occasion, select_diverse_scenarios
+from src.prompts.preference_generator import PreferenceGenerator
 
 # Load environment variables from .env file in the project root
 env_path = Path(__file__).parent.parent / ".env"
@@ -250,6 +254,132 @@ class InstagramGrowthBot:
         logger.info("[OK] Bot initialized with Groq API and retry handler")
 
     # ── Private helpers ──────────────────────────────────────────────────────
+
+    def _build_aesthetic_preferences_prompt(
+        self,
+        aesthetic_prefs: AestheticPreferences,
+        scenarios: Dict[str, Dict],
+        scenario_names: List[str],
+        niche: str = "",
+    ) -> str:
+        """Build system prompt section for aesthetic preferences.
+
+        Args:
+            aesthetic_prefs: User's aesthetic preferences
+            scenarios: Available scenarios for occasion
+            scenario_names: Selected scenario names for variation
+            niche: User's niche
+
+        Returns:
+            Formatted system prompt section
+        """
+        prefs_dict = aesthetic_prefs.to_dict()
+
+        # Build aesthetic instruction
+        aesthetic_instruction = f"""
+🎨 AESTHETIC PREFERENCES & BLEND GUIDANCE:
+User's aesthetic blend: {aesthetic_prefs.blend_level.value}
+- Attire style: {aesthetic_prefs.blend_level.value} blend (from traditional to modern)
+- Jewelry preference: {aesthetic_prefs.jewelry_style.value}
+- Makeup vibe: {aesthetic_prefs.makeup_vibe.value}
+- Color palette: {aesthetic_prefs.color_palette.value}
+- Occasion context: {aesthetic_prefs.occasion}
+
+MANDATE: Generate {len(scenario_names)} COMPLETELY DIFFERENT prompts using different scenarios:
+"""
+
+        # Add scenario details
+        for i, scenario_name in enumerate(scenario_names, 1):
+            scenario = scenarios.get(scenario_name, {})
+            if scenario:
+                aesthetic_instruction += f"""
+{i}️⃣ SCENARIO: {scenario_name.replace('_', ' ').title()}
+   - Setting: {scenario.get('setting', 'N/A')}
+   - Pose: {scenario.get('pose', 'N/A')}
+   - Expression: {scenario.get('expression', 'N/A')}
+   - Vibe: {scenario.get('vibe', 'N/A')}
+"""
+
+        aesthetic_instruction += f"""
+AESTHETIC CONSISTENCY RULES:
+- All prompts MUST respect user's blend preference: {aesthetic_prefs.blend_level.value}
+- Attire should be selected from: {aesthetic_prefs.blend_level.value} options
+- Jewelry coordination: {aesthetic_prefs.jewelry_style.value} style
+- Makeup approach: {aesthetic_prefs.makeup_vibe.value} aesthetic
+- Color palette: {aesthetic_prefs.color_palette.value} tones
+
+DIVERSITY MANDATE:
+- Each prompt must use a DIFFERENT scenario from the list above
+- Each prompt must have DISTINCT: pose, setting, expression, styling
+- Validate before output: Confirm each prompt is visually unique
+- NO REPETITION: Each scenario creates fundamentally different visual context
+"""
+        return aesthetic_instruction
+
+    def _build_general_category_prompt(
+        self,
+        category: str,
+        category_desc: str,
+        aesthetic_prefs: AestheticPreferences,
+        scenarios: Dict[str, Dict],
+        scenario_names: List[str],
+        formula_scaffold: str,
+        niche: str = "",
+        user_context: str = "",
+        count: int = 3,
+    ) -> str:
+        """Build prompt for general (non-transformation) categories with aesthetic preferences.
+
+        Args:
+            category: Category name
+            category_desc: Category description
+            aesthetic_prefs: User's aesthetic preferences
+            scenarios: Available scenarios
+            scenario_names: Selected scenario names
+            formula_scaffold: Formula-based prompt structure
+            niche: User's niche
+            user_context: User's requirement/context
+            count: Number of prompts to generate
+
+        Returns:
+            Complete system prompt for general categories
+        """
+        niche_line = f"\nNiche: {niche}" if niche else ""
+        context_line = f"\nUser context: {user_context}" if user_context else ""
+
+        aesthetic_pref_section = self._build_aesthetic_preferences_prompt(
+            aesthetic_prefs,
+            scenarios,
+            scenario_names,
+            niche
+        )
+
+        prompt = f"""You are an expert AI prompt engineer specializing in creating visually distinct, scenario-based prompts.
+
+Category: {category_desc}{niche_line}{context_line}
+
+{aesthetic_pref_section}
+
+BASE FORMULA SCAFFOLD:
+{formula_scaffold}
+
+INSTRUCTIONS:
+- Create {count} COMPLETELY DIFFERENT image generation prompts
+- Each prompt must use a DIFFERENT scenario from the list above
+- Each prompt must be 80-120 words
+- Each prompt must include specific details from the scenario (setting, pose, lighting, mood)
+- Respect the user's aesthetic blend preference in attire, jewelry, makeup, and colors
+- Each prompt should be visually distinct and creative interpretation of the category
+
+Return ONLY valid JSON (no markdown, no text before/after):
+{{
+  "prompts": [
+    {{"prompt": "<prompt for scenario 1>", "scenario": "<scenario name>", "vibe": "<1-2 word vibe>"}}
+  ],
+  "tip": "Scenario-based diverse prompt generation completed"
+}}"""
+
+        return prompt
 
     def _make_cache_key(self, command: str, **context) -> str:
         """Build a deterministic SHA-256 cache key from command + semantic context."""
@@ -630,13 +760,52 @@ Return JSON with:
         temperature: float = None,
         guidance: float = None,
         components: dict = None,
+        aesthetic_preferences: Optional[AestheticPreferences] = None,
+        occasion: Optional[str] = None,
     ) -> dict:
-        """Generate AI-crafted, niche-tailored image generation prompts for a given category.
-        
+        """Generate AI-crafted, niche-tailored image generation prompts with flexible aesthetic preferences.
+
+        Supports blend-based aesthetic customization (100% traditional to 100% modern) with scenario
+        variation based on occasion, not rigid categories. Enables global fusion aesthetics.
+
                                             temperature=temperature if temperature is not None else 0.8,
             reference_image_text: Optional description of reference image for categories like design_gifts
                                  (e.g., "couple photo for personalized gift design")
         """
+        # ── Aesthetic Preferences Setup ──────────────────────────────────────
+        # Generate preferences from input or niche/tier
+        if not aesthetic_preferences:
+            aesthetic_preferences = PreferenceGenerator.extract_from_niche_and_tier(
+                niche=niche,
+                follower_count=follower_count
+            )
+
+        # Use provided occasion or get from preferences
+        if not occasion:
+            occasion = aesthetic_preferences.occasion
+
+        # Log preferences for analytics
+        PreferenceGenerator.log_preferences(aesthetic_preferences)
+
+        # Get attire recommendations for blend level
+        attire_options = get_attire_for_blend(
+            aesthetic_preferences.blend_level,
+            occasion
+        )
+
+        # Get jewelry recommendations
+        jewelry_rec = get_jewelry_for_style(
+            aesthetic_preferences.jewelry_style,
+            ", ".join(attire_options[:2]) if attire_options else "outfit"
+        )
+
+        # Get makeup guidance
+        makeup_guidance = get_makeup_for_vibe(aesthetic_preferences.makeup_vibe)
+
+        # Get scenarios for this occasion
+        scenarios = get_scenarios_for_occasion(occasion)
+        scenario_names = select_diverse_scenarios(occasion, count=count)
+
         CATEGORY_DESC = {
             "general_photography":  "lifestyle, street, travel, and editorial photography",
             "women_professional":   "professional/corporate female portrait photography",
@@ -777,12 +946,21 @@ Return JSON with:
         if category in transform_categories:
             # For transformation with CUSTOM prompt, use a simplified template that respects user's requirement
             if user_context_safe and user_context_safe.strip():
-                # CUSTOM TRANSFORMATION: User-driven requirement only (no hardcoded scenarios)
+                # CUSTOM TRANSFORMATION: User-driven requirement with aesthetic preferences
+                aesthetic_pref_section = self._build_aesthetic_preferences_prompt(
+                    aesthetic_preferences,
+                    scenarios,
+                    scenario_names,
+                    niche
+                )
+
                 prompt = f"""You are an expert AI image generation prompt engineer for identity-locked portrait transformations.
 
 Category: {category_desc}{niche_line}{context_line}
 
 USER'S TRANSFORMATION REQUIREMENT: {user_context_safe}
+
+{aesthetic_pref_section}
 
 BASE FORMULA SCAFFOLD: {formula_scaffold}
 
@@ -840,14 +1018,19 @@ Return ONLY valid JSON (no markdown, no text before/after):
                     ttl_hours=None,  # NO CACHE for custom prompts
                 )
             
-            # For transformation with custom prompt, use it to define the scene
-            # Otherwise use category-based approach
-            transformation_directive = ""
-            artistic_style_emphasis = ""
-            
+            # For transformation without custom prompt, use aesthetic preferences for scene selection
+            aesthetic_pref_section = self._build_aesthetic_preferences_prompt(
+                aesthetic_preferences,
+                scenarios,
+                scenario_names,
+                niche
+            )
+
             prompt = f"""You are an expert AI image generation prompt engineer for identity-locked portrait transformations.
 
-Category: {category_desc}{niche_line}{context_line}{reference_line}{transformation_directive}{artistic_style_emphasis}
+Category: {category_desc}{niche_line}{context_line}{reference_line}
+
+{aesthetic_pref_section}
 
 BASE FORMULA SCAFFOLD: {formula_scaffold}
 
