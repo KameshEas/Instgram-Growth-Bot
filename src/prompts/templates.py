@@ -4,87 +4,72 @@ Categories are used by AI to understand available prompt types.
 All generation is done via Groq AI, not from static library.
 """
 
-# --- DESIGN BRIEF SYSTEM PROMPT --------------------------------------------------
-DESIGN_BRIEF_SYSTEM_PROMPT = """You are an expert design brief consultant. Transform creative concepts into 3 distinct, production-ready design specifications.
+# --- UNIVERSAL AI PROMPT SYSTEM PROMPT --------------------------------------------------
+UNIVERSAL_PROMPT_SYSTEM_PROMPT = """You are an expert Prompt Engineer.
 
-**TASK**: Generate 3 design brief variations with title, core message integration, requirements, visual style, color palette (with hex codes), typography, key elements, composition, and tools.
+Your task is to transform the user's idea into three highly detailed AI prompts.
 
-**RULES**:
-- Preserve ALL user content (actual text/emojis/preferences)
-- 3 DISTINCT creative directions (different aesthetics, NOT variations of one)
-- Immediately actionable for designers/AI generators
-- Use specific hex codes and real font names
-- Include technical specs (resolution, format)
-- Professional design terminology
+Generate prompts that work with:
+• GPT Images
+• Midjourney
+• Flux
+• Ideogram
+• Stable Diffusion
 
-Return as valid JSON:
-```json
+Rules:
+
+- Preserve every literal detail the user provides — exact headlines, names, titles,
+  wording, and any explicit preservation constraints (e.g. "keep this exact face",
+  "same location") must appear unchanged. Never invent replacement content or
+  "creative alternatives" to what the user explicitly specified.
+- Expand the scene with cinematic details: lighting, camera angle, composition,
+  textures, atmosphere, colors, quality keywords, style-specific enhancements.
+- Never generate design briefs, deliverables lists, or software recommendations.
+- Never explain the prompt.
+- Output only valid JSON.
+
+Return:
+
 {
-  "briefs": [
+  "variations": [
     {
-      "title": "Brief Title",
-      "core_message": "Full user content integration",
-      "requirements": "Technical specs",
-      "visual_style": "Design direction",
-      "color_palette": [{"name": "Color", "hex": "#000000"}],
-      "typography": "Font specifications",
-      "key_elements": ["Element 1", "Element 2"],
-      "composition": "Layout strategy",
-      "deliverables": "File formats",
-      "tools": ["Software 1", "Software 2"]
+      "title": "",
+      "style": "",
+      "prompt": "",
+      "negative_prompt": "",
+      "aspect_ratio": "",
+      "keywords": []
     }
   ]
 }
-```"""
+"""
 
-# --- CATEGORY METADATA -----------------------------------------------------------
-# These categories are available for AI to generate content
+# --- CATEGORY METADATA (LIGHTWEIGHT) --------------------------------------------------
+# Lightweight metadata: emoji + style hint only. All generation via universal prompt.
 CATEGORY_META = {
-    "general_photography":  {"emoji": "📷", "tools": ["Lightroom", "Photoshop"], "best_for": "Instagram feed, portfolio"},
-    "women_professional":   {"emoji": "👩‍💼", "tools": ["DALL-E 3", "Midjourney"], "best_for": "Profile photos, fashion"},
-    "women_transform":      {"emoji": "✨", "tools": ["DALL-E 3", "Stable Diffusion"], "best_for": "Transformation content"},
-    "men_professional":     {"emoji": "👨‍💼", "tools": ["DALL-E 3", "Midjourney"], "best_for": "Profile photos, fashion"},
-    "men_transform":        {"emoji": "💪", "tools": ["DALL-E 3", "Stable Diffusion"], "best_for": "Transformation content"},
-    "couples_general":      {"emoji": "💑", "tools": ["DALL-E 3", "Midjourney"], "best_for": "Pre-wedding, lifestyle"},
-    "couples_transform":    {"emoji": "💕", "tools": ["DALL-E 3", "Stable Diffusion"], "best_for": "Couple transformation"},
-    "design_posters":       {"emoji": "🎨", "tools": ["Canva", "Photoshop", "DALL-E 3"], "best_for": "Social media graphics, print"},
-    "design_gifts":         {"emoji": "🎁", "tools": ["DALL-E 3", "Midjourney", "Canva"], "best_for": "Custom merchandise, personalized gifts"},
-    "reel_scripts":         {"emoji": "🎬", "tools": ["CapCut", "Premiere Pro"], "best_for": "Instagram Reels, TikTok"},
-    "captions_templates":   {"emoji": "✍️", "tools": ["ChatGPT", "Notion"], "best_for": "Instagram captions"},
-    "email_subjects":       {"emoji": "📧", "tools": ["Mailchimp", "Notion"], "best_for": "Email marketing"},
-    "ui_ux_design":         {"emoji": "🖥️", "tools": ["Figma", "Adobe XD", "Sketch"], "best_for": "App & web design"},
-    "brand_identity":       {"emoji": "🏷️", "tools": ["Illustrator", "Figma", "Looka"], "best_for": "Logos, branding, identity"},
-    "illustration_art":     {"emoji": "🖌️", "tools": ["Procreate", "Illustrator", "Midjourney"], "best_for": "Digital art, editorial"},
-    "animation_motion":     {"emoji": "🎞️", "tools": ["After Effects", "Lottie", "Rive"], "best_for": "Motion graphics, reels"},
-    "photography_styles":   {"emoji": "📸", "tools": ["Lightroom", "Capture One", "Photoshop"], "best_for": "Fine art, editorial"},
-    "print_design":         {"emoji": "🖨️", "tools": ["InDesign", "Photoshop", "Canva"], "best_for": "Flyers, packaging, books"},
-    "product_3d":           {"emoji": "📦", "tools": ["Blender", "Cinema 4D", "Keyshot"], "best_for": "Product launch, e-commerce"},
+    "general_photography":  {"emoji": "📷", "style": "photorealistic photography"},
+    "women_professional":   {"emoji": "👩‍💼", "style": "professional portrait"},
+    "women_transform":      {"emoji": "✨", "style": "portrait transformation with identity lock"},
+    "men_professional":     {"emoji": "👨‍💼", "style": "professional portrait"},
+    "men_transform":        {"emoji": "💪", "style": "portrait transformation with identity lock"},
+    "couples_general":      {"emoji": "💑", "style": "couple lifestyle photography"},
+    "couples_transform":    {"emoji": "💕", "style": "couple transformation with dual identity lock"},
+    "design_posters":       {"emoji": "🎨", "style": "cinematic poster"},
+    "design_gifts":         {"emoji": "🎁", "style": "product-aware merchandise design"},
+    "reel_scripts":         {"emoji": "🎬", "style": "social media visual concept"},
+    "captions_templates":   {"emoji": "✍️", "style": "social media visual concept"},
+    "email_subjects":       {"emoji": "📧", "style": "social media visual concept"},
+    "ui_ux_design":         {"emoji": "🖥️", "style": "modern UI showcase"},
+    "brand_identity":       {"emoji": "🏷️", "style": "minimal logo branding"},
+    "illustration_art":     {"emoji": "🖌️", "style": "digital illustration"},
+    "animation_motion":     {"emoji": "🎞️", "style": "dynamic concept art"},
+    "photography_styles":   {"emoji": "📸", "style": "fine-art photography"},
+    "print_design":         {"emoji": "🖨️", "style": "print-ready collateral"},
+    "product_3d":           {"emoji": "📦", "style": "3D product render"},
+    "logo_create":          {"emoji": "🏛️", "style": "logo design with branding system"},
 }
 
 DIFFICULTY_EMOJI = {"beginner": "🟢", "professional": "🔵", "expert": "🔴"}
-
-# --- GIFT DESIGN SYSTEM PROMPT --------------------------------------------------
-GIFT_DESIGN_SYSTEM_PROMPT = """You are an expert gift design consultant. Transform user concepts into 3 distinct, production-ready design briefs with image generation prompts.
-
-**INPUTS**: product_type (t-shirt, mug, hoodie, etc.) | concept (user's design idea) | brand_colors (hex codes) | tone (style) | occasion | recipient_type
-
-**OUTPUT**: 3 design concepts in JSON with:
-1. Title + Design Brief (core message integration, product requirements, visual style, color palette with hex codes, typography, key elements, composition, design tip)
-2. Image Prompts (2 versions: DALL-E 3 + Midjourney, 120-150 words each, descriptive with color/mood keywords)
-
-**RULES**:
-- Preserve ALL user content (text, emojis, preferences)
-- 3 DISTINCT creative directions (different aesthetics/moods)
-- Actionable: ready for designers or AI image generators
-- Use real font names, specific hex codes (not generic colors)
-- Product-aware prompts (consider dimensions, wrap patterns, constraints)
-- Tone reflects occasion (birthday=celebratory, corporate=professional, etc.)
-- Recipients guide complexity (kids=playful, professionals=refined)
-
-**PRODUCT SPECS**: t-shirt (1000x1200px front) | mug (900x350px wrap) | hoodie (large canvas) | pillow (1500x1500px centered) | poster (18x24" full canvas) | hat (logo area) | notebook (700x1000px cover) | water bottle (800x400px wrap) | phone case (1080x2160px portrait)
-
-Return as valid JSON with product_type, concepts array (title, design_brief object, image_prompts object with dalle3/midjourney keys).
-"""
 
 # --- GIFT PRODUCT METADATA -------------------------------------------------------
 GIFT_PRODUCTS = {
@@ -287,15 +272,15 @@ def list_categories() -> list:
 
 
 def get_category_meta(category: str) -> dict:
-    """Return metadata (emoji, tools, best_for) for a category.
-    
+    """Return metadata (emoji, style) for a category.
+
     Args:
         category: Category name (e.g., 'women_professional', 'design_posters')
-    
+
     Returns:
-        Dictionary with emoji, tools, and best_for description
+        Dictionary with emoji and style hint
     """
-    return CATEGORY_META.get(category, {"emoji": "🎯", "tools": [], "best_for": "General use"})
+    return CATEGORY_META.get(category, {"emoji": "🎯", "style": "general use"})
 
 
 # --- GIFT DESIGN HELPER FUNCTIONS -----------------------------------------------

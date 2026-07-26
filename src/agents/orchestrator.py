@@ -218,51 +218,41 @@ class ContentOrchestratorAgent(BaseAgent):
                         if not sanitized_prompt:
                             return {"status": "error", "message": "Prompt validation failed. Please try again with valid content."}
 
-                        ai_result = self._groq_bot.image_generation_prompts(
-                            category=category,
-                            custom_prompt=sanitized_prompt,
-                            level=level,
-                            reference_image_text=reference_image_desc,
-                        )
-                        # Normalize to the shape the telegram handler expects
-                        if ai_result and "error" not in ai_result:
-                            raw_prompts = ai_result.get("prompts", [])
-                            prompt_strings = [
-                                p["prompt"] if isinstance(p, dict) else p
-                                for p in raw_prompts
-                            ]
+                        # Route custom prompts through content_generator agent
+                        # (which calls generate_universal_prompts internally)
+                        agent_result = await self.agents["content_generator"].execute({
+                            **input_data,
+                            "action": "generate",
+                            "user_context": sanitized_prompt,
+                            "level": level,
+                        })
+
+                        if agent_result.get("status") == "success":
+                            # Agent returns {"variations": [...]} shape from universal generator
                             result = {
                                 "status": "success",
                                 "category": category,
                                 "custom": True,
-                                "level": level or "mixed",
-                                "count": len(prompt_strings),
-                                "prompts": prompt_strings,
-                                "meta": get_category_meta(category) or {"emoji": "🎯", "tools": [], "best_for": ""},
+                                "variations": agent_result.get("variations", []),
+                                "meta": get_category_meta(category) or {"emoji": "🎯", "style": ""},
                             }
+                        else:
+                            result = agent_result
                     # (Handled above) result is either a clarify dict or a normalized ai_result
                 else:
-                    # Library path: serve from static prompt templates via agent
+                    # Standard path: serve via agent (calls universal generator)
                     agent_result = await self.agents["content_generator"].execute({
                         **input_data,
                         "action": "generate",
                     })
-                    # Normalise to the shape the telegram handler expects
+                    # Pass through agent result directly (already in unified shape)
                     if agent_result.get("status") == "success":
-                        # Prompts may be dicts or plain strings
-                        raw_prompts = agent_result.get("prompts", [])
-                        prompt_strings = [
-                            p["prompt"] if isinstance(p, dict) else p
-                            for p in raw_prompts
-                        ]
                         result = {
                             "status": "success",
                             "category": category,
                             "custom": False,
-                            "level": level or "mixed",
-                            "count": len(prompt_strings),
-                            "prompts": prompt_strings,
-                            "meta": {},
+                            "variations": agent_result.get("variations", []),
+                            "meta": get_category_meta(category) or {"emoji": "🎯", "style": ""},
                             "available_categories": agent_result.get("available_categories", []),
                         }
                     else:

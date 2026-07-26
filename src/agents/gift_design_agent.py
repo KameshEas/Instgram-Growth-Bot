@@ -167,16 +167,23 @@ class GiftDesignAgent(BaseAgent):
                     "message": "AI bot not initialized. Design concepts require AI generation.",
                 }
 
-            # Call Groq to generate design concepts
-            ai_result = self._groq_bot.generate_gift_design_concepts(
-                product_type=product_type,
-                concept_idea=concept_idea,
-                personalization=personalization,
-                chat_id=chat_id,
+            # Build context for design_gifts category
+            user_idea_text = f"Product: {product_type.replace('_', ' ').title()}\nConcept: {concept_idea}"
+            if personalization.get("occasion"):
+                user_idea_text += f"\nOccasion: {personalization['occasion']}"
+            if personalization.get("tone"):
+                user_idea_text += f"\nTone: {personalization['tone']}"
+
+            # Call universal prompt generator
+            ai_result = self._groq_bot.generate_universal_prompts(
+                category="design_gifts",
+                user_idea=user_idea_text,
                 niche=niche,
+                count=3,
+                chat_id=chat_id,
             )
 
-            if isinstance(ai_result, dict) and "concepts" in ai_result and not ai_result.get("error"):
+            if isinstance(ai_result, dict) and ai_result.get("status") == "success":
                 # 🎯 PHASE 2A: RECOMMEND OPTIMAL PARAMETERS
                 try:
                     recommended_params = self.param_engine.recommend_parameters(
@@ -194,7 +201,7 @@ class GiftDesignAgent(BaseAgent):
                 except Exception as e:
                     self.logger.warning(f"Parameter recommendation failed: {str(e)}")
                     params_dict = {}
-                
+
                 result = {
                     "status": "success",
                     "action": "generate_concepts",
@@ -202,37 +209,36 @@ class GiftDesignAgent(BaseAgent):
                     "product_display_name": product_meta.get("display_name"),
                     "product_emoji": product_meta.get("emoji"),
                     "concept_idea": concept_idea,
-                    "personalization": personalization,
-                    "concepts": ai_result["concepts"],
-                    "concept_count": len(ai_result["concepts"]),
+                    "variations": ai_result.get("variations", []),
+                    "variation_count": len(ai_result.get("variations", [])),
                     "ai_generated": True,
                     "recommended_parameters": params_dict,
                     "metadata": {
                         "product_tools": product_meta.get("tools", []),
-                        "design_tip": ai_result.get("design_tip", ""),
                     },
                 }
                 await self.log_execution(data, result, "success")
-                
+
                 # 🎯 EVALUATE OUTPUT QUALITY
                 try:
                     await self.eval_hook.evaluate_execution(
                         user_request=data,
                         agent_output=result,
                         model_used="Groq",
-                        system_prompt=GIFT_DESIGN_SYSTEM_PROMPT,
+                        system_prompt="Generate optimized gift design prompts",
                     )
                 except Exception as e:
                     self.logger.warning(f"Quality evaluation skipped: {str(e)}")
-                
+
                 return result
 
             # If AI returns error
+            error_msg = ai_result.get("error", "Unknown error") if isinstance(ai_result, dict) else str(ai_result)
             return {
                 "status": "error",
-                "message": "Gift design concept generation failed",
-                "details": ai_result.get("error") if isinstance(ai_result, dict) else str(ai_result),
-                "help": "Try again or provide more specific concept details (e.g., 'motivational quote for gym enthusiasts')",
+                "message": "Gift design generation failed",
+                "details": error_msg,
+                "help": "Try again or provide more specific concept details",
             }
 
         except Exception as e:

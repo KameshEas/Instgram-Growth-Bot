@@ -1116,7 +1116,66 @@ class TelegramBotHandler:
         else:
             await update.message.reply_text(f"❌ Error setting role. Please try again.")
 
-    # ── Design Brief Response Handler ────────────────────────────────────────
+    # ── Universal Prompts Response Handler ────────────────────────────────────────
+
+    async def _handle_universal_prompts_response(self, update: Update, result: dict, category: str):
+        """Format and send universal prompt response."""
+        try:
+            variations = result.get("variations", [])
+            if not variations:
+                await update.message.reply_text("❌ No prompts generated. Try again.")
+                return
+
+            cat_display = category.replace("_", " ").title()
+            meta = result.get("meta", {})
+            cat_emoji = meta.get("emoji", "🎯")
+
+            header = f"{cat_emoji} *{cat_display}*\n\n"
+            header += f"✨ *{len(variations)} Variations*\n"
+            header += "─────────────────────────────────────\n\n"
+
+            await update.message.reply_text(header, parse_mode="Markdown")
+
+            # Send each variation
+            for idx, var in enumerate(variations, 1):
+                msg = f"*✨ Variation {idx}*\n"
+                msg += "─────────────────────────────────────\n\n"
+
+                if var.get("title"):
+                    msg += f"*{escape_md(var['title'])}*\n\n"
+
+                if var.get("style"):
+                    msg += f"_Style: {escape_md(var['style'])}_\n\n"
+
+                if var.get("prompt"):
+                    msg += f"*Prompt:*\n`{escape_md(var['prompt'][:500])}`\n\n"
+
+                if var.get("negative_prompt"):
+                    msg += f"*Negative:* `{escape_md(var['negative_prompt'][:200])}`\n\n"
+
+                if var.get("aspect_ratio"):
+                    msg += f"*Aspect Ratio:* `{var['aspect_ratio']}`\n\n"
+
+                if var.get("keywords"):
+                    keywords_str = ", ".join(var["keywords"][:8])
+                    msg += f"*Keywords:* `{keywords_str}`\n"
+
+                for chunk in self._send_long(msg):
+                    await update.message.reply_text(chunk, parse_mode="Markdown")
+
+                if idx < len(variations):
+                    await update.message.reply_text("─────────────────────────────────────")
+
+            # Final summary
+            summary = f"✅ Generated {len(variations)} prompt variations.\n"
+            summary += "📋 Copy any prompt above and paste it into DALL-E 3, Midjourney, or Flux to generate!"
+            await update.message.reply_text(summary)
+
+        except Exception as e:
+            logger.error(f"Universal prompts formatting error: {e}")
+            await update.message.reply_text(f"❌ Error formatting prompts: {e}")
+
+    # ── Legacy Design Brief Response Handler (kept for compatibility) ────────────────────────────────────────
 
     async def _handle_gift_design_response(self, update: Update, result: dict):
         """Format and send gift design concept response with briefs + image prompts."""
@@ -1460,45 +1519,17 @@ class TelegramBotHandler:
                 return
             
             if result and result.get("status") == "success":
-                # Check if this is a design brief response
-                if is_design_brief and "brief" in result:
+                # Use unified prompt handler for all categories with variations
+                if "variations" in result:
+                    await self._handle_universal_prompts_response(update, result, category)
+                # Keep legacy handlers for compatibility with old response shapes
+                elif is_design_brief and "brief" in result:
                     await self._handle_design_brief_response(update, result, category)
+                elif "concepts" in result:
+                    await self._handle_gift_design_response(update, result)
                 else:
-                    # Standard prompt response
-                    prompts = result.get("prompts", [])
-                    is_custom = result.get("custom", False)
-                    meta = result.get("meta", {})
-                    cat_emoji = meta.get("emoji", "🎯")
-                    tools = ", ".join(meta.get("tools", [])) or "DALL-E 3, Midjourney, Stable Diffusion"
-                    best_for = meta.get("best_for", "")
-                    res_level = result.get("level", level or "mixed")
-                    level_labels = {"beginner": "🟢 Beginner", "professional": "🔵 Professional",
-                                    "expert": "🔴 Expert", "mixed": "🌈 Mixed Levels"}
-                    if is_custom:
-                        msg = f"{cat_emoji} *Custom Prompt — {category}*\n"
-                        if best_for:
-                            msg += f"_{best_for}_\n"
-                        msg += "─────────────────────\n\n"
-                        # For transformations, show all 3 scene variations
-                        if category in _TRANSFORM_CATEGORIES and len(prompts) > 1:
-                            for i, p in enumerate(prompts, 1):
-                                display = strip_transform_boilerplate(p) if category in _TRANSFORM_CATEGORIES else p
-                                msg += f"*Scene {i}:*\n{escape_md(display)}\n\n"
-                        else:
-                            msg += escape_md(prompts[0]) if prompts else "No prompt returned."
-                        msg += f"\n🛠 Tools: {tools}"
-                    else:
-                        msg = f"{cat_emoji} *{category}* — {level_labels.get(res_level, res_level)}\n"
-                        if best_for:
-                            msg += f"_{best_for}_\n"
-                        msg += "─────────────────────\n\n"
-                        for i, p in enumerate(prompts, 1):
-                            display = strip_transform_boilerplate(p) if category in _TRANSFORM_CATEGORIES else p
-                            msg += f"*Prompt {i}:*\n{escape_md(display)}\n\n"
-                        msg += f"─────────────────────\n🛠 Tools: {tools}\n"
-                        msg += f"💡 Custom: `/generate {category} \"your concept\"`"
-                    for chunk in self._send_long(msg):
-                        await update.message.reply_text(chunk, parse_mode="Markdown")
+                    # Fallback for any other response shape
+                    await update.message.reply_text("❌ Unexpected response format. Please try again.")
                 logger.info(f"[OK] /generate category={category}, design_brief={is_design_brief}")
             else:
                 err = result.get("error", "Unknown") if isinstance(result, dict) else str(result)

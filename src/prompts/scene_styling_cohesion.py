@@ -386,6 +386,8 @@ Avoid: {', '.join(styling['avoid_accessories'])}
 ✓ Formality level of ALL elements MUST be {styling['formal_level']}
 ✓ NO mismatched styles or contradictory fashion choices
 ✓ Styling should enhance the {mood} mood naturally
+✓ GARMENT FIT: Every outfit MUST be realistically tailored/fitted to the subject's actual body type, size, and build exactly as shown in the reference photo — NOT draped on a generic, idealized, or different body shape
+✓ NO substituting a different/idealized body silhouette to "fit" the costume better — the costume must be described as fitting the real person's proportions (shoulders, waist, hips, height) as-is
 """
 
         return section

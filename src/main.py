@@ -770,79 +770,91 @@ Return JSON with:
         if result and "error" not in result:
             logger.info("[OK] Generated engagement strategy for %s account", account_size)
         return result
-    
-    def image_generation_prompts(self, category: str = "general_photography", 
-                                  custom_prompt: str = None, level: str = None, 
-                                  niche: str = "", chat_id: int = None, 
-                                  reference_image_text: str = None,
-                                  temperature: float = None,
-                                  guidance: float = None,
-                                  count: int = None) -> dict:
-        """Enhance custom prompt or generate AI-only prompts.
-        
-        Architecture: Pure AI-generated prompts (no static library).
-        All prompt generation uses Groq AI — no library fallback.
-        
-        Args:
-            category: Content category (used for context only)
-            custom_prompt: Optional user-supplied concept to enhance via AI
-            level: Difficulty level (context for AI)
-            niche: Optional niche/brand context
-            chat_id: Optional chat ID for logging
-            reference_image_text: Optional description of reference image for design_gifts
-        
-        Returns:
-            Dict with generated prompts via AI
+
+    def generate_universal_prompts(
+        self,
+        category: str = "general_photography",
+        user_idea: str = "",
+        niche: str = "",
+        count: int = 3,
+        chat_id: int = None,
+        extra_context: str = "",
+        reference_context: str = "",
+        aesthetic_preferences = None,
+    ) -> dict:
+        """Generate AI prompts using universal system prompt and schema.
+
+        Replaces: generate_image_prompts, generate_design_brief, generate_gift_design_concepts, image_generation_prompts
+
+        Returns unified JSON: {"variations": [{"title", "style", "prompt", "negative_prompt", "aspect_ratio", "keywords"}]}
         """
-        try:
-            from src.prompts.templates import list_categories, get_category_meta
-            
-            category = category.lower().replace(" ", "_").replace("-", "_")
-            all_categories = list_categories()
-            
-            if category not in all_categories:
-                category = "general_photography"
-            
-            meta = get_category_meta(category)
-            
-            # If custom prompt provided, enhance it via AI
-            if custom_prompt and custom_prompt.strip():
-                logger.info(f"[AI] Enhancing custom prompt — category={category}")
-                
-                # For transformations and design_gifts, generate multiple variations
-                # Transformations: 3 variants to show different scenes/styles with same identity
-                # Design_gifts with reference: 3-4 outfit variations
-                # Others: single prompt
-                if category in {"women_transform", "men_transform", "couples_transform"}:
-                    prompt_count = 3  # Multiple transformation variants to show variation while preserving identity
-                elif category == "design_gifts" and reference_image_text:
-                    prompt_count = 3  # Multiple outfit variations
-                else:
-                    prompt_count = 1
-                
-                return self.generate_image_prompts(
-                    category=category,
-                    niche="",  # Not a niche context - custom_prompt is the transformation directive
-                    count= prompt_count if count is None else count,
-                    user_context=custom_prompt,  # Pass custom_prompt as the actual user requirement
-                    chat_id=chat_id,
-                    reference_image_text=reference_image_text
-                )
-            
-            # Otherwise, generate via AI
-            return self.generate_image_prompts(
-                    category=category,
-                    niche=niche,
-                    count= count or 3,
-                    user_context="",
-                    chat_id=chat_id,
-                    reference_image_text=reference_image_text,
-                    temperature=temperature,
-                )
-        
-        except Exception as e:
-            logger.error(f"image_generation_prompts error: {e}")
-            return {"status": "error", "error": str(e)}
+        from src.prompts.templates import UNIVERSAL_PROMPT_SYSTEM_PROMPT, get_category_meta
+
+        category = category.lower().replace(" ", "_").replace("-", "_")
+        meta = get_category_meta(category)
+        style_hint = meta.get("style", "general use")
+
+        niche_safe = (niche or "").replace('"', "'").strip()[:100]
+
+        # Build user idea section
+        user_idea_section = ""
+        if user_idea:
+            user_idea_section = f"\nUser's idea: {user_idea}"
+
+        # Build additional constraints section (for extra_context like identity-lock, body-lock, etc.)
+        constraints_section = ""
+        if extra_context:
+            constraints_section = f"\n\nADDITIONAL CONSTRAINTS (MUST BE HONORED):\n{extra_context}"
+
+        # Build reference section
+        reference_section = ""
+        if reference_context:
+            reference_section = f"\n\nREFERENCE CONTEXT:\n{reference_context}"
+
+        # Build final prompt
+        prompt = f"""{UNIVERSAL_PROMPT_SYSTEM_PROMPT}
+
+---
+
+Category Style: {style_hint}
+{f'Niche: {niche_safe}' if niche_safe else ''}{user_idea_section}{constraints_section}{reference_section}
+
+Generate {count} distinct, optimized prompts for {style_hint}. Return ONLY valid JSON with the exact structure specified."""
+
+        cache_key = self._make_cache_key(
+            "generate_universal_prompts",
+            category=category,
+            niche=niche,
+            topic=user_idea[:50] if user_idea else "",
+        )
+
+        # NO CACHE for custom ideas — user wants fresh generation each time
+        cache_ttl = None if user_idea else 24
+
+        result = self._call_groq_with_fallback(
+            command="generate_universal_prompts",
+            cache_key=cache_key,
+            prompt=prompt,
+            chat_id=chat_id,
+            temperature=0.8,
+            ttl_hours=cache_ttl,
+        )
+
+        # Normalize result to {"status": "success", "category": ..., "variations": [...]}
+        if result and isinstance(result, dict):
+            if "error" in result:
+                return result
+
+            variations = result.get("variations", [])
+            if variations:
+                return {
+                    "status": "success",
+                    "category": category,
+                    "variations": variations,
+                    "count": len(variations),
+                }
+
+        return result or {"status": "error", "error": "No variations generated"}
 
     def generate_image_prompts(
         self,
@@ -1084,11 +1096,15 @@ Preserve identically: Eye shape, size, spacing, iris color, pupil shape | Nose s
 
 Forbidden: Any beautification, skin smoothing, feature alteration, plastic surgery effects, artificial perfection, identity change
 
+BODY & PHYSIQUE LOCK (DO NOT ALTER — SAME RIGOR AS FACE):
+Preserve identically: Body type and build (slim/athletic/curvy/heavyset — exactly as in reference) | Height and apparent proportions | Shoulder width | Torso length and waist shape | Arm and leg proportions | Overall silhouette
+Forbidden: Body slimming, body reshaping, idealized/generic body substitution, waist-cinching, muscle enhancement, height alteration, any body proportion that does not match the reference photo
+
 SCENE TRANSFORMATION (WHAT CAN CHANGE):
 - Hair direction, style, color (completely new) | Makeup type (new, not from reference) | Clothing/costume (scene-appropriate) | Face angle and pose (optimize for requirement) | Expression | Lighting (preserve skin texture while enhancing mood) | Background
 
 TECHNICAL REQUIREMENTS:
-Composition: Medium close-up (waist-up), 50mm portrait lens style, eye-level or slight angle
+Composition: Framing MUST match the pose described above — waist-up medium close-up ONLY for simple standing/seated portrait poses; use 3/4-body or full-body framing whenever the pose involves sitting on ground/sand, walking, hiking, or any pose showing legs/lower body in motion. 50mm portrait lens style, eye-level or slight angle. Face remains the sharpest, most detailed element regardless of framing.
 Face Clarity: Sharpest element, fully visible, most detailed
 Hands: Anatomically correct, properly detailed if visible
 Lighting: Soft, preserving skin texture (no over-smoothing)
@@ -1097,7 +1113,7 @@ Skin Texture: Natural with visible pores, no artificial smoothing
 Realism: Strict photorealism
 
 NEGATION INSTRUCTIONS:
-Negative: "avoid beautification, avoid face smoothing, avoid skin enhancement, avoid retouching, avoid feature alteration, avoid plastic surgery effects, avoid artificial perfection, avoid Photoshop effects, avoid feature reshaping, avoid identity change"
+Negative: "avoid beautification, avoid face smoothing, avoid skin enhancement, avoid retouching, avoid feature alteration, avoid plastic surgery effects, avoid artificial perfection, avoid Photoshop effects, avoid feature reshaping, avoid identity change, avoid body shape distortion, avoid body slimming, avoid unrealistic body proportions, avoid body-face scale mismatch, avoid generic idealized body double, avoid ill-fitting or mismatched costume"
 
 INSTRUCTION:
 - Create {count} DISTINCT transformation prompts (each 100-160 words), each showing a DIFFERENT creative interpretation of the user's requirement
@@ -1152,6 +1168,10 @@ FACIAL FEATURE PRESERVATION (DO NOT ALTER EVEN SLIGHTLY):
 
 ✗ ABSOLUTELY FORBIDDEN: Any skin smoothing or artificial enhancement | Any beautification or retouching | Any feature adjustment (bigger eyes, smaller nose, fuller lips, etc.) | Any facial structure alteration | Any skin tone warming, cooling, or lightening | Any feature reshaping or refinement | Any asymmetry correction | Filters, effects, or stylization that change facial appearance | Any micro-alterations that change identity perception
 
+BODY & PHYSIQUE LOCK (DO NOT ALTER — SAME RIGOR AS FACE):
+Preserve identically: Body type and build (slim/athletic/curvy/heavyset — exactly as in reference) | Height and apparent proportions | Shoulder width | Torso length and waist shape | Arm and leg proportions | Overall silhouette
+Forbidden: Body slimming, body reshaping, idealized/generic body substitution, waist-cinching, muscle enhancement, height alteration, any body proportion that does not match the reference photo
+
 SCENE TRANSFORMATION (WHAT CAN CHANGE):
 - Hair direction, style, color (completely new - NOT from reference) | Makeup type and intensity (NEW - NOT from reference) | Clothing/costume (completely new scene-appropriate attire) | Face direction, angle, pose (optimize for scene) | Expression, micro-expressions (appropriate to scene action) | Lighting intensity and direction (preserve skin texture while enhancing mood) | Background elements (soft, blurred, non-distracting)
 
@@ -1167,7 +1187,7 @@ ACCESSORY & STYLING HARMONY (CRITICAL COORDINATION RULES):
 - Style consistency: Formal outfit = refined/elegant accessories; casual outfit = simple/approachable accessories; traditional = culturally appropriate styling
 
 TECHNICAL REQUIREMENTS:
-Composition: Medium close-up (waist-up), 50mm portrait lens style, eye-level or slight angle
+Composition: Framing MUST match the pose described above — waist-up medium close-up ONLY for simple standing/seated portrait poses; use 3/4-body or full-body framing whenever the pose involves sitting on ground/sand, walking, hiking, or any pose showing legs/lower body in motion. 50mm portrait lens style, eye-level or slight angle. Face remains the sharpest, most detailed element regardless of framing.
 Face Clarity: Sharpest element, fully visible, unobstructed, most detailed
 Hands: Anatomically correct, naturally positioned, properly detailed (if visible)
 Lighting: Directional but soft, preserving skin texture detail (avoid over-smoothing)
@@ -1177,7 +1197,7 @@ Skin Texture: Natural with visible pores, no artificial smoothing
 Realism: Strict photorealism, no cartoon/stylization
 
 NEGATION INSTRUCTIONS (Critical for AI models):
-- Negative: "avoid beautification, avoid face smoothing, avoid skin enhancement, avoid retouching, avoid feature alteration, avoid plastic surgery effects, avoid artificial perfection, avoid Photoshop effects, avoid feature reshaping, avoid identity change, avoid mismatched accessories"
+- Negative: "avoid beautification, avoid face smoothing, avoid skin enhancement, avoid retouching, avoid feature alteration, avoid plastic surgery effects, avoid artificial perfection, avoid Photoshop effects, avoid feature reshaping, avoid identity change, avoid mismatched accessories, avoid body shape distortion, avoid body slimming, avoid unrealistic body proportions, avoid body-face scale mismatch, avoid generic idealized body double, avoid ill-fitting or mismatched costume"
 
 4-LAYER STRUCTURE FOR EACH PROMPT:
 Layer 1 (Identity Lock): "Preserve [specific facial feature list] identically from reference image. Do not alter facial structure in any way."

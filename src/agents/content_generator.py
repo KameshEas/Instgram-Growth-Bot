@@ -140,21 +140,38 @@ class ContentGeneratorAgent(BaseAgent):
 
             # Extract aesthetic preferences from input data
             aesthetic_preferences = PreferenceGenerator.extract_from_dict(data)
+            user_context_safe = self._build_user_context(data)
 
-            ai_result = self._groq_bot.generate_image_prompts(
+            # For transformation categories with custom requirement, build extra context
+            extra_context = ""
+            if category in {"women_transform", "men_transform", "couples_transform"} and user_context_safe:
+                from src.prompts.custom_scenario_parser import CustomScenarioParser
+                from src.prompts.scene_styling_cohesion import SceneStylingCohesion
+
+                location, mood = CustomScenarioParser.extract_location(user_context_safe)
+                custom_scenario_section = CustomScenarioParser.build_custom_scenario_section(
+                    location, mood, user_context_safe, count
+                )
+                styling_section = SceneStylingCohesion.build_styling_prompt_section(
+                    location=location,
+                    mood=mood,
+                    user_context=user_context_safe,
+                    blend_level=aesthetic_preferences.blend_level.value if aesthetic_preferences else "50/50",
+                    jewelry_style=aesthetic_preferences.jewelry_style.value if aesthetic_preferences else "fusion",
+                )
+                extra_context = f"{custom_scenario_section}\n\n{styling_section}"
+
+            ai_result = self._groq_bot.generate_universal_prompts(
                 category=category,
+                user_idea=user_context_safe,
                 niche=niche,
-                follower_count=data.get("follower_count"),
-                region=data.get("region", ""),
                 count=count,
-                user_context=self._build_user_context(data),
                 chat_id=data.get("chat_id"),
-                components=data.get("components"),
+                extra_context=extra_context,
                 aesthetic_preferences=aesthetic_preferences,
-                occasion=data.get("occasion", "casual"),
             )
-            
-            if isinstance(ai_result, dict) and "prompts" in ai_result and not ai_result.get("error"):
+
+            if isinstance(ai_result, dict) and "variations" in ai_result and not ai_result.get("error"):
                 # 🎯 PHASE 2A: RECOMMEND OPTIMAL PARAMETERS
                 try:
                     recommended_params = self.param_engine.recommend_parameters(
@@ -172,41 +189,40 @@ class ContentGeneratorAgent(BaseAgent):
                 except Exception as e:
                     self.logger.warning(f"Parameter recommendation failed: {str(e)}")
                     params_dict = {}
-                
+
                 result = {
                     "status": "success",
                     "action": "generate",
                     "category": category,
-                    "count": len(ai_result["prompts"]),
-                    "prompts": ai_result["prompts"],
+                    "count": len(ai_result["variations"]),
+                    "variations": ai_result["variations"],
                     "ai_generated": True,
                     "recommended_parameters": params_dict,
                     "metadata": {
-                        "tip": ai_result.get("tip", ""),
-                        "total_in_category": len(ai_result["prompts"]),
+                        "total_in_category": len(ai_result["variations"]),
                     },
                 }
                 await self.log_execution(data, result, "success")
-                
+
                 # 🎯 EVALUATE OUTPUT QUALITY
                 try:
                     await self.eval_hook.evaluate_execution(
                         user_request=data,
                         agent_output=result,
                         model_used="Groq",
-                        system_prompt="Generate viral-optimized image generation prompts",
+                        system_prompt="Generate optimized AI prompts",
                     )
                 except Exception as e:
                     self.logger.warning(f"Quality evaluation skipped: {str(e)}")
-                
+
                 return result
             
             # If AI returns error - provide better error message
             error_msg = ai_result.get("error") if isinstance(ai_result, dict) else str(ai_result)
-            
+
             # More specific error handling
             if "parse" in error_msg.lower():
-                help_text = "The AI response couldn't be parsed. Try simplifying your custom prompt or try again in a moment."
+                help_text = "The AI response couldn't be parsed. Try simplifying your request or try again in a moment."
             else:
                 help_text = "Try again in a moment or provide more context (niche, goal, etc.)"
             
