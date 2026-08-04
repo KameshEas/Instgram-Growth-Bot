@@ -17,6 +17,36 @@ if TYPE_CHECKING:
 class ContentGeneratorAgent(BaseAgent):
     """Generate viral-optimized image generation prompts"""
 
+    # Map categories to optimal ProductType for parameter recommendation
+    CATEGORY_TO_PRODUCT_TYPE = {
+        # Photography categories - use "poster" for general photos, "canvas" for fine art
+        "general_photography": "poster",
+        "women_professional": "canvas",
+        "men_professional": "canvas",
+        "women_transform": "canvas",
+        "men_transform": "canvas",
+        "couples_general": "canvas",
+        "couples_transform": "canvas",
+        "photography_styles": "canvas",
+        # Design categories
+        "design_posters": "poster",
+        "design_gifts": "merchandise",
+        "print_design": "poster",
+        # Logo & branding - high reference preservation
+        "logo_create": "merchandise",
+        "brand_identity": "merchandise",
+        # Product & UI design
+        "product_3d": "merchandise",
+        "ui_ux_design": "poster",
+        # Creative categories
+        "illustration_art": "canvas",
+        "animation_motion": "poster",
+        # Text content (fallback)
+        "reel_scripts": "poster",
+        "captions_templates": "poster",
+        "email_subjects": "poster",
+    }
+
     def __init__(self, groq_bot: "InstagramGrowthBot | None" = None):
         super().__init__("ContentGenerator")
         self._groq_bot = groq_bot
@@ -142,7 +172,17 @@ class ContentGeneratorAgent(BaseAgent):
             aesthetic_preferences = PreferenceGenerator.extract_from_dict(data)
             user_context_safe = self._build_user_context(data)
 
-            # For transformation categories with custom requirement, build extra context
+            # Extract structured payloads (e.g., logo components) for reference_context
+            reference_context = ""
+            if data.get("components"):
+                # Format structured components dict for LLM (never truncate this)
+                components = data["components"]
+                components_lines = []
+                for k, v in components.items():
+                    components_lines.append(f"{k.replace('_', ' ').title()}: {v}")
+                reference_context = "STRUCTURAL REQUIREMENTS:\n" + "\n".join(components_lines)
+
+            # For transformation categories with custom requirement, build extra context (IDENTITY-LOCK)
             extra_context = ""
             if category in {"women_transform", "men_transform", "couples_transform"} and user_context_safe:
                 from src.prompts.custom_scenario_parser import CustomScenarioParser
@@ -160,6 +200,14 @@ class ContentGeneratorAgent(BaseAgent):
                     jewelry_style=aesthetic_preferences.jewelry_style.value if aesthetic_preferences else "fusion",
                 )
                 extra_context = f"{custom_scenario_section}\n\n{styling_section}"
+            # For all other categories, inject dynamic context guidance (NICHE-DYNAMIC)
+            else:
+                from src.prompts.dynamic_context_builder import DynamicContextBuilder
+                extra_context = DynamicContextBuilder.build_category_guidance(
+                    category=category,
+                    niche=niche,
+                    user_idea=user_context_safe,
+                )
 
             ai_result = self._groq_bot.generate_universal_prompts(
                 category=category,
@@ -168,14 +216,17 @@ class ContentGeneratorAgent(BaseAgent):
                 count=count,
                 chat_id=data.get("chat_id"),
                 extra_context=extra_context,
+                reference_context=reference_context,
                 aesthetic_preferences=aesthetic_preferences,
             )
 
             if isinstance(ai_result, dict) and "variations" in ai_result and not ai_result.get("error"):
                 # 🎯 PHASE 2A: RECOMMEND OPTIMAL PARAMETERS
                 try:
+                    # Map category to optimal product type for parameter tuning
+                    product_type = self.CATEGORY_TO_PRODUCT_TYPE.get(category, "poster")
                     recommended_params = self.param_engine.recommend_parameters(
-                        product_type="poster",  # Default to poster for general content
+                        product_type=product_type,
                         alignment_importance=0.75,
                         quality_level="balanced",
                     )
@@ -237,22 +288,38 @@ class ContentGeneratorAgent(BaseAgent):
             self.logger.error(f"Prompt generation error: {str(e)}")
             return {"status": "error", "error": str(e)}
 
-    def _build_user_context(self, data: Dict[str, Any]) -> str:
-        """Build a concise user_context string for AI from input data, merging structured clarification if present."""
+    def _build_user_context(self, data: Dict[str, Any], exclude_keys: List[str] = None) -> str:
+        """Build user_context string for AI from input data, excluding structured payloads.
+
+        Args:
+            data: Input data dict
+            exclude_keys: Keys to exclude (e.g., ['components'] to extract separately via reference_context)
+
+        Returns:
+            Context string with increased budget (1500 chars) and warning if truncation occurs
+        """
+        if exclude_keys is None:
+            exclude_keys = []
+
         try:
-            base = {k: v for k, v in data.items() if k not in ("action", "chat_id")}
+            base = {k: v for k, v in data.items() if k not in ("action", "chat_id", "components", "clarified") + tuple(exclude_keys)}
             clar = data.get("clarification_answer")
             if clar:
                 if isinstance(clar, dict):
-                    # Merge clarification fields into base
                     base.update(clar)
                 else:
                     base["clarification"] = str(clar)
-            # Convert to a compact string
+            # Convert to a compact string with larger budget (1500 chars, not 500)
             items = [f"{k}={v}" for k, v in base.items() if v is not None]
-            return "; ".join(items)[:500]
-        except Exception:
-            return str({k: v for k, v in data.items() if k not in ("action", "chat_id")})
+            context_str = "; ".join(items)
+            # Log warning if truncation occurs (should be rare with 1500-char budget)
+            if len(context_str) > 1500:
+                self.logger.warning(f"User context truncated from {len(context_str)} to 1500 chars")
+                context_str = context_str[:1500]
+            return context_str
+        except Exception as e:
+            self.logger.error(f"Error building user context: {e}")
+            return str({k: v for k, v in data.items() if k not in ("action", "chat_id", "components")})
     
     async def _list_all_categories(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """List all available prompt categories for AI generation."""

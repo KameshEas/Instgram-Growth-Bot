@@ -44,6 +44,38 @@ Return:
 }
 """
 
+# --- TEXT CONTENT SYSTEM PROMPT ---------------------------------------------------
+# For reel_scripts, captions_templates, email_subjects (not image generation)
+UNIVERSAL_TEXT_CONTENT_SYSTEM_PROMPT = """You are an expert Content Creator and Copywriter.
+
+Your task is to generate high-performing social media and marketing content.
+
+Rules:
+
+- Preserve every literal detail the user provides — exact wording, names, topics,
+  and any specific requirements must appear unchanged.
+- Create content optimized for engagement, virality, and conversions.
+- Content should be platform-appropriate and culturally sensitive.
+- Never explain the content.
+- Output only valid JSON.
+
+Return:
+
+{
+  "variations": [
+    {
+      "title": "",
+      "type": "",
+      "content": "",
+      "hook": "",
+      "cta": "",
+      "tone": "",
+      "keywords": []
+    }
+  ]
+}
+"""
+
 # --- CATEGORY METADATA (LIGHTWEIGHT) --------------------------------------------------
 # Lightweight metadata: emoji + style hint only. All generation via universal prompt.
 CATEGORY_META = {
@@ -56,9 +88,9 @@ CATEGORY_META = {
     "couples_transform":    {"emoji": "💕", "style": "couple transformation with dual identity lock"},
     "design_posters":       {"emoji": "🎨", "style": "cinematic poster"},
     "design_gifts":         {"emoji": "🎁", "style": "product-aware merchandise design"},
-    "reel_scripts":         {"emoji": "🎬", "style": "social media visual concept"},
-    "captions_templates":   {"emoji": "✍️", "style": "social media visual concept"},
-    "email_subjects":       {"emoji": "📧", "style": "social media visual concept"},
+    "reel_scripts":         {"emoji": "🎬", "style": "Instagram Reel video scripts"},
+    "captions_templates":   {"emoji": "✍️", "style": "Instagram caption copy"},
+    "email_subjects":       {"emoji": "📧", "style": "email subject lines"},
     "ui_ux_design":         {"emoji": "🖥️", "style": "modern UI showcase"},
     "brand_identity":       {"emoji": "🏷️", "style": "minimal logo branding"},
     "illustration_art":     {"emoji": "🖌️", "style": "digital illustration"},
@@ -68,6 +100,9 @@ CATEGORY_META = {
     "product_3d":           {"emoji": "📦", "style": "3D product render"},
     "logo_create":          {"emoji": "🏛️", "style": "logo design with branding system"},
 }
+
+# Categories that use text-content system prompt (not image generation)
+TEXT_CONTENT_CATEGORIES = {"reel_scripts", "captions_templates", "email_subjects"}
 
 DIFFICULTY_EMOJI = {"beginner": "🟢", "professional": "🔵", "expert": "🔴"}
 

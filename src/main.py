@@ -799,13 +799,21 @@ Return JSON with:
 
         Replaces: generate_image_prompts, generate_design_brief, generate_gift_design_concepts, image_generation_prompts
 
-        Returns unified JSON: {"variations": [{"title", "style", "prompt", "negative_prompt", "aspect_ratio", "keywords"}]}
+        For text-content categories (reel_scripts, captions_templates, email_subjects):
+        Returns: {"variations": [{"title", "type", "content", "hook", "cta", "tone", "keywords"}]}
+
+        For image-generation categories:
+        Returns: {"variations": [{"title", "style", "prompt", "negative_prompt", "aspect_ratio", "keywords"}]}
         """
-        from src.prompts.templates import UNIVERSAL_PROMPT_SYSTEM_PROMPT, get_category_meta
+        from src.prompts.templates import UNIVERSAL_PROMPT_SYSTEM_PROMPT, UNIVERSAL_TEXT_CONTENT_SYSTEM_PROMPT, get_category_meta, TEXT_CONTENT_CATEGORIES
 
         category = category.lower().replace(" ", "_").replace("-", "_")
         meta = get_category_meta(category)
         style_hint = meta.get("style", "general use")
+
+        # Select appropriate system prompt based on category type
+        is_text_content = category in TEXT_CONTENT_CATEGORIES
+        system_prompt = UNIVERSAL_TEXT_CONTENT_SYSTEM_PROMPT if is_text_content else UNIVERSAL_PROMPT_SYSTEM_PROMPT
 
         niche_safe = (niche or "").replace('"', "'").strip()[:100]
 
@@ -825,14 +833,14 @@ Return JSON with:
             reference_section = f"\n\nREFERENCE CONTEXT:\n{reference_context}"
 
         # Build final prompt
-        prompt = f"""{UNIVERSAL_PROMPT_SYSTEM_PROMPT}
+        prompt = f"""{system_prompt}
 
 ---
 
 Category Style: {style_hint}
 {f'Niche: {niche_safe}' if niche_safe else ''}{user_idea_section}{constraints_section}{reference_section}
 
-Generate {count} distinct, optimized prompts for {style_hint}. Return ONLY valid JSON with the exact structure specified."""
+Generate {count} distinct, optimized {'scripts/captions/subject lines' if is_text_content else 'prompts'} for {style_hint}. Return ONLY valid JSON with the exact structure specified."""
 
         cache_key = self._make_cache_key(
             "generate_universal_prompts",

@@ -136,6 +136,18 @@ class CustomScenarioParser:
                     "expression": "determined, focused",
                     "activity": "trekking the mountain path"
                 },
+                {
+                    "pose": "overlooking valley",
+                    "body_position": "standing on ledge, hand shading eyes",
+                    "expression": "awestruck, gazing at landscape",
+                    "activity": "surveying the vista"
+                },
+                {
+                    "pose": "resting on rocks",
+                    "body_position": "relaxed sitting on mountain rocks",
+                    "expression": "peaceful, content",
+                    "activity": "taking a mountain break"
+                },
             ],
             "urban": [
                 {
@@ -155,6 +167,18 @@ class CustomScenarioParser:
                     "body_position": "standing confidently",
                     "expression": "fashionable, poised",
                     "activity": "urban exploration"
+                },
+                {
+                    "pose": "sitting at cafe",
+                    "body_position": "seated at outdoor table",
+                    "expression": "relaxed, observant",
+                    "activity": "enjoying city vibe"
+                },
+                {
+                    "pose": "against storefront",
+                    "body_position": "standing with store window backdrop",
+                    "expression": "stylish, approachable",
+                    "activity": "urban retail exploration"
                 },
             ],
             "garden": [
@@ -176,6 +200,18 @@ class CustomScenarioParser:
                     "expression": "joyful, exploring",
                     "activity": "garden stroll"
                 },
+                {
+                    "pose": "by water feature",
+                    "body_position": "leaning by fountain/pond",
+                    "expression": "reflective, calm",
+                    "activity": "enjoying garden tranquility"
+                },
+                {
+                    "pose": "under garden archway",
+                    "body_position": "standing under trellis",
+                    "expression": "graceful, romantic",
+                    "activity": "framed by garden elements"
+                },
             ],
             "generic": [
                 {
@@ -195,6 +231,18 @@ class CustomScenarioParser:
                     "body_position": "natural movement",
                     "expression": "dynamic, alive",
                     "activity": "movement and energy"
+                },
+                {
+                    "pose": "side profile",
+                    "body_position": "turned to side",
+                    "expression": "contemplative, serene",
+                    "activity": "profile view emphasis"
+                },
+                {
+                    "pose": "over-shoulder glance",
+                    "body_position": "turned with glance back",
+                    "expression": "enigmatic, inviting",
+                    "activity": "engaging over shoulder"
                 },
             ]
         }
@@ -225,6 +273,8 @@ class CustomScenarioParser:
         """
 
         pose_variations = CustomScenarioParser.generate_pose_variations(location, mood, count)
+        # Use actual pose_variations length to match instruction text with actual list size
+        actual_count = len(pose_variations)
 
         scenario_section = f"""
 🎬 CUSTOM SCENARIO EXTRACTION:
@@ -232,7 +282,7 @@ User's primary location: {location.upper()}
 User's mood/vibe: {mood}
 User's full requirement: "{original_requirement}"
 
-CRITICAL: ALL {count} PROMPTS MUST USE THE SAME LOCATION: {location.upper()}
+CRITICAL: ALL {actual_count} PROMPTS MUST USE THE SAME LOCATION: {location.upper()}
 - Vary ONLY: pose, body position, expression, activity
 - DO NOT change: location, scenery, environment context
 - Each prompt shows a DIFFERENT POSE but SAME LOCATION
@@ -258,7 +308,7 @@ LOCATION DETAILS:
 - Atmosphere: Conveys {mood} feeling as requested
 
 STRICT REQUIREMENT:
-All {count} prompts MUST:
+All {actual_count} prompts MUST:
 ✅ Use {location} as the location
 ✅ Respect "{original_requirement}" requirement
 ✅ Vary pose and expression ONLY

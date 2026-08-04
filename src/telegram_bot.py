@@ -1199,6 +1199,10 @@ class TelegramBotHandler:
 
             await msg_obj.reply_text(header, parse_mode="Markdown")
 
+            # Determine if this is text-content or image-generation category
+            from src.prompts.templates import TEXT_CONTENT_CATEGORIES
+            is_text_content = category in TEXT_CONTENT_CATEGORIES
+
             # Send each variation with action buttons
             for idx, var in enumerate(variations, 1):
                 msg = f"*✨ Variation {idx}*\n"
@@ -1207,17 +1211,29 @@ class TelegramBotHandler:
                 if var.get("title"):
                     msg += f"*{escape_md(var['title'])}*\n\n"
 
-                if var.get("style"):
+                if var.get("type"):
+                    msg += f"_Type: {escape_md(var['type'])}_\n\n"
+                elif var.get("style"):
                     msg += f"_Style: {escape_md(var['style'])}_\n\n"
 
-                if var.get("prompt"):
-                    msg += f"*Prompt:*\n`{escape_md(var['prompt'][:500])}`\n\n"
-
-                if var.get("negative_prompt"):
-                    msg += f"*Negative:* `{escape_md(var['negative_prompt'][:200])}`\n\n"
-
-                if var.get("aspect_ratio"):
-                    msg += f"*Aspect Ratio:* `{var['aspect_ratio']}`\n\n"
+                # Text-content fields
+                if is_text_content:
+                    if var.get("content"):
+                        msg += f"*Content:*\n`{escape_md(var['content'][:500])}`\n\n"
+                    if var.get("hook"):
+                        msg += f"*Hook:* `{escape_md(var['hook'][:200])}`\n\n"
+                    if var.get("cta"):
+                        msg += f"*CTA:* `{escape_md(var['cta'][:200])}`\n\n"
+                    if var.get("tone"):
+                        msg += f"*Tone:* `{var['tone']}`\n\n"
+                # Image-generation fields
+                else:
+                    if var.get("prompt"):
+                        msg += f"*Prompt:*\n`{escape_md(var['prompt'][:500])}`\n\n"
+                    if var.get("negative_prompt"):
+                        msg += f"*Negative:* `{escape_md(var['negative_prompt'][:200])}`\n\n"
+                    if var.get("aspect_ratio"):
+                        msg += f"*Aspect Ratio:* `{var['aspect_ratio']}`\n\n"
 
                 if var.get("keywords"):
                     keywords_str = ", ".join(var["keywords"][:8])
@@ -1228,13 +1244,21 @@ class TelegramBotHandler:
 
                 # Add action buttons for each prompt
                 # Store prompt data in context for later retrieval (Phase 2)
+                # Support both image-generation and text-content fields
                 context.user_data[f"prompt_{idx}"] = {
                     "category": category,
                     "title": var.get("title"),
                     "style": var.get("style"),
+                    "type": var.get("type"),
+                    # Image-generation fields
                     "prompt": var.get("prompt"),
                     "negative_prompt": var.get("negative_prompt"),
                     "aspect_ratio": var.get("aspect_ratio"),
+                    # Text-content fields
+                    "content": var.get("content"),
+                    "hook": var.get("hook"),
+                    "cta": var.get("cta"),
+                    "tone": var.get("tone"),
                     "keywords": var.get("keywords", []),
                 }
 
@@ -1859,12 +1883,7 @@ class TelegramBotHandler:
                 })
 
                 if result and result.get("status") == "success":
-                    prompts = result.get("prompts", [])
-                    for p in prompts[:3]:
-                        text = p.get("prompt") if isinstance(p, dict) else str(p)
-                        for chunk in self._send_long(text):
-                            await update.message.reply_text(chunk)
-                    await update.message.reply_text("✅ Logo prompt generation complete. Review deliverables in the job details.")
+                    await self._handle_universal_prompts_response(update, context, result, "logo_create")
                 else:
                     await update.message.reply_text(f"❌ Failed to generate logo prompts: {result}")
             except Exception as e:
@@ -2259,12 +2278,15 @@ class TelegramBotHandler:
             # Clear pending state
             context.user_data.pop("pending_clarification", None)
 
-            # If generation succeeded, display prompts (simple short-format)
+            # If generation succeeded, display prompts (support both "variations" and "prompts" keys)
             if result and result.get("status") == "success":
-                prompts = result.get("prompts", [])
+                # Try "variations" key first (universal-prompts path), then "prompts" (legacy)
+                prompts = result.get("variations", result.get("prompts", []))
                 msg = "✅ Generated prompts:\n\n"
                 for i, p in enumerate(prompts, 1):
-                    msg += f"{i}. {p}\n\n"
+                    # Extract prompt text from variation dict or use string directly
+                    prompt_text = p.get("prompt") if isinstance(p, dict) else str(p)
+                    msg += f"{i}. {prompt_text}\n\n"
                 for chunk in self._send_long(msg):
                     await update.message.reply_text(chunk, parse_mode="Markdown")
                 return
