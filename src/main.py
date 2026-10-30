@@ -431,7 +431,10 @@ class InstagramGrowthBot:
                 self.client.chat.completions.create,
                 **call_kwargs
             )
-            if not success and json_mode:
+            error_text = str(response.get("error", "")).lower() if isinstance(response, dict) else ""
+            # Only a JSON-validation rejection is worth retrying without JSON mode; connection
+            # errors and an open circuit breaker would just repeat the same failure.
+            if not success and json_mode and ("json" in error_text or "400" in error_text):
                 # JSON mode rejects outputs that are not valid JSON; retry once without it
                 # and let parse_json_response repair the text.
                 logger.warning(f"[JSON MODE] {command} failed in JSON mode, retrying without it")
