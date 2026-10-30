@@ -72,4 +72,117 @@ class CompositionIntelligence:
     
     # Depth composition techniques
     DEPTH_TECHNIQUES = {
-        "foreground_middle_background": {\n            "layers": "three distinct layers creating visual depth",\n            "effect": "foreground (blurred), midground (sharp subject), background (blurred)",\n            "depth_perception": "extreme depth apparent from layering",\n        },\n        "atmospheric_perspective": {\n            "technique": "distant elements increasingly desaturated and hazy",\n            "effect": "atmospheric particle interaction reducing contrast with distance",\n            "depth_perception": "distance perception through atmospheric quality",\n        },\n        "overlapping_objects": {\n            "technique": "foreground objects partially obscuring background",\n            "effect": "depth from occlusion relationships",\n            "depth_perception": "layered spatial relationships clear",\n        },\n    }\n    \n    # Emotional composition profiles\n    EMOTIONAL_COMPOSITION = {\n        "intimate": {\n            "framing": "tight composition with minimal breathing room",\n            "distance": "close to subject, foreground elements framing",\n            "hierarchy": "subject dominant, environment secondary",\n            "emotional": "vulnerability, connection, immediacy",\n        },\n        "grand": {\n            "framing": "wide environmental context with subject small",\n            "distance": "far from subject showing scale",\n            "hierarchy": "environment dominant, subject contextual",\n            "emotional": "awe, scale, majesty",\n        },\n        "isolated": {\n            "framing": "subject surrounded by negative space",\n            "distance": "breathing room maximized",\n            "hierarchy": "subject absolutely dominant",\n            "emotional": "loneliness, focus, emphasis",\n        },\n        "dynamic": {\n            "framing": "off-center with diagonal composition",\n            "distance": "varied layering creating tension",\n            "hierarchy": "multiple competing focal points",\n            "emotional": "energy, movement, tension",\n        },\n    }\n    \n    # Composition by subject positioning\n    SUBJECT_POSITIONING = {\n        \"left_third\": \"subject positioned at left third with right negative space\",\n        \"center\": \"centered subject with balanced environment\",\n        \"right_third\": \"subject positioned at right third with left negative space\",\n        \"upper_third\": \"subject in upper portion with lower environment\",\n        \"lower_third\": \"subject in lower portion with upper environment\",\n    }\n    \n    @staticmethod\n    def generate_composition_description(\n        strategy: str,\n        emotional_tone: Optional[str] = None,\n        depth_method: Optional[str] = None,\n    ) -> str:\n        \"\"\"Generate strategic composition description.\"\"\"\n        \n        description_parts = []\n        \n        if strategy in CompositionIntelligence.FRAMING_STRATEGIES:\n            frame_info = CompositionIntelligence.FRAMING_STRATEGIES[strategy]\n            description_parts.append(\n                f\"Composition: {frame_info.get('description', '')}. \"\n                f\"Focal point: {frame_info.get('focal_point', '')}\"\n            )\n        \n        if emotional_tone and emotional_tone in CompositionIntelligence.EMOTIONAL_COMPOSITION:\n            emotion_info = CompositionIntelligence.EMOTIONAL_COMPOSITION[emotional_tone]\n            description_parts.append(\n                f\"Emotional composition: {emotion_info.get('framing', '')}. \"\n                f\"Distance and hierarchy: {emotion_info.get('hierarchy', '')}\"\n            )\n        \n        if depth_method and depth_method in CompositionIntelligence.DEPTH_TECHNIQUES:\n            depth_info = CompositionIntelligence.DEPTH_TECHNIQUES[depth_method]\n            description_parts.append(\n                f\"Depth technique: {depth_info.get('technique', '')}. \"\n                f\"Effect: {depth_info.get('effect', '')}\"\n            )\n        \n        return \". \".join(description_parts)\n    \n    @staticmethod\n    def focal_hierarchy_string(primary: str, secondary: Optional[str] = None) -> str:\n        \"\"\"Describe focal hierarchy for composition.\"\"\"\n        \n        result = f\"Primary focal point: {primary} receiving maximum emphasis, sharpest focus, highest contrast\"\n        \n        if secondary:\n            result += f\". Secondary element: {secondary} with reduced emphasis and softer focus\"\n        \n        result += \". Background atmospheric and supporting without distraction.\"\n        \n        return result\n    \n    @staticmethod\n    def negative_space_ratio(percentage: int) -> str:\n        \"\"\"Describe negative space in composition.\"\"\"\n        \n        if percentage > 60:\n            return \"dominant negative space creating minimalist luxury aesthetic\"\n        elif percentage > 40:\n            return \"substantial negative space with balanced subject emphasis\"\n        elif percentage > 20:\n            return \"moderate negative space supporting subject composition\"\n        else:\n            return \"minimal negative space with densely packed composition\"\n
+        "foreground_middle_background": {
+            "layers": "three distinct layers creating visual depth",
+            "effect": "foreground (blurred), midground (sharp subject), background (blurred)",
+            "depth_perception": "extreme depth apparent from layering",
+        },
+        "atmospheric_perspective": {
+            "technique": "distant elements increasingly desaturated and hazy",
+            "effect": "atmospheric particle interaction reducing contrast with distance",
+            "depth_perception": "distance perception through atmospheric quality",
+        },
+        "overlapping_objects": {
+            "technique": "foreground objects partially obscuring background",
+            "effect": "depth from occlusion relationships",
+            "depth_perception": "layered spatial relationships clear",
+        },
+    }
+    
+    # Emotional composition profiles
+    EMOTIONAL_COMPOSITION = {
+        "intimate": {
+            "framing": "tight composition with minimal breathing room",
+            "distance": "close to subject, foreground elements framing",
+            "hierarchy": "subject dominant, environment secondary",
+            "emotional": "vulnerability, connection, immediacy",
+        },
+        "grand": {
+            "framing": "wide environmental context with subject small",
+            "distance": "far from subject showing scale",
+            "hierarchy": "environment dominant, subject contextual",
+            "emotional": "awe, scale, majesty",
+        },
+        "isolated": {
+            "framing": "subject surrounded by negative space",
+            "distance": "breathing room maximized",
+            "hierarchy": "subject absolutely dominant",
+            "emotional": "loneliness, focus, emphasis",
+        },
+        "dynamic": {
+            "framing": "off-center with diagonal composition",
+            "distance": "varied layering creating tension",
+            "hierarchy": "multiple competing focal points",
+            "emotional": "energy, movement, tension",
+        },
+    }
+    
+    # Composition by subject positioning
+    SUBJECT_POSITIONING = {
+        "left_third": "subject positioned at left third with right negative space",
+        "center": "centered subject with balanced environment",
+        "right_third": "subject positioned at right third with left negative space",
+        "upper_third": "subject in upper portion with lower environment",
+        "lower_third": "subject in lower portion with upper environment",
+    }
+    
+    @staticmethod
+    def generate_composition_description(
+        strategy: str,
+        emotional_tone: Optional[str] = None,
+        depth_method: Optional[str] = None,
+    ) -> str:
+        """Generate strategic composition description."""
+        
+        description_parts = []
+        
+        if strategy in CompositionIntelligence.FRAMING_STRATEGIES:
+            frame_info = CompositionIntelligence.FRAMING_STRATEGIES[strategy]
+            part = f"Composition: {frame_info.get('description', strategy.replace('_', ' '))}"
+            if frame_info.get('focal_point'):  # not every strategy defines a focal point
+                part += f". Focal point: {frame_info['focal_point']}"
+            description_parts.append(part)
+        
+        if emotional_tone and emotional_tone in CompositionIntelligence.EMOTIONAL_COMPOSITION:
+            emotion_info = CompositionIntelligence.EMOTIONAL_COMPOSITION[emotional_tone]
+            description_parts.append(
+                f"Emotional composition: {emotion_info.get('framing', '')}. "
+                f"Distance and hierarchy: {emotion_info.get('hierarchy', '')}"
+            )
+        
+        if depth_method and depth_method in CompositionIntelligence.DEPTH_TECHNIQUES:
+            depth_info = CompositionIntelligence.DEPTH_TECHNIQUES[depth_method]
+            # "foreground_middle_background" stores its technique under "layers"
+            technique = depth_info.get('technique') or depth_info.get('layers', '')
+            description_parts.append(
+                f"Depth technique: {technique}. "
+                f"Effect: {depth_info.get('effect', '')}"
+            )
+        
+        return ". ".join(description_parts)
+    
+    @staticmethod
+    def focal_hierarchy_string(primary: str, secondary: Optional[str] = None) -> str:
+        """Describe focal hierarchy for composition."""
+        
+        result = f"Primary focal point: {primary} receiving maximum emphasis, sharpest focus, highest contrast"
+        
+        if secondary:
+            result += f". Secondary element: {secondary} with reduced emphasis and softer focus"
+        
+        result += ". Background atmospheric and supporting without distraction."
+        
+        return result
+    
+    @staticmethod
+    def negative_space_ratio(percentage: int) -> str:
+        """Describe negative space in composition."""
+        
+        if percentage > 60:
+            return "dominant negative space creating minimalist luxury aesthetic"
+        elif percentage > 40:
+            return "substantial negative space with balanced subject emphasis"
+        elif percentage > 20:
+            return "moderate negative space supporting subject composition"
+        else:
+            return "minimal negative space with densely packed composition"

@@ -75,7 +75,7 @@ class SemanticOptimizer:
     
     @staticmethod
     def optimize_prompt(prompt: str, max_length: Optional[int] = None) -> str:
-        \"\"\"
+        """
         Optimize prompt for maximum model attention.
         
         Args:
@@ -84,13 +84,13 @@ class SemanticOptimizer:
             
         Returns:
             Optimized compressed prompt
-        \"\"\"
+        """
         
         optimized = prompt
         
         # Remove weak adjectives
         for adj in SemanticOptimizer.WEAK_ADJECTIVES:
-            optimized = re.sub(r'\\b' + adj + r'\\s+', '', optimized, flags=re.IGNORECASE)
+            optimized = re.sub(r'\b' + adj + r'\s+', '', optimized, flags=re.IGNORECASE)
         
         # Remove redundancies
         for redundant, replacement in SemanticOptimizer.REDUNDANCY_PATTERNS:
@@ -106,7 +106,7 @@ class SemanticOptimizer:
         
         # Remove generic quality keywords (replace with specificity)
         for generic in SemanticOptimizer.GENERIC_QUALITY:
-            optimized = optimized.replace(generic, \"meticulous rendering\")
+            optimized = optimized.replace(generic, "meticulous rendering")
         
         # Enforce maximum length if specified
         if max_length and len(optimized) > max_length:
@@ -116,10 +116,10 @@ class SemanticOptimizer:
     
     @staticmethod
     def _truncate_intelligently(prompt: str, max_length: int) -> str:
-        \"\"\"Truncate prompt intelligently, keeping strongest concepts.\"\"\"
+        """Truncate prompt intelligently, keeping strongest concepts."""
         
         # Find priority tokens in prompt
-        parts = prompt.split(\".\")
+        parts = prompt.split(".")
         priority_parts = []
         regular_parts = []
         
@@ -130,27 +130,27 @@ class SemanticOptimizer:
                 regular_parts.append(part)
         
         # Reconstruct with priority parts first
-        reconstructed = \". \".join(priority_parts + regular_parts[:2])
+        reconstructed = ". ".join(priority_parts + regular_parts[:2])
         
         if len(reconstructed) > max_length:
-            reconstructed = reconstructed[:max_length].rsplit(\" \", 1)[0] + \"...\"
+            reconstructed = reconstructed[:max_length].rsplit(" ", 1)[0] + "..."
         
         return reconstructed
     
     @staticmethod
     def get_compression_stats(original: str, optimized: str) -> Dict[str, int]:
-        \"\"\"Get compression statistics.\"\"\"
+        """Get compression statistics."""
         
         return {
-            \"original_length\": len(original),
-            \"optimized_length\": len(optimized),
-            \"compression_percent\": int((1 - len(optimized) / len(original)) * 100),
-            \"word_reduction\": len(original.split()) - len(optimized.split()),
+            "original_length": len(original),
+            "optimized_length": len(optimized),
+            "compression_percent": int((1 - len(optimized) / len(original)) * 100),
+            "word_reduction": len(original.split()) - len(optimized.split()),
         }
     
     @staticmethod
     def emphasize_priority_tokens(prompt: str) -> str:
-        \"\"\"Emphasize priority tokens (if using model with weighting support).\"\"\"
+        """Emphasize priority tokens (if using model with weighting support)."""
         
         emphasized = prompt
         
@@ -159,7 +159,7 @@ class SemanticOptimizer:
                 # Format for models supporting weighted prompts
                 emphasized = emphasized.replace(
                     token,
-                    f\"({token}:{weight:.1f})\"
+                    f"({token}:{weight:.1f})"
                 )
         
         return emphasized

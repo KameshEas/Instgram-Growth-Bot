@@ -1,5 +1,6 @@
 """Gift Design Agent - Generates personalized design concepts for customized gifts"""
 
+import asyncio
 from typing import Dict, Any, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from src.prompts.templates import (
@@ -47,6 +48,11 @@ class GiftDesignAgent(BaseAgent):
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Main execution handler for gift design operations"""
         try:
+            # The validator requires "design_prompt"; callers (Telegram, orchestrator) send the
+            # idea as "concept_idea". Without this alias every /design_gift failed validation.
+            if input_data.get("concept_idea") and not input_data.get("design_prompt"):
+                input_data = {**input_data, "design_prompt": input_data["concept_idea"]}
+
             # 🔴 PHASE 2C STEP 1: Validate input
             validation_result = await self.input_validator.validate_design_input(input_data)
             if validation_result.status.value == "fail":
@@ -173,13 +179,32 @@ class GiftDesignAgent(BaseAgent):
             if personalization.get("tone"):
                 user_idea_text += f"\nTone: {personalization['tone']}"
 
+            # Product specs and personalization go to the model as constraints
+            gift_constraints = [
+                f"Product: {product_meta.get('display_name')}; printable area {personalization['product_specs']['printable_area']}.",
+                f"Print constraints: {personalization['product_specs']['constraints']}.",
+                "Describe the flat artwork to be printed, not a photo of the product, unless the concept asks for a mockup.",
+            ]
+            if personalization.get("tone_description"):
+                gift_constraints.append(f"Design tone: {personalization['tone']} ({personalization['tone_description']}).")
+            if personalization.get("brand_colors"):
+                gift_constraints.append("Use these colors: " + ", ".join(map(str, personalization["brand_colors"])) + ".")
+            if personalization.get("recipient_type"):
+                gift_constraints.append(f"Recipient: {personalization['recipient_type']}.")
+            if personalization.get("user_role_guidance"):
+                gift_constraints.append(f"Designer perspective: {personalization['user_role_guidance']}")
+            from src.prompts.visual_reference import VisualReference
+            reference_block = VisualReference.build_reference_block("design_gifts")
+
             # Call universal prompt generator
-            ai_result = self._groq_bot.generate_universal_prompts(
+            ai_result = await asyncio.to_thread(self._groq_bot.generate_universal_prompts,
                 category="design_gifts",
                 user_idea=user_idea_text,
                 niche=niche,
                 count=3,
                 chat_id=chat_id,
+                extra_context="\n".join(f"- {c}" for c in gift_constraints)
+                + (f"\n{reference_block}" if reference_block else ""),
             )
 
             if isinstance(ai_result, dict) and ai_result.get("status") == "success":

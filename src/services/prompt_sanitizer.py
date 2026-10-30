@@ -1,6 +1,7 @@
 """Sanitize user input to prevent prompt injection attacks."""
 
 import re
+import unicodedata
 from typing import Optional
 
 
@@ -47,23 +48,22 @@ class PromptSanitizer:
             warnings.append(f"Prompt truncated from {len(cleaned)} to {PromptSanitizer.MAX_PROMPT_LENGTH} chars")
             cleaned = cleaned[:PromptSanitizer.MAX_PROMPT_LENGTH]
 
-        # Check for injection patterns (case-insensitive)
+        # Log likely injection phrasing, but keep the user's text intact: every prompt now wraps
+        # user input in tags and marks it as data, and cutting text out mangled real requests
+        # (e.g. "you are invited to our launch now").
         for pattern in PromptSanitizer.INJECTION_PATTERNS:
             if re.search(pattern, cleaned, re.IGNORECASE):
-                warnings.append(f"Suspicious pattern detected and removed")
-                # Remove the problematic part
-                cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+                warnings.append("Possible prompt-injection phrasing (kept; the prompt delimits user text)")
+                break
 
-        # Remove potentially dangerous characters
-        # Allow: alphanumeric, spaces, common punctuation, emoji (limited)
-        if not re.match(PromptSanitizer.ALLOWED_PATTERN, cleaned):
-            # Remove disallowed characters
-            cleaned = re.sub(r"[^a-zA-Z0-9\s\-.,!?'\"()&:;/—\U0001F300-\U0001F9FF]", "", cleaned)
-            if cleaned != prompt:
-                warnings.append("Removed disallowed characters")
+        # Remove control characters only; keep every script (Hindi, Tamil, accents), emoji, and
+        # symbols such as ₹ # @ %.
+        stripped = "".join(ch for ch in cleaned if ch in "\n\t" or unicodedata.category(ch)[0] != "C")
+        if stripped != cleaned:
+            warnings.append("Removed control characters")
 
         # Clean up whitespace
-        cleaned = " ".join(cleaned.split())
+        cleaned = " ".join(stripped.split())
 
         # Ensure minimum length for useful prompts
         if len(cleaned) < 5:

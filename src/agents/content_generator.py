@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict, Any, List, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from src.prompts.templates import list_categories
@@ -9,6 +10,7 @@ from src.services.conflict_resolver import ConflictResolverFactory
 from src.services.edge_case_handler import EdgeCaseHandlerFactory
 from src.services.error_recovery_system import ErrorRecoverySystemFactory, ErrorType
 from src.prompts.preference_generator import PreferenceGenerator
+from src.prompts.visual_reference import VisualReference
 
 if TYPE_CHECKING:
     from src.main import InstagramGrowthBot
@@ -147,14 +149,15 @@ class ContentGeneratorAgent(BaseAgent):
             category = requested_category
             if not category and self._groq_bot and (niche or goal or data):
                 try:
-                    ai_pick = self._groq_bot.suggest_content_category(
-                        user_context=str(data),
+                    ai_pick = await asyncio.to_thread(self._groq_bot.suggest_content_category,
+                        user_context=self._build_user_context(data) or "no description given",
                         available_categories=self.categories,
                         niche=niche,
                         goal=goal,
                     )
-                    if isinstance(ai_pick, dict) and ai_pick.get("suggested_category"):
-                        category = ai_pick["suggested_category"].lower()
+                    pick = ai_pick.get("suggested_category", "") if isinstance(ai_pick, dict) else ""
+                    if isinstance(pick, str) and pick.strip().lower() in self.categories:
+                        category = pick.strip().lower()
                 except Exception as e:
                     self.logger.warning(f"AI category suggestion failed: {e}")
 
@@ -199,7 +202,8 @@ class ContentGeneratorAgent(BaseAgent):
                     blend_level=aesthetic_preferences.blend_level.value if aesthetic_preferences else "50/50",
                     jewelry_style=aesthetic_preferences.jewelry_style.value if aesthetic_preferences else "fusion",
                 )
-                extra_context = f"{custom_scenario_section}\n\n{styling_section}"
+                reference_block = VisualReference.build_reference_block(category, location=location)
+                extra_context = f"{custom_scenario_section}\n\n{styling_section}\n\n{reference_block}".rstrip()
             # For all other categories, inject dynamic context guidance (NICHE-DYNAMIC)
             else:
                 from src.prompts.dynamic_context_builder import DynamicContextBuilder
@@ -208,8 +212,12 @@ class ContentGeneratorAgent(BaseAgent):
                     niche=niche,
                     user_idea=user_context_safe,
                 )
+                # Lighting / lens / grade / composition starting points from visual_systems
+                reference_block = VisualReference.build_reference_block(category)
+                if reference_block:
+                    extra_context = f"{extra_context}\n{reference_block}"
 
-            ai_result = self._groq_bot.generate_universal_prompts(
+            ai_result = await asyncio.to_thread(self._groq_bot.generate_universal_prompts, 
                 category=category,
                 user_idea=user_context_safe,
                 niche=niche,
@@ -298,28 +306,24 @@ class ContentGeneratorAgent(BaseAgent):
         Returns:
             Context string with increased budget (1500 chars) and warning if truncation occurs
         """
-        if exclude_keys is None:
-            exclude_keys = []
-
-        try:
-            base = {k: v for k, v in data.items() if k not in ("action", "chat_id", "components", "clarified") + tuple(exclude_keys)}
-            clar = data.get("clarification_answer")
-            if clar:
-                if isinstance(clar, dict):
-                    base.update(clar)
-                else:
-                    base["clarification"] = str(clar)
-            # Convert to a compact string with larger budget (1500 chars, not 500)
-            items = [f"{k}={v}" for k, v in base.items() if v is not None]
-            context_str = "; ".join(items)
-            # Log warning if truncation occurs (should be rare with 1500-char budget)
-            if len(context_str) > 1500:
-                self.logger.warning(f"User context truncated from {len(context_str)} to 1500 chars")
-                context_str = context_str[:1500]
-            return context_str
-        except Exception as e:
-            self.logger.error(f"Error building user context: {e}")
-            return str({k: v for k, v in data.items() if k not in ("action", "chat_id", "components")})
+        # Only the creator's own words go to the model (never internal keys such as
+        # command=, level=, chat_id=). exclude_keys is kept for signature compatibility.
+        text = ""
+        # Sanitized text from the orchestrator first, then the raw sources.
+        for key in ("user_context", "custom_prompt", "user_input", "text"):
+            val = data.get(key)
+            if isinstance(val, str) and val.strip():
+                text = val.strip()
+                break
+        clar = data.get("clarification_answer")
+        if clar:
+            clar_text = "; ".join(f"{k}: {v}" for k, v in clar.items()) if isinstance(clar, dict) else str(clar).strip()
+            if clar_text and clar_text not in text:
+                text = f"{text}\nClarification: {clar_text}".strip()
+        if len(text) > 1500:
+            self.logger.warning(f"User context truncated from {len(text)} to 1500 chars")
+            text = text[:1500]
+        return text
     
     async def _list_all_categories(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """List all available prompt categories for AI generation."""

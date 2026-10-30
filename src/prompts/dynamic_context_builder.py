@@ -25,159 +25,113 @@ class DynamicContextBuilder:
     # Category-specific structural guidance (NOT creative presets, NOT topic-specific)
     # These describe what good output looks like for each category
     CATEGORY_GUIDANCE = {
-        "general_photography": """
-🎯 STRUCTURAL GUIDANCE: General Photography
-- Focus: Authentic, expressive human photography
-- Quality: Photorealistic, professional-grade
-- Emphasis: Lighting, composition, natural beauty
-- Avoid: Stock photo clichés, artificial poses
-        """,
+        "general_photography": """Category guidance: general photography
+- Goal: a photorealistic image that looks like it was taken by a skilled photographer. The subject can be people, places, objects, food, or nature, whatever the idea describes.
+- Composition: one clear subject, deliberate framing (rule of thirds, leading lines, or symmetry).
+- Lighting: motivated, natural-looking light that suits the scene and time of day.
+- Avoid: stock-photo clichés and stiff, posed looks.""",
 
-        "women_professional": """
-🎯 STRUCTURAL GUIDANCE: Professional Portraits (Women)
-- Focus: Professional confidence, competence, approachability
-- Composition: Head/shoulders or full-body in work context
-- Lighting: Even, flattering, emphasizes features not shadows
-- Background: Minimal distraction, context-appropriate (office, etc.)
-- Avoid: Overly glamorous styling, inappropriate office attire
-        """,
+        "women_professional": """Category guidance: professional portrait
+- Goal: a portrait that reads as competent, confident, and approachable, suitable for LinkedIn, a company website, or a speaker profile.
+- Composition: head-and-shoulders or waist-up, eyes in the upper third, subject in a relevant work setting or a clean backdrop.
+- Lighting: soft, even key light with gentle fill; flattering and natural.
+- Styling: polished business or business-casual attire that fits the subject's field.
+- Avoid: distracting backgrounds, heavy retouching, harsh shadows.""",
 
-        "men_professional": """
-🎯 STRUCTURAL GUIDANCE: Professional Portraits (Men)
-- Focus: Professional authority, trustworthiness, competence
-- Composition: Head/shoulders or full-body in work context
-- Lighting: Even, mature, emphasizes strength and reliability
-- Background: Minimal distraction, context-appropriate
-- Avoid: Casual styling, unprofessional attire, overly trendy
-        """,
+        "men_professional": """Category guidance: professional portrait
+- Goal: a portrait that reads as competent, confident, and approachable, suitable for LinkedIn, a company website, or a speaker profile.
+- Composition: head-and-shoulders or waist-up, eyes in the upper third, subject in a relevant work setting or a clean backdrop.
+- Lighting: soft, even key light with gentle fill; flattering and natural.
+- Styling: polished business or business-casual attire that fits the subject's field.
+- Avoid: distracting backgrounds, heavy retouching, harsh shadows.""",
 
-        "couples_general": """
-🎯 STRUCTURAL GUIDANCE: Couple Photography
-- Focus: Genuine connection, emotion, chemistry between subjects
-- Composition: Both subjects equally visible and engaged
-- Lighting: Flattering to both, creates intimacy not drama
-- Background: Complements the couple, doesn't compete
-- Avoid: One person dominating frame, awkward body language
-        """,
+        "couples_general": """Category guidance: couple photography
+- Goal: genuine connection and emotion between two people.
+- Composition: both people clearly visible and engaged with each other or the camera; neither dominates the frame.
+- Lighting: flattering for both faces; warm and intimate rather than dramatic.
+- Background: complements the couple without competing for attention.
+- Avoid: awkward body language, one person cut off or out of focus.""",
 
-        "design_posters": """
-🎯 STRUCTURAL GUIDANCE: Poster Design
-- Focus: Bold, attention-grabbing visual hierarchy
-- Composition: Strong focal point, clear information flow
-- Typography: Readable at distance, complements imagery
-- Color: High contrast, vibrant if appropriate to topic
-- Avoid: Cluttered layouts, illegible text, competing elements
-        """,
+        "design_posters": """Category guidance: poster design
+- Goal: a bold poster with a clear visual hierarchy: headline, key image, supporting details.
+- Composition: one strong focal point and a clear reading order; space reserved for the headline.
+- Typography: legible from a distance; describe font style (for example bold condensed sans-serif).
+- Color: high contrast between text and background.
+- Avoid: cluttered layouts, illegible or misspelled text, competing focal points.""",
 
-        "design_gifts": """
-🎯 STRUCTURAL GUIDANCE: Gift/Merchandise Design
-- Focus: Print-ready design for merchandise (apparel, mugs, etc.)
-- Composition: Balanced for product wrap (consider dimensions)
-- Colors: Vibrant, durable under printing process
-- Resolution: High DPI suitable for merchandise production
-- Avoid: Complex details that don't print well, thin lines
-        """,
+        "design_gifts": """Category guidance: gift and merchandise design
+- Goal: an artwork that prints well on the named product (t-shirt, mug, pillow, and so on).
+- Composition: centered or wrap-friendly as the product requires; artwork on a plain or transparent background, not a photo of the product, unless the idea asks for a mockup.
+- Colors: a limited, saturated palette that survives printing.
+- Detail: bold shapes and lines; text large enough to read on the product.
+- Avoid: hairline details, tiny text, photographic gradients that print poorly.""",
 
-        "print_design": """
-🎯 STRUCTURAL GUIDANCE: Print Design Collateral
-- Focus: Professional, print-optimized layout
-- Composition: Balanced, respects margins and bleed areas
-- Typography: Print-safe fonts, high contrast for readability
-- Colors: CMYK-compatible, print-optimized palette
-- Avoid: Screen-only design, thin lines, insufficient contrast
-        """,
+        "print_design": """Category guidance: print collateral (flyers, brochures, cards)
+- Goal: a print-ready layout with clear hierarchy.
+- Composition: balanced grid with safe margins and room for bleed.
+- Typography: readable body text sizes, high contrast.
+- Colors: a palette that reproduces well in CMYK printing.
+- Avoid: screen-only effects such as neon glow, thin lines, low-contrast text.""",
 
-        "ui_ux_design": """
-🎯 STRUCTURAL GUIDANCE: UI/UX Design
-- Focus: Clean interface, intuitive user experience, modern aesthetic
-- Composition: Information hierarchy, logical component grouping
-- Style: Contemporary, accessibility-conscious, device-appropriate
-- Detail: Buttons, icons, spacing, states all visible and polished
-- Avoid: Cluttered interfaces, poor contrast, unclear interactions
-        """,
+        "ui_ux_design": """Category guidance: UI/UX showcase
+- Goal: a clean, modern interface mockup that shows a believable product screen.
+- Composition: clear information hierarchy, consistent spacing, logically grouped components.
+- Detail: readable labels, recognisable buttons and icons, realistic content rather than lorem ipsum.
+- Presentation: flat screen view or device mockup, as the idea suggests.
+- Avoid: cluttered screens, low contrast, unreadable text.""",
 
-        "brand_identity": """
-🎯 STRUCTURAL GUIDANCE: Brand Identity / Logo Branding
-- Focus: Memorable, scalable, works in single-color
-- Composition: Negative space, balanced proportions
-- Concept: Timeless, distinct, legally defensible (no copycat)
-- Detail: Legible at thumbnail size, versatile across mediums
-- Avoid: Trendy designs, overly complex, photorealistic elements
-        """,
+        "brand_identity": """Category guidance: brand identity and logo branding
+- Goal: a memorable, scalable mark that works in one color.
+- Composition: balanced proportions, purposeful negative space, presented on a plain background.
+- Concept: a simple, distinctive idea tied to the brand; not a copy of a well-known logo.
+- Detail: legible at small sizes.
+- Avoid: photorealistic elements, gradients that break in one color, excessive detail.""",
 
-        "illustration_art": """
-🎯 STRUCTURAL GUIDANCE: Digital Illustration
-- Focus: Artistic expression, unique style, emotional impact
-- Composition: Deliberate visual flow, focal point hierarchy
-- Style: Consistent illustrative approach (painterly, graphic, mixed)
-- Mood: Cohesive emotional tone throughout composition
-- Avoid: Photorealistic (for illustration category), lack of style
-        """,
+        "illustration_art": """Category guidance: digital illustration
+- Goal: an illustration with a distinctive, consistent style and a clear emotional tone.
+- Composition: deliberate visual flow toward one focal point.
+- Style: name the technique (for example flat vector, gouache, ink and watercolor, cel-shaded).
+- Avoid: photorealism, mixed inconsistent styles.""",
 
-        "animation_motion": """
-🎯 STRUCTURAL GUIDANCE: Animation / Motion Graphics Concept
-- Focus: Dynamic movement, visual rhythm, clear action
-- Composition: Anticipates motion, suggests velocity/impact
-- Style: Consistent animation style (2D, 3D, mixed)
-- Keyframes: Key poses/frames visible, progression clear
-- Avoid: Static poses, unclear motion direction
-        """,
+        "animation_motion": """Category guidance: animation and motion concept art
+- Goal: a single frame that implies movement and energy.
+- Composition: dynamic angles, motion lines or blur, a pose caught mid-action.
+- Style: name the animation style (for example 2D anime, 3D Pixar-like, motion-graphics flat).
+- Avoid: static, stiff poses and unclear direction of motion.""",
 
-        "photography_styles": """
-🎯 STRUCTURAL GUIDANCE: Fine Art / Style-Focused Photography
-- Focus: Artistic vision, distinctive visual style
-- Composition: Creative use of light, shadow, geometry
-- Style: Signature aesthetic (vintage, surreal, minimalist, etc.)
-- Mood: Strong emotional or conceptual underpinning
-- Avoid: Conventional photography, generic subject matter
-        """,
+        "photography_styles": """Category guidance: fine-art and style-led photography
+- Goal: a photograph with a distinctive artistic style and a clear concept.
+- Composition: creative use of light, shadow, geometry, or color.
+- Style: name the look (for example film noir, double exposure, 1970s film, minimalist).
+- Avoid: generic, conventional snapshots.""",
 
-        "product_3d": """
-🎯 STRUCTURAL GUIDANCE: 3D Product Render
-- Focus: Professional product showcase, material realism
-- Lighting: Studio lighting rig, emphasizes materials and form
-- Angle: Hero angle (3/4 view typical), sometimes turntable
-- Materials: Photorealistic PBR properties, surface details
-- Background: Clean, non-distracting, highlights product
-- Avoid: Blurry details, unrealistic material behavior
-        """,
+        "product_3d": """Category guidance: 3D product render
+- Goal: a professional product hero shot with realistic materials.
+- Lighting: studio lighting setup that shows form and material (for example three-point softbox with rim light).
+- Angle: hero three-quarter view unless the idea asks for another.
+- Materials: describe physically based surfaces (brushed aluminum, matte plastic, frosted glass).
+- Background: clean seamless backdrop or a simple styled surface.
+- Avoid: blurry details, unrealistic reflections, clutter.""",
 
-        "logo_create": """
-🎯 STRUCTURAL GUIDANCE: Logo Design
-- Focus: Memorable, scalable, works in single-color and color
-- Concept: Brand essence distilled to simple, distinctive form
-- Spacing: Proper negative space, balanced proportions
-- Versatility: Functions at small sizes, across all mediums
-- Avoid: Photorealistic elements, trendy styles, complexity
-        """,
+        "logo_create": """Category guidance: logo design
+- Goal: a simple, distinctive logo that works in full color and in one color, from favicon size to billboard.
+- Composition: the logo alone, centered on a plain or transparent background, with clear space around it.
+- Concept: the brand's essence reduced to a simple form; follow every value in <reference> exactly, including brand name spelling, colors, and logo type.
+- Avoid: photorealistic elements, fine detail that disappears at small sizes, mockups unless requested.""",
 
-        # Text-content categories
-        "reel_scripts": """
-🎯 STRUCTURAL GUIDANCE: Instagram Reel Scripts
-- Focus: Hook within first 0.5 seconds, maintain engagement
-- Structure: Opening hook → Body content → Clear CTA
-- Length: 15-60 seconds typical (use pacing cues if available)
-- Tone: Platform-appropriate, energetic, authentic
-- Elements: Visual cues, music timing, text overlays as needed
-        """,
+        "reel_scripts": """Category guidance: Instagram Reel scripts
+- Hook in the first 1 to 2 seconds, then the value, then a clear CTA.
+- Length 15 to 45 seconds, written as timed beats with on-screen text cues.
+- Tone: energetic, natural, and spoken, not written-essay style.""",
 
-        "captions_templates": """
-🎯 STRUCTURAL GUIDANCE: Instagram Caption Copy
-- Focus: Compelling hook that stops the scroll
-- Structure: Opening hook → Story/value → CTA (save/comment/DM)
-- Length: 125-300 characters for mobile-first reading
-- Tone: Brand voice, conversational, authentic
-- Elements: Emojis for visual interest, line breaks for scannability
-        """,
+        "captions_templates": """Category guidance: Instagram captions
+- Hook in the first line, then value or story, then a CTA (save, comment, share, or DM).
+- 125 to 300 characters, line breaks for scannability, up to 3 emojis.
+- Tone: conversational and true to the creator's niche.""",
 
-        "email_subjects": """
-🎯 STRUCTURAL GUIDANCE: Email Subject Lines
-- Focus: High open rate, curiosity + clarity balance
-- Length: 50 characters ideal (preview line cutoff consideration)
-- Tone: Urgent/curious/benefit-driven without clickbait
-- Personalization: Optional but effective (name, segment cues)
-- Avoid: ALL CAPS, spam trigger words, misleading claims
-        """,
+        "email_subjects": """Category guidance: email subject lines
+- 50 characters or fewer, clear benefit or honest curiosity.
+- No all-caps words, no spam-trigger phrases, no misleading claims.""",
     }
 
     # Technical guardrails from visual_systems (deterministic, never creative presets)
@@ -246,54 +200,33 @@ class DynamicContextBuilder:
         niche: str = "",
         user_idea: str = "",
     ) -> str:
-        """Build dynamic context guidance for a category.
-
-        Args:
-            category: Fixed category name (from CATEGORY_META)
-            niche: Free-text user-provided niche/topic (e.g., "underwater welding", "luxury travel")
-            user_idea: Additional free-text user requirement/idea
-
-        Returns:
-            Formatted guidance string to inject into LLM prompt.
-            Never a preset; always composed fresh per request incorporating the user's actual niche.
-        """
+        """Build per-request guidance for a category (inserted into <constraints>)."""
         try:
-            # Get base structural guidance for this category
             base_guidance = DynamicContextBuilder.CATEGORY_GUIDANCE.get(
                 category,
-                f"Generate high-quality content for the '{category}' category."
+                f"Category guidance: {category.replace('_', ' ')}\n- Goal: high-quality output that matches the creator's idea.",
             )
 
-            # Build niche-specific instruction (the dynamic part)
             niche_instruction = ""
             if niche:
-                niche_instruction = f"""
-NICHE/TOPIC SPECIFICATION (Apply exactly as stated, do not substitute):
-- Niche: {niche.strip()}
-"""
+                niche_instruction = (
+                    f"\n- Niche: {niche.strip()}. Make the subject, setting, and details clearly "
+                    f"belong to this niche; do not substitute a different niche."
+                )
 
-            # Add user's custom idea if provided
             custom_instruction = ""
             if user_idea:
-                custom_instruction = f"- User's specific requirement: {user_idea.strip()}\n"
+                # The idea itself is already in <user_idea>; point to it rather than copying it here.
+                custom_instruction = "\n- The creator's idea in <user_idea> defines the subject. Apply this guidance to that idea."
 
-            # Add technical guardrails (deterministic per category)
             guardrails = DynamicContextBuilder.TECHNICAL_GUARDRAILS.get(category, {})
             guardrail_text = ""
             if guardrails.get("negative_keywords"):
                 negative_list = ", ".join(guardrails["negative_keywords"])
-                guardrail_text += f"""
-QUALITY GUARDRAILS:
-- Avoid: {negative_list}
-"""
+                guardrail_text = f"\n- Also avoid: {negative_list}. Include the relevant ones in negative_prompt."
 
-            # Compose final guidance section
-            guidance_section = f"""{base_guidance}{niche_instruction}{custom_instruction}{guardrail_text}
-"""
-
-            return guidance_section
+            return f"{base_guidance}{niche_instruction}{custom_instruction}{guardrail_text}\n"
 
         except Exception as e:
             logger.error(f"Error building category guidance for {category}: {e}")
-            # Fallback: minimal but safe guidance
-            return f"Generate content for the '{category}' category.\n"
+            return f"Category guidance: {category.replace('_', ' ')}\n"

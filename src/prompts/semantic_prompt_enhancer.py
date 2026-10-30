@@ -198,63 +198,28 @@ class SemanticPromptEnhancer:
         groq_bot=None,
         strategy: Optional[EnhancementStrategy] = None,
     ) -> Dict[str, Any]:
-        """Generate an enhanced version of the prompt using AI.
+        """Generate a template-based enhanced version of the prompt.
+
+        The former AI branch called groq_bot.enhance_prompt_semantic(), which never existed, so it
+        always fell back to the template. It was removed; groq_bot is accepted for compatibility.
 
         Args:
             original: Original prompt text
-            groq_bot: InstagramGrowthBot instance (optional, for AI enhancement)
+            groq_bot: Ignored (kept for signature compatibility)
             strategy: Enhancement strategy to use
 
         Returns:
             Enhanced prompt with quality metrics
         """
-        # Get suggestions first
         suggestions = self.get_enhancement_suggestions(original, strategy)
-
-        # If no Groq bot, provide template-based suggestions
-        if not groq_bot:
-            enhanced = self._apply_template_enhancement(original, suggestions)
-            return {
-                "original_prompt": original,
-                "enhanced_prompt": enhanced,
-                "strategy": suggestions["strategy"],
-                "improvement_type": "template_based",
-                "suggestions": suggestions,
-                "estimated_quality_gain": 15,  # Template gains ~15% quality
-            }
-
-        # Use AI to generate semantic enhancement
-        enhancement_prompt = self._build_enhancement_prompt(original, suggestions)
-
-        try:
-            ai_enhancement = groq_bot.enhance_prompt_semantic(
-                original=original,
-                analysis=suggestions["analysis"],
-                strategy=suggestions["strategy"],
-            )
-
-            if ai_enhancement and "enhanced_prompt" in ai_enhancement:
-                return {
-                    "original_prompt": original,
-                    "enhanced_prompt": ai_enhancement["enhanced_prompt"],
-                    "strategy": suggestions["strategy"],
-                    "improvement_type": "ai_semantic",
-                    "reasoning": ai_enhancement.get("reasoning", ""),
-                    "suggestions": suggestions,
-                    "estimated_quality_gain": ai_enhancement.get("quality_improvement", 25),
-                }
-        except Exception as e:
-            logger.warning(f"AI semantic enhancement failed: {e}, falling back to template")
-
-        # Fallback to template if AI fails
         enhanced = self._apply_template_enhancement(original, suggestions)
         return {
             "original_prompt": original,
             "enhanced_prompt": enhanced,
             "strategy": suggestions["strategy"],
-            "improvement_type": "template_fallback",
+            "improvement_type": "template_based",
             "suggestions": suggestions,
-            "estimated_quality_gain": 15,
+            "estimated_quality_gain": 15,  # Template gains ~15% quality
         }
 
     def _apply_template_enhancement(
@@ -277,30 +242,6 @@ class SemanticPromptEnhancer:
             return f"{enhancement}. {prompt}"
         else:
             return f"{prompt}. {enhancement}"
-
-    def _build_enhancement_prompt(
-        self,
-        original: str,
-        suggestions: Dict[str, Any],
-    ) -> str:
-        """Build prompt for Groq to semantically enhance the original."""
-        analysis = suggestions["analysis"]
-        missing = ", ".join(analysis["missing_components"][:3])
-        strategy = suggestions["strategy"]
-
-        return f"""You are a professional prompt engineer specializing in image generation.
-
-Original Prompt: "{original}"
-
-Analysis:
-- Component Density: {analysis['component_density']:.0%} ({len([c for c in analysis['components_found'].values() if c])}/8)
-- Missing Components: {missing}
-- Recommended Enhancement Strategy: {strategy}
-
-Task: Rewrite the prompt to be more compelling and complete using a {strategy} approach.
-Focus on: adding missing components naturally, enhancing descriptive language, ensuring professional quality.
-
-Return a single improved prompt that incorporates the {strategy} strategy while maintaining the original intent."""
 
     def compare_prompts(
         self,

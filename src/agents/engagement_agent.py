@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict, Any, List, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from datetime import datetime
@@ -50,7 +51,7 @@ class EngagementAgent(BaseAgent):
         content_mix = data.get("content_mix")
         if self._groq_bot:
             try:
-                result = self._groq_bot.engagement_strategy(
+                result = await asyncio.to_thread(self._groq_bot.engagement_strategy, 
                     account_size=account_size,
                     niche=niche,
                     follower_count=follower_count,
@@ -67,7 +68,7 @@ class EngagementAgent(BaseAgent):
         """Get engagement strategies — AI-powered when Groq is available."""
         if self._groq_bot:
             try:
-                result = self._groq_bot.get_engagement_action(
+                result = await asyncio.to_thread(self._groq_bot.get_engagement_action, 
                     action="strategies",
                     niche=data.get("niche", ""),
                     follower_count=data.get("follower_count"),
@@ -88,7 +89,7 @@ class EngagementAgent(BaseAgent):
         """Get growth tips — AI-powered when Groq is available."""
         if self._groq_bot:
             try:
-                result = self._groq_bot.get_engagement_action(
+                result = await asyncio.to_thread(self._groq_bot.get_engagement_action, 
                     action="growth_tips",
                     niche=data.get("niche", ""),
                     follower_count=data.get("follower_count"),
@@ -109,7 +110,7 @@ class EngagementAgent(BaseAgent):
         """Get hashtag strategy — AI-powered when Groq is available."""
         if self._groq_bot:
             try:
-                result = self._groq_bot.get_engagement_action(
+                result = await asyncio.to_thread(self._groq_bot.get_engagement_action, 
                     action="hashtag_strategy",
                     niche=data.get("niche", ""),
                     follower_count=data.get("follower_count"),
@@ -130,7 +131,7 @@ class EngagementAgent(BaseAgent):
         """Get optimal posting schedule — AI-powered when Groq is available."""
         if self._groq_bot:
             try:
-                result = self._groq_bot.get_engagement_action(
+                result = await asyncio.to_thread(self._groq_bot.get_engagement_action, 
                     action="posting_schedule",
                     niche=data.get("niche", ""),
                     follower_count=data.get("follower_count"),
@@ -151,7 +152,7 @@ class EngagementAgent(BaseAgent):
         """Get comment templates — AI-powered when Groq is available."""
         if self._groq_bot:
             try:
-                result = self._groq_bot.get_engagement_action(
+                result = await asyncio.to_thread(self._groq_bot.get_engagement_action, 
                     action="comment_templates",
                     niche=data.get("niche", ""),
                     follower_count=data.get("follower_count"),

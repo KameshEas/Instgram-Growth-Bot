@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict, Any, List, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from datetime import datetime, timedelta
@@ -192,7 +193,7 @@ class TrendsAgent(BaseAgent):
             # Step 2 — AI analysis from scraped data
             if self._groq_bot:
                 try:
-                    ai_result = self._groq_bot.analyze_trends(
+                    ai_result = await asyncio.to_thread(self._groq_bot.analyze_trends, 
                         niche=niche,
                         region=region,
                         scraped_trends=combined_scraped,
@@ -288,7 +289,7 @@ class TrendsAgent(BaseAgent):
             # AI classifies and categorises
             if self._groq_bot:
                 try:
-                    ai_result = self._groq_bot.analyze_trends(
+                    ai_result = await asyncio.to_thread(self._groq_bot.analyze_trends, 
                         niche=niche, region=region, scraped_trends=all_trends,
                     )
                     if isinstance(ai_result, dict) and ai_result.get("trending_hashtags"):
@@ -324,7 +325,7 @@ class TrendsAgent(BaseAgent):
 
             if self._groq_bot:
                 try:
-                    result = self._groq_bot.generate_content_ideas(
+                    result = await asyncio.to_thread(self._groq_bot.generate_content_ideas, 
                         trends=[trend] if trend else [],
                         niche=niche,
                         region=region,
@@ -356,7 +357,7 @@ class TrendsAgent(BaseAgent):
 
             if self._groq_bot:
                 try:
-                    result = self._groq_bot.forecast_viral_potential(
+                    result = await asyncio.to_thread(self._groq_bot.forecast_viral_potential, 
                         content_idea=content_idea,
                         niche=niche,
                         account_stage=account_stage,

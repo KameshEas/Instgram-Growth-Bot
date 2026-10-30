@@ -127,10 +127,16 @@ class ColorGrading:
         
         if grading_style and grading_style in ColorGrading.GRADING_PROFILES:
             profile = ColorGrading.GRADING_PROFILES[grading_style]
-            description_parts.append(
-                f"Shadow tones: {profile.get('shadows', '')}. "
-                f"Highlights: {profile.get('highlights', '')}"
-            )
+            if profile.get('shadows') or profile.get('highlights'):
+                description_parts.append(
+                    f"Shadow tones: {profile.get('shadows', '')}. "
+                    f"Highlights: {profile.get('highlights', '')}"
+                )
+            else:
+                # Most grading profiles describe themselves rather than shadow/highlight tones
+                description_parts.append(
+                    f"{profile.get('description', grading_style)}: {profile.get('characteristics', '')}"
+                )
         
         if saturation != "neutral" and saturation in ColorGrading.SATURATION_LEVELS:
             description_parts.append(ColorGrading.SATURATION_LEVELS[saturation])

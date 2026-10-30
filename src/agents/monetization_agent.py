@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict, Any, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from datetime import datetime
@@ -59,7 +60,7 @@ class MonetizationAgent(BaseAgent):
         
         if self._groq_bot:
             try:
-                result = self._groq_bot.monetization_ideas(
+                result = await asyncio.to_thread(self._groq_bot.monetization_ideas, 
                     niche=niche,
                     follower_count=follower_count,
                     engagement_rate=engagement_rate,
@@ -85,7 +86,7 @@ class MonetizationAgent(BaseAgent):
 
         if self._groq_bot:
             try:
-                result = self._groq_bot.project_monetization(
+                result = await asyncio.to_thread(self._groq_bot.project_monetization, 
                     niche=niche,
                     follower_count=follower_count,
                     engagement_rate=engagement_rate,
@@ -184,7 +185,7 @@ class MonetizationAgent(BaseAgent):
 
         if self._groq_bot:
             try:
-                result = self._groq_bot.project_monetization(
+                result = await asyncio.to_thread(self._groq_bot.project_monetization, 
                     niche=niche,
                     follower_count=follower_count,
                     region=region,
@@ -219,7 +220,7 @@ class MonetizationAgent(BaseAgent):
 
         if self._groq_bot:
             try:
-                result = self._groq_bot.project_monetization(
+                result = await asyncio.to_thread(self._groq_bot.project_monetization, 
                     niche=niche,
                     follower_count=follower_count,
                     engagement_rate=engagement_rate,

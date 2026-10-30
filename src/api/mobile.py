@@ -32,6 +32,14 @@ class JobStatusResponse(BaseModel):
 # Orchestrator will be set at app startup to allow using the real bot instance
 ORCHESTRATOR = None
 
+# Mobile task names -> orchestrator commands
+TASK_TO_COMMAND = {
+    "generate_professional_prompt": "/generate",
+    "generate": "/generate",
+    "caption": "/content",
+    "trends": "/trends",
+}
+
 def set_orchestrator(orchestrator: ContentOrchestratorAgent):
     global ORCHESTRATOR
     ORCHESTRATOR = orchestrator
@@ -40,8 +48,8 @@ async def _process_job(job_id: str):
     """Background job worker: execute orchestrator and update DB."""
     async with async_session() as session:
         # load job
-            job = await session.get(MobileJob, job_id)
-            if not job:
+        job = await session.get(MobileJob, job_id)
+        if not job:
             return
 
         job.started_at = datetime.utcnow()
@@ -57,9 +65,14 @@ async def _process_job(job_id: str):
             except Exception:
                 input_data = {"raw": job.params}
 
-            # Add a command field from task (if not already present)
+            # Map the app's task names to orchestrator slash commands (an unmapped task without a
+            # leading "/" used to fall through to /help, so mobile generation never ran)
             if input_data.get("command") is None:
-                input_data["command"] = job.task
+                task = job.task or ""
+                input_data["command"] = TASK_TO_COMMAND.get(task, task if task.startswith("/") else "/help")
+            if (input_data.get("command") == "/generate" and input_data.get("user_context")
+                    and not input_data.get("custom_prompt")):
+                input_data["custom_prompt"] = input_data["user_context"]
 
             # Ensure orchestrator is available
             if ORCHESTRATOR is None:

@@ -109,7 +109,7 @@ class ModelAdaptation:
         target_model: str,
         quality_tier: str = "professional",
     ) -> str:
-        \"\"\"
+        """
         Adapt unified prompt to target model syntax.
         
         Args:
@@ -119,7 +119,7 @@ class ModelAdaptation:
             
         Returns:
             Model-specific adapted prompt
-        \"\"\"
+        """
         
         if target_model not in ModelAdaptation.MODEL_PROFILES:
             return base_prompt
@@ -131,10 +131,10 @@ class ModelAdaptation:
         if quality_tier in ModelAdaptation.QUALITY_TIERS:
             tier_prefix = ModelAdaptation.QUALITY_TIERS[quality_tier].get(
                 target_model,
-                \"\"
+                ""
             )
             if tier_prefix:
-                adapted = f\"{tier_prefix}. {adapted}\"
+                adapted = f"{tier_prefix}. {adapted}"
         
         # Apply model-specific optimizations
         adapted = ModelAdaptation._apply_model_syntax(adapted, target_model)
@@ -143,12 +143,70 @@ class ModelAdaptation:
         adapted = ModelAdaptation._apply_preferences(adapted, target_model)
         
         # Truncate to optimal length
-        optimal_length = profile.get(\"optimal_length\", \"100 tokens\")
-        token_limit = int(optimal_length.split(\"-\")[1].split()[0])
+        optimal_length = profile.get("optimal_length", "100 tokens")
+        token_limit = int(optimal_length.split("-")[1].split()[0])
         
         if len(adapted.split()) > token_limit:
-            adapted = \" \".join(adapted.split()[:token_limit])
+            adapted = " ".join(adapted.split()[:token_limit])
         
         return adapted
     
-    @staticmethod\n    def _apply_model_syntax(prompt: str, model: str) -> str:\n        \"\"\"Apply model-specific syntax rules.\"\"\"\n        \n        if model == \"sdxl\" and \"(\" not in prompt:\n            # Add SDXL-style weighting\n            prompt = f\"(masterpiece:1.2), {prompt}\"\n        \n        elif model == \"midjourney\":\n            # Remove ultra HD references for Midjourney\n            prompt = prompt.replace(\"ultra high definition\", \"\")\n            prompt = prompt.replace(\"8k\", \"\")\n        \n        return prompt\n    \n    @staticmethod\n    def _apply_preferences(prompt: str, model: str) -> str:\n        \"\"\"Apply model preference/avoidance lists.\"\"\"\n        \n        profile = ModelAdaptation.MODEL_PROFILES.get(model, {})\n        \n        # Apply avoidances\n        for avoid in profile.get(\"avoid\", []):\n            prompt = prompt.replace(avoid, \"\")\n        \n        # Boost preferences (simple enhancement, not weight-based)\n        for prefer in profile.get(\"prefer\", []):\n            if prefer not in prompt:\n                # Just ensure it's present in beginning\n                pass\n        \n        return prompt\n    \n    @staticmethod\n    def get_model_parameters(model: str) -> Dict:\n        \"\"\"Get model-specific parameters for generation.\"\"\"\n        \n        return ModelAdaptation.MODEL_PROFILES.get(\n            model,\n            {\"description\": \"unknown model\"}\n        )\n    \n    @staticmethod\n    def recommend_model(context: str) -> str:\n        \"\"\"Recommend best model for context.\"\"\"\n        \n        recommendations = {\n            \"luxury_portrait\": \"midjourney\",\n            \"product\": \"flux\",\n            \"cinematic\": \"sdxl\",\n            \"editorial\": \"midjourney\",\n            \"technical\": \"flux\",\n        }\n        \n        for key, model in recommendations.items():\n            if key in context.lower():\n                return model\n        \n        return \"midjourney\"  # Safe default
+    @staticmethod
+    def _apply_model_syntax(prompt: str, model: str) -> str:
+        """Apply model-specific syntax rules."""
+        
+        if model == "sdxl" and "(" not in prompt:
+            # Add SDXL-style weighting
+            prompt = f"(masterpiece:1.2), {prompt}"
+        
+        elif model == "midjourney":
+            # Remove ultra HD references for Midjourney
+            prompt = prompt.replace("ultra high definition", "")
+            prompt = prompt.replace("8k", "")
+        
+        return prompt
+    
+    @staticmethod
+    def _apply_preferences(prompt: str, model: str) -> str:
+        """Apply model preference/avoidance lists."""
+        
+        profile = ModelAdaptation.MODEL_PROFILES.get(model, {})
+        
+        # Apply avoidances
+        for avoid in profile.get("avoid", []):
+            prompt = prompt.replace(avoid, "")
+        
+        # Boost preferences (simple enhancement, not weight-based)
+        for prefer in profile.get("prefer", []):
+            if prefer not in prompt:
+                # Just ensure it's present in beginning
+                pass
+        
+        return prompt
+    
+    @staticmethod
+    def get_model_parameters(model: str) -> Dict:
+        """Get model-specific parameters for generation."""
+        
+        return ModelAdaptation.MODEL_PROFILES.get(
+            model,
+            {"description": "unknown model"}
+        )
+    
+    @staticmethod
+    def recommend_model(context: str) -> str:
+        """Recommend best model for context."""
+        
+        recommendations = {
+            "luxury_portrait": "midjourney",
+            "product": "flux",
+            "cinematic": "sdxl",
+            "editorial": "midjourney",
+            "technical": "flux",
+        }
+        
+        for key, model in recommendations.items():
+            if key in context.lower():
+                return model
+        
+        return "midjourney"  # Safe default

@@ -342,52 +342,38 @@ class SceneStylingCohesion:
         blend_level: str = "50/50",
         jewelry_style: str = "fusion",
     ) -> str:
-        """Build a comprehensive styling section for image generation prompts.
-
-        Returns formatted markdown section with costume, hairstyle, and accessories guidance.
-        """
+        """Build the styling section for transformation prompts (inserted into <constraints>)."""
         styling = SceneStylingCohesion.get_cohesive_styling(
             location, mood, user_context, blend_level, jewelry_style
         )
 
-        section = f"""
-👗 COHESIVE STYLING & COSTUME COORDINATION:
-
-📋 Scene Analysis:
-Location: {styling['scene'].upper()}
-Formality Level: {styling['formal_level'].title()}
-Mood/Vibe: {mood}
-
-🎽 ATTIRE RECOMMENDATIONS (Choose from context):
+        section = f"""Styling guidance
+- Scene: {styling['scene']}. Formality: {styling['formal_level'].replace('_', ' ')}. Mood: {mood}.
+- Overall direction: {styling['styling_notes']}
 """
-        for i, attire in enumerate(styling['attire_options'], 1):
-            section += f"   {i}. {attire}\n"
 
-        section += f"""
-💇 HAIRSTYLE COORDINATION (Select one that complements attire):
-"""
-        for i, hair in enumerate(styling['hairstyle_options'], 1):
-            section += f"   {i}. {hair}\n"
+        if styling['attire_options']:
+            section += "- Attire ideas (pick one per variation, or a close equivalent):\n"
+            for attire in styling['attire_options']:
+                section += f"  - {attire}\n"
+        else:
+            section += (
+                f"- Attire: choose clothing that suits a {styling['scene']} setting at "
+                f"{styling['formal_level'].replace('_', ' ')} formality.\n"
+            )
 
-        section += f"""
-✨ ACCESSORIES & JEWELRY:
-Suggested: {', '.join(styling['suggested_accessories'])}
-Avoid: {', '.join(styling['avoid_accessories'])}
+        section += "- Hairstyle ideas (pick one that suits the attire):\n"
+        for hair in styling['hairstyle_options']:
+            section += f"  - {hair}\n"
 
-🎨 STYLING VIBE KEYWORDS:
-{', '.join(styling['vibe_keywords'])}
+        section += f"""- Accessories that fit: {', '.join(styling['suggested_accessories']) or 'minimal, scene-appropriate pieces'}
+- Accessories to leave out: {', '.join(styling['avoid_accessories']) or 'anything that clashes with the scene'}
+- Styling keywords: {', '.join(styling['vibe_keywords']) or mood}
 
-📝 OVERALL STYLING NOTES:
-{styling['styling_notes']}
-
-⚠️ CRITICAL STYLING REQUIREMENTS:
-✓ Attire, hairstyle, and accessories MUST coordinate as a cohesive unit
-✓ All styling choices MUST match the {styling['scene'].upper()} location context
-✓ Formality level of ALL elements MUST be {styling['formal_level']}
-✓ NO mismatched styles or contradictory fashion choices
-✓ Styling should enhance the {mood} mood naturally
-✓ GARMENT FIT: Every outfit MUST be realistically tailored/fitted to the subject's actual body type, size, and build exactly as shown in the reference photo — NOT draped on a generic, idealized, or different body shape
-✓ NO substituting a different/idealized body silhouette to "fit" the costume better — the costume must be described as fitting the real person's proportions (shoulders, waist, hips, height) as-is
+How to apply this:
+1. Adapt every suggestion to the person in the reference photo, including their gender presentation and age. Skip any suggestion that does not suit them (for example a bridal bun or flower crown for someone who would not wear one). For couples, style both people so their outfits coordinate.
+2. Keep attire, hair, and accessories consistent with each other and with the scene's formality.
+3. Describe clothing as fitted to the person's real body shape and proportions from the reference photo (shoulders, waist, hips, height). Do not change their body to suit the outfit.
 """
 
         return section

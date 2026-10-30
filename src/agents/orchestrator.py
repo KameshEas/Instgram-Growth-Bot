@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict, Any, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from src.agents.content_generator import ContentGeneratorAgent
@@ -13,6 +14,12 @@ from src.services.prompt_sanitizer import PromptSanitizer
 
 if TYPE_CHECKING:
     from src.main import InstagramGrowthBot
+
+# Parameters the intent classifier (P27) may set; everything else it returns is dropped.
+ALLOWED_INTENT_PARAMS = {
+    "category", "custom_prompt", "keyword", "topic", "style",
+    "niche", "account_size", "follower_count", "report_type",
+}
 
 
 class ContentOrchestratorAgent(BaseAgent):
@@ -70,7 +77,7 @@ class ContentOrchestratorAgent(BaseAgent):
                     "/stats", "/help",
                 ]
                 try:
-                    intent = self._groq_bot.classify_intent(
+                    intent = await asyncio.to_thread(self._groq_bot.classify_intent, 
                         user_message=user_message,
                         available_commands=available_commands,
                         chat_id=chat_id,
@@ -81,7 +88,14 @@ class ContentOrchestratorAgent(BaseAgent):
                         and float(intent.get("confidence", 0)) >= 0.5
                     ):
                         classified_cmd = intent.get("command", "")
-                        extracted = intent.get("extracted_params", {}) or {}
+                        if classified_cmd not in available_commands:
+                            classified_cmd = "/help"
+                        # Model output must not overwrite internal state (chat_id, clarified, ...)
+                        raw_params = intent.get("extracted_params") or {}
+                        extracted = {
+                            k: v for k, v in raw_params.items()
+                            if k in ALLOWED_INTENT_PARAMS and isinstance(v, (str, int, float))
+                        } if isinstance(raw_params, dict) else {}
                         self.logger.info(
                             f"[INTENT] Classified '{user_message[:40]}...' → {classified_cmd} "
                             f"(confidence: {intent.get('confidence', 0):.2f})"
@@ -134,11 +148,14 @@ class ContentOrchestratorAgent(BaseAgent):
                             question = "Could you provide a bit more detail for the request?"
                         result = {"status": "clarify", "question": question}
                     else:
+                        clean_input, warnings = PromptSanitizer.sanitize(user_input)
+                        if warnings:
+                            self.logger.warning(f"Prompt sanitization warnings: {warnings}")
                         result = await self.agents["design_enhancer"].execute({
                             **input_data,
                             "action": "enhance",
                             "category": category,
-                            "user_input": user_input,
+                            "user_input": clean_input or user_input,
                             "brand_context": {"niche": niche, "region": region},
                         })
                 elif category in design_categories and custom_prompt and custom_prompt.strip():
@@ -157,11 +174,14 @@ class ContentOrchestratorAgent(BaseAgent):
                         result = {"status": "clarify", "question": question}
                     else:
                         # Design brief from custom prompt
+                        clean_prompt, warnings = PromptSanitizer.sanitize(custom_prompt)
+                        if warnings:
+                            self.logger.warning(f"Prompt sanitization warnings: {warnings}")
                         result = await self.agents["design_enhancer"].execute({
                             **input_data,
                             "action": "enhance",
                             "category": category,
-                            "user_input": custom_prompt,
+                            "user_input": clean_prompt or custom_prompt,
                             "brand_context": {"niche": niche, "region": region},
                         })
                 elif custom_prompt and custom_prompt.strip() and self._groq_bot:
@@ -306,7 +326,7 @@ class ContentOrchestratorAgent(BaseAgent):
             # ── Caption / content generation (Groq direct — no agent covers it) ──
             elif command == "/content":
                 if self._groq_bot:
-                    result = self._groq_bot.generate_content(
+                    result = await asyncio.to_thread(self._groq_bot.generate_content, 
                         topic=input_data.get("topic", ""),
                         style=input_data.get("style", "engaging"),
                         niche=niche,

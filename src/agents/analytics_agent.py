@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict, Any, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from datetime import datetime, timedelta
@@ -31,6 +32,14 @@ class AnalyticsAgent(BaseAgent):
             self.logger.error(f"Analytics error: {str(e)}")
             return {"status": "error", "error": str(e)}
     
+    @staticmethod
+    def _wrap_report(result, report_type: str) -> Dict[str, Any]:
+        """Shape the LLM output the way telegram_bot.analytics_command expects."""
+        if isinstance(result, dict) and result and "error" not in result:
+            return {"status": "success", "report_type": report_type, "report": result}
+        error = result.get("error", "Empty report") if isinstance(result, dict) else str(result)
+        return {"status": "error", "report_type": report_type, "error": error}
+
     async def _daily_report(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Generate daily AI-estimated report"""
         niche = data.get("niche", "")
@@ -42,7 +51,7 @@ class AnalyticsAgent(BaseAgent):
 
         if self._groq_bot:
             try:
-                result = self._groq_bot.generate_analytics_report(
+                result = await asyncio.to_thread(self._groq_bot.generate_analytics_report, 
                     report_type="daily",
                     niche=niche,
                     follower_count=follower_count,
@@ -51,7 +60,8 @@ class AnalyticsAgent(BaseAgent):
                     region=region,
                     chat_id=chat_id,
                 )
-                await self.log_execution(data, result, "success")
+                result = self._wrap_report(result, "daily")
+                await self.log_execution(data, result, result["status"])
                 return result
             except Exception as e:
                 self.logger.warning(f"Groq daily report fallback: {e}")
@@ -74,7 +84,7 @@ class AnalyticsAgent(BaseAgent):
 
         if self._groq_bot:
             try:
-                result = self._groq_bot.generate_analytics_report(
+                result = await asyncio.to_thread(self._groq_bot.generate_analytics_report, 
                     report_type="weekly",
                     niche=niche,
                     follower_count=follower_count,
@@ -83,7 +93,8 @@ class AnalyticsAgent(BaseAgent):
                     region=region,
                     chat_id=chat_id,
                 )
-                await self.log_execution(data, result, "success")
+                result = self._wrap_report(result, "weekly")
+                await self.log_execution(data, result, result["status"])
                 return result
             except Exception as e:
                 self.logger.warning(f"Groq weekly report fallback: {e}")
@@ -106,7 +117,7 @@ class AnalyticsAgent(BaseAgent):
 
         if self._groq_bot:
             try:
-                result = self._groq_bot.generate_analytics_report(
+                result = await asyncio.to_thread(self._groq_bot.generate_analytics_report, 
                     report_type="monthly",
                     niche=niche,
                     follower_count=follower_count,
@@ -115,7 +126,8 @@ class AnalyticsAgent(BaseAgent):
                     region=region,
                     chat_id=chat_id,
                 )
-                await self.log_execution(data, result, "success")
+                result = self._wrap_report(result, "monthly")
+                await self.log_execution(data, result, result["status"])
                 return result
             except Exception as e:
                 self.logger.warning(f"Groq monthly report fallback: {e}")

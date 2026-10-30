@@ -1,5 +1,6 @@
 """Design Brief Enhancement Agent - Transforms user input into structured design briefs"""
 
+import asyncio
 from typing import Dict, Any, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 
@@ -62,13 +63,24 @@ class DesignPromptEnhancerAgent(BaseAgent):
                     "message": "AI bot not initialized. Design generation requires AI.",
                 }
 
+            # Same category guidance and visual-library reference the content generator uses
+            from src.prompts.dynamic_context_builder import DynamicContextBuilder
+            from src.prompts.visual_reference import VisualReference
+            extra_context = DynamicContextBuilder.build_category_guidance(
+                category=category, niche=niche, user_idea=user_input,
+            )
+            reference_block = VisualReference.build_reference_block(category)
+            if reference_block:
+                extra_context = f"{extra_context}\n{reference_block}"
+
             # Call universal prompt generator
-            ai_result = self._groq_bot.generate_universal_prompts(
+            ai_result = await asyncio.to_thread(self._groq_bot.generate_universal_prompts,
                 category=category,
                 user_idea=user_input,
                 niche=niche,
                 count=3,
                 chat_id=chat_id,
+                extra_context=extra_context,
             )
 
             if isinstance(ai_result, dict) and ai_result.get("status") == "success":
