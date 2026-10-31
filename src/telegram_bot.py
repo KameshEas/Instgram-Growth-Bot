@@ -30,6 +30,55 @@ os.makedirs("logs", exist_ok=True)
 os.makedirs("data", exist_ok=True)
 
 
+def html_escape(text) -> str:
+    """Escape text for Telegram HTML parse mode (only &, <, > need escaping)."""
+    import html as _html
+    return _html.escape(text if isinstance(text, str) else str(text), quote=False)
+
+
+def _plain_fallback(text: str) -> str:
+    """Strip Markdown/HTML markup so a message Telegram rejected can be re-sent as plain text."""
+    import re as _re
+    import html as _html
+    text = _re.sub(r"</?(b|i|u|s|code|pre)>", "", text)
+    text = _html.unescape(text)
+    text = _re.sub(r"(?<!\\)[*`]", "", text)          # unescaped bold/code markers
+    return _re.sub(r"\\([*_`\[])", r"\1", text)        # drop Markdown escapes
+
+
+def _install_parse_safety_net():
+    """If Telegram rejects formatting ("Can't parse entities"), re-send the same text as plain text.
+
+    Model-written text (prompts, captions, plans) can contain *, _, ` or [ that break Telegram's
+    legacy Markdown. Rather than crash the handler, every reply/edit retries once without
+    parse_mode. Installed once, at import.
+    """
+    from telegram import Message, CallbackQuery
+    from telegram.error import BadRequest
+
+    def wrap(original, text_arg_index):
+        async def safe(self, *args, **kwargs):
+            try:
+                return await original(self, *args, **kwargs)
+            except BadRequest as e:
+                if "parse entities" not in str(e).lower() or not kwargs.get("parse_mode"):
+                    raise
+                logger.warning(f"[TELEGRAM] Formatting rejected ({e}); re-sending as plain text")
+                args = list(args)
+                if len(args) > text_arg_index:
+                    args[text_arg_index] = _plain_fallback(args[text_arg_index])
+                elif "text" in kwargs:
+                    kwargs["text"] = _plain_fallback(kwargs["text"])
+                kwargs["parse_mode"] = None
+                return await original(self, *args, **kwargs)
+        safe._parse_safety_net = True
+        return safe
+
+    for cls, name in ((Message, "reply_text"), (Message, "edit_text"), (CallbackQuery, "edit_message_text")):
+        if not getattr(getattr(cls, name), "_parse_safety_net", False):
+            setattr(cls, name, wrap(getattr(cls, name), 0))
+
+
 def escape_md(text: str) -> str:
     """Escape special characters for Telegram legacy Markdown v1 (but NOT backticks - they're for code blocks)."""
     # Handle non-string inputs gracefully
@@ -66,6 +115,7 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger(__name__)
+_install_parse_safety_net()
 
 # Ensure stdout/stderr use UTF-8 to avoid UnicodeEncodeError on Windows consoles
 try:
@@ -1205,54 +1255,62 @@ class TelegramBotHandler:
             meta = result.get("meta", {})
             cat_emoji = meta.get("emoji", "🎯")
 
-            header = f"{cat_emoji} *{cat_display}*\n\n"
-            header += f"✨ *{len(variations)} Variations*\n"
+            # HTML parse mode: model text only needs &, <, > escaped, so *, _, ` and [ in
+            # prompts can no longer break the message (legacy Markdown failed on them).
+            h = html_escape
+            header = f"{cat_emoji} <b>{h(cat_display)}</b>\n\n"
+            header += f"✨ <b>{len(variations)} Variations</b>\n"
             header += "─────────────────────────────────────\n\n"
 
-            await msg_obj.reply_text(header, parse_mode="Markdown")
+            await msg_obj.reply_text(header, parse_mode="HTML")
 
             # Determine if this is text-content or image-generation category
             from src.prompts.templates import TEXT_CONTENT_CATEGORIES
             is_text_content = category in TEXT_CONTENT_CATEGORIES
 
+            def clip(value, limit):
+                text = value if isinstance(value, str) else str(value)
+                return text if len(text) <= limit else text[:limit].rstrip() + "…"
+
             # Send each variation with action buttons
             for idx, var in enumerate(variations, 1):
-                msg = f"*✨ Variation {idx}*\n"
+                msg = f"<b>✨ Variation {idx}</b>\n"
                 msg += "─────────────────────────────────────\n\n"
 
                 if var.get("title"):
-                    msg += f"*{escape_md(var['title'])}*\n\n"
+                    msg += f"<b>{h(var['title'])}</b>\n\n"
 
                 if var.get("type"):
-                    msg += f"_Type: {escape_md(var['type'])}_\n\n"
+                    msg += f"<i>Type: {h(var['type'])}</i>\n\n"
                 elif var.get("style"):
-                    msg += f"_Style: {escape_md(var['style'])}_\n\n"
+                    msg += f"<i>Style: {h(var['style'])}</i>\n\n"
 
                 # Text-content fields
                 if is_text_content:
                     if var.get("content"):
-                        msg += f"*Content:*\n`{escape_md(var['content'][:500])}`\n\n"
+                        msg += f"<b>Content:</b>\n<code>{h(clip(var['content'], 1500))}</code>\n\n"
                     if var.get("hook"):
-                        msg += f"*Hook:* `{escape_md(var['hook'][:200])}`\n\n"
+                        msg += f"<b>Hook:</b> <code>{h(clip(var['hook'], 300))}</code>\n\n"
                     if var.get("cta"):
-                        msg += f"*CTA:* `{escape_md(var['cta'][:200])}`\n\n"
+                        msg += f"<b>CTA:</b> <code>{h(clip(var['cta'], 300))}</code>\n\n"
                     if var.get("tone"):
-                        msg += f"*Tone:* `{var['tone']}`\n\n"
-                # Image-generation fields
+                        msg += f"<b>Tone:</b> <code>{h(var['tone'])}</code>\n\n"
+                # Image-generation fields (full prompt: users copy it into image tools)
                 else:
                     if var.get("prompt"):
-                        msg += f"*Prompt:*\n`{escape_md(var['prompt'][:500])}`\n\n"
+                        msg += f"<b>Prompt:</b>\n<code>{h(clip(var['prompt'], 2500))}</code>\n\n"
                     if var.get("negative_prompt"):
-                        msg += f"*Negative:* `{escape_md(var['negative_prompt'][:200])}`\n\n"
+                        msg += f"<b>Negative:</b> <code>{h(clip(var['negative_prompt'], 600))}</code>\n\n"
                     if var.get("aspect_ratio"):
-                        msg += f"*Aspect Ratio:* `{var['aspect_ratio']}`\n\n"
+                        msg += f"<b>Aspect Ratio:</b> <code>{h(var['aspect_ratio'])}</code>\n\n"
 
                 if var.get("keywords"):
-                    keywords_str = ", ".join(var["keywords"][:8])
-                    msg += f"*Keywords:* `{keywords_str}`\n"
+                    keywords = var["keywords"] if isinstance(var["keywords"], list) else [var["keywords"]]
+                    msg += f"<b>Keywords:</b> <code>{h(', '.join(map(str, keywords[:8])))}</code>\n"
 
-                for chunk in self._send_long(msg):
-                    await msg_obj.reply_text(chunk, parse_mode="Markdown")
+                # One variation stays well under Telegram's 4,096-character limit, so it is sent
+                # whole (splitting could cut an HTML tag in half).
+                await msg_obj.reply_text(msg[:4096], parse_mode="HTML")
 
                 # Add action buttons for each prompt
                 # Store prompt data in context for later retrieval (Phase 2)
@@ -1301,7 +1359,7 @@ class TelegramBotHandler:
 
             # Final summary with next steps
             summary = f"✅ Generated {len(variations)} prompt variations!\n\n"
-            summary += "*Next Steps:*\n"
+            summary += "<b>Next Steps:</b>\n"
             summary += "📋 Copy any prompt and paste into DALL-E 3, Midjourney, or Flux\n"
             summary += "💾 Use [💾 Save] button to save favorites\n"
             summary += "🔄 Use /generate for another category\n"
@@ -1316,7 +1374,7 @@ class TelegramBotHandler:
 
             await msg_obj.reply_text(
                 summary,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=summary_buttons
             )
 
