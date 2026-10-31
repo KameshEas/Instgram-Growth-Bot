@@ -410,7 +410,8 @@ class TestL7_VersionPinning:
                     logger.warning(f"  ⚠ Unpinned: {line}")
         
         # Check that critical packages are pinned
-        critical_packages = ["groq", "pydantic", "langchain"]
+        # langchain was removed from requirements (unused; langchain-groq blocked groq>=1)
+        critical_packages = ["groq", "pydantic"]
         for package in critical_packages:
             found = False
             for line in lines:

@@ -6,10 +6,10 @@ aiohttp==3.9.1
 
 # LLM & AI (Groq)
 # L7 FIX: Pin versions instead of using >= ranges to ensure reproducible builds
-langchain==0.1.14
-langchain-community==0.0.30
-langchain-groq==0.1.2
-groq==0.4.1
+# groq 1.2.0 is the version the bot is tested with (0.4.1 predates reasoning models like
+# openai/gpt-oss-20b). LangChain removed: nothing imports it, and langchain-groq 0.1.2
+# requires groq<1.
+groq==1.2.0
 
 # Data & Validation
 pydantic==2.7

@@ -359,7 +359,9 @@ def _model_kwargs(model: str, max_tokens: int = None) -> dict:
     kwargs = {}
     if _is_reasoning_model(model):
         if model.startswith("openai/gpt-oss"):
-            kwargs["reasoning_effort"] = os.getenv("GROQ_REASONING_EFFORT", "low")
+            # Sent via extra_body so it works with every groq SDK version: older SDKs (e.g. the
+            # 0.4.1 pinned in requirements.txt) reject an unknown reasoning_effort keyword.
+            kwargs["extra_body"] = {"reasoning_effort": os.getenv("GROQ_REASONING_EFFORT", "low")}
         # max_tokens is the answer budget the caller wants; add room for reasoning. Kept modest:
         # the free tier allows 8,000 tokens/minute and a 3-variation generation uses ~550
         # completion tokens at low effort, so a larger cap only risks 429s.
@@ -446,9 +448,10 @@ class InstagramGrowthBot:
             "messages": messages,
             "temperature": temperature,
         }
-        if json_mode:
-            call_kwargs["response_format"] = {"type": "json_object"}
         call_kwargs.update(_model_kwargs(model, max_tokens))
+        if json_mode:
+            # extra_body for SDK-version independence (see _model_kwargs)
+            call_kwargs.setdefault("extra_body", {})["response_format"] = {"type": "json_object"}
 
         start = time.time()
         try:
@@ -464,7 +467,7 @@ class InstagramGrowthBot:
                 # JSON mode rejects outputs that are not valid JSON; retry once without it
                 # and let parse_json_response repair the text.
                 logger.warning(f"[JSON MODE] {command} failed in JSON mode, retrying without it")
-                call_kwargs.pop("response_format", None)
+                call_kwargs.get("extra_body", {}).pop("response_format", None)
                 response, success = self.retry_handler.call_with_retry(
                     self.client.chat.completions.create,
                     **call_kwargs
