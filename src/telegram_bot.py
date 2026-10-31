@@ -1802,7 +1802,7 @@ class TelegramBotHandler:
                     await msg_obj.reply_text("❌ Unexpected response format. Please try again.")
                 logger.info(f"[OK] /generate category={category}, design_brief={is_design_brief}")
             else:
-                err = result.get("error", "Unknown error") if isinstance(result, dict) else str(result)
+                err = (result.get("error") or result.get("details") or result.get("message") or "Unknown error") if isinstance(result, dict) else str(result)
 
                 # Build better error message with recovery options
                 error_msg = "❌ *Couldn't Generate Prompts*\n\n"
@@ -2310,7 +2310,7 @@ class TelegramBotHandler:
                     await update.message.reply_text(chunk, parse_mode="Markdown")
                 return
             else:
-                err = result.get("error", "Unknown") if isinstance(result, dict) else str(result)
+                err = (result.get("error") or result.get("details") or result.get("message") or "Unknown error") if isinstance(result, dict) else str(result)
                 await update.message.reply_text(f"❌ {err}")
                 return
 

@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     # LLM (Groq) (REQUIRED)
     GROQ_API_KEY: str
-    GROQ_MODEL: str = "llama-3.1-8b-instant"  # keep in sync with main.py's default
+    GROQ_MODEL: str = "openai/gpt-oss-20b"  # keep in sync with main.py's default
     GROQ_TEMPERATURE: float = 0.7
 
     # Environment

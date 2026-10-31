@@ -344,11 +344,38 @@ def parse_json_response(text: str) -> dict:
     # Return empty dict with error indicator
     return {"error": "Failed to parse JSON response (no valid JSON found after attempts at multiple extraction methods)"}
 
+def _is_reasoning_model(model: str) -> bool:
+    """Reasoning models think before answering, and the thinking counts toward max_tokens."""
+    return (model or "").startswith(("openai/gpt-oss", "qwen/qwen3"))
+
+
+def _model_kwargs(model: str, max_tokens: int = None) -> dict:
+    """Extra request parameters for the given model.
+
+    gpt-oss on Groq defaults to a 2,048-token completion cap and medium reasoning; on long JSON
+    outputs the reasoning used the whole cap and the answer came back truncated
+    (finish_reason=length). Low reasoning effort plus headroom fixes that.
+    """
+    kwargs = {}
+    if _is_reasoning_model(model):
+        if model.startswith("openai/gpt-oss"):
+            kwargs["reasoning_effort"] = os.getenv("GROQ_REASONING_EFFORT", "low")
+        # max_tokens is the answer budget the caller wants; add room for reasoning. Kept modest:
+        # the free tier allows 8,000 tokens/minute and a 3-variation generation uses ~550
+        # completion tokens at low effort, so a larger cap only risks 429s.
+        kwargs["max_tokens"] = (max_tokens + 512) if max_tokens else int(os.getenv("GROQ_MAX_TOKENS", "3072"))
+    elif max_tokens:
+        kwargs["max_tokens"] = max_tokens
+    return kwargs
+
+
 # AI Agent implementations
 class InstagramGrowthBot:
     def __init__(self):
         self.client = init_groq()
-        self.model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+        # Groq retired llama-3.1-8b-instant (404 model_not_found, Oct 2026); gpt-oss-20b is the
+        # fast general model available to this key. Keep in sync with config.py.
+        self.model = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
         # Enhancement cache used by the professional enhancement pipeline (M4 fix)
         # Tests and enhancement code expect this attribute to exist as a dict.
         self._enhancement_cache = {}
@@ -421,8 +448,7 @@ class InstagramGrowthBot:
         }
         if json_mode:
             call_kwargs["response_format"] = {"type": "json_object"}
-        if max_tokens:
-            call_kwargs["max_tokens"] = max_tokens
+        call_kwargs.update(_model_kwargs(model, max_tokens))
 
         start = time.time()
         try:
@@ -1382,7 +1408,7 @@ Return one JSON object and nothing else, in exactly this shape:
             model=self.model,
             messages=messages,
             temperature=temperature,
-            max_tokens=max_tokens,
+            **_model_kwargs(self.model, max_tokens),
         )
         duration = time.time() - start
         latency_ms = int(duration * 1000)
