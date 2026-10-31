@@ -74,6 +74,10 @@ async def _process_job(job_id: str):
                     and not input_data.get("custom_prompt")):
                 input_data["custom_prompt"] = input_data["user_context"]
 
+            # One trace per job (request_id = job id) so its LLM calls can be grouped in the log
+            from src.observability import start_request
+            start_request(chat_id=input_data.get("chat_id"), request_id=f"job-{job_id[:8]}")
+
             # Ensure orchestrator is available
             if ORCHESTRATOR is None:
                 raise RuntimeError("Orchestrator not configured for mobile API")

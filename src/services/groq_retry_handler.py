@@ -149,7 +149,12 @@ class GroqRetryHandler:
                 )
 
                 if is_last_attempt or not is_retryable:
-                    self._update_circuit_state(success=False)
+                    # Only service failures (timeouts, 5xx, rate limits, connection errors) count
+                    # toward the circuit breaker. Request-specific client errors (400 bad JSON,
+                    # 404 retired model, 403 blocked model) used to trip it too, which then blocked
+                    # every call, including the fallback model, for the recovery window.
+                    if is_retryable:
+                        self._update_circuit_state(success=False)
                     return {
                         "status": "error",
                         "error": error_msg,

@@ -12,6 +12,9 @@ from pathlib import Path
 from src.services.prompt_evaluator import get_evaluator, FullEvaluation
 from src.services.prompt_refinement import RefinerFactory
 
+# Upper bound for AgentEvaluationHook.evaluation_log (stats use the most recent window)
+MAX_IN_MEMORY_EVALUATIONS = 200
+
 logger = logging.getLogger(__name__)
 
 
@@ -71,8 +74,11 @@ class AgentEvaluationHook:
                 "recommendations": self._generate_recommendations(evaluation),
             }
             
-            # Log evaluation
+            # Log evaluation. The in-memory log is bounded (it holds full requests and outputs
+            # and used to grow for the life of the bot); the JSONL file keeps the full history.
             self.evaluation_log.append(record)
+            if len(self.evaluation_log) > MAX_IN_MEMORY_EVALUATIONS:
+                del self.evaluation_log[:-MAX_IN_MEMORY_EVALUATIONS]
             self._save_evaluation(record)
             
             logger.info(f"[{self.agent_name}] Evaluation complete: {evaluation.overall_rating}/10")

@@ -240,7 +240,7 @@ def save_favorite(
     init_favorites_and_history()
     now = datetime.utcnow().isoformat()
     with _get_conn() as conn:
-        conn.execute(
+        cursor = conn.execute(
             """
             INSERT INTO favorites
                 (chat_id, category, title, prompt, style, negative_prompt, aspect_ratio, keywords_json, created_at, updated_at)
@@ -260,7 +260,7 @@ def save_favorite(
             ),
         )
         conn.commit()
-        fav_id = conn.lastrowid
+        fav_id = cursor.lastrowid  # lastrowid lives on the cursor (Connection has none)
     logger.debug("[DB] Favorite saved (id=%s) for chat_id=%s", fav_id, chat_id)
     return get_favorite(fav_id)
 
@@ -314,7 +314,7 @@ def save_history(
     init_favorites_and_history()
     now = datetime.utcnow().isoformat()
     with _get_conn() as conn:
-        conn.execute(
+        cursor = conn.execute(
             """
             INSERT INTO prompt_history
                 (chat_id, category, user_input, prompt_count, created_at)
@@ -323,7 +323,7 @@ def save_history(
             (chat_id, category, user_input, prompt_count, now),
         )
         conn.commit()
-        hist_id = conn.lastrowid
+        hist_id = cursor.lastrowid  # lastrowid lives on the cursor (Connection has none)
     logger.debug("[DB] History recorded (id=%s) for chat_id=%s", hist_id, chat_id)
     return get_history_entry(hist_id)
 
@@ -532,3 +532,66 @@ def count_user_history(chat_id: int) -> int:
         ).fetchone()
     return result["count"] if result else 0
 
+
+
+# ── Conversation state (agentic report B3) ────────────────────────────────────
+# Chat turns and a pending clarification survive bot restarts when PERSIST_CHAT_STATE=1.
+
+def persist_chat_state_enabled() -> bool:
+    return os.getenv("PERSIST_CHAT_STATE", "0").strip().lower() in ("1", "true", "yes", "on")
+
+
+def init_conversation_state() -> None:
+    with _get_conn() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS conversation_state (
+                chat_id               INTEGER PRIMARY KEY,
+                chat_history          TEXT,
+                pending_clarification TEXT,
+                updated_at            TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+
+
+def get_conversation_state(chat_id: int) -> Dict[str, Any]:
+    """Return {"chat_history": [...], "pending_clarification": dict|None} (empty if none saved)."""
+    init_conversation_state()
+    with _get_conn() as conn:
+        row = conn.execute(
+            "SELECT chat_history, pending_clarification FROM conversation_state WHERE chat_id = ?",
+            (chat_id,),
+        ).fetchone()
+    if not row:
+        return {"chat_history": [], "pending_clarification": None}
+    try:
+        history = json.loads(row["chat_history"]) if row["chat_history"] else []
+        pending = json.loads(row["pending_clarification"]) if row["pending_clarification"] else None
+    except (TypeError, ValueError):
+        logger.warning(f"[DB] corrupt conversation_state for chat {chat_id}; resetting")
+        return {"chat_history": [], "pending_clarification": None}
+    return {"chat_history": history if isinstance(history, list) else [], "pending_clarification": pending}
+
+
+def save_conversation_state(chat_id: int, chat_history: Optional[list] = None,
+                            pending_clarification: Any = "__keep__") -> None:
+    """Upsert the conversation state. Pass pending_clarification=None to clear it."""
+    init_conversation_state()
+    current = get_conversation_state(chat_id)
+    history = current["chat_history"] if chat_history is None else chat_history[-6:]
+    pending = current["pending_clarification"] if pending_clarification == "__keep__" else pending_clarification
+    with _get_conn() as conn:
+        conn.execute(
+            """
+            INSERT INTO conversation_state (chat_id, chat_history, pending_clarification, updated_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(chat_id) DO UPDATE SET
+                chat_history = excluded.chat_history,
+                pending_clarification = excluded.pending_clarification,
+                updated_at = excluded.updated_at
+            """,
+            (chat_id, json.dumps(history, ensure_ascii=False),
+             json.dumps(pending, ensure_ascii=False) if pending is not None else None,
+             datetime.utcnow().isoformat()),
+        )
+        conn.commit()

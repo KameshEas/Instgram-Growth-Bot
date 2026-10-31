@@ -371,6 +371,38 @@ def _model_kwargs(model: str, max_tokens: int = None) -> dict:
     return kwargs
 
 
+def _fallback_models(primary: str) -> List[str]:
+    """Primary model followed by GROQ_MODEL_FALLBACKS (comma-separated), without duplicates."""
+    chain = [primary]
+    for name in os.getenv("GROQ_MODEL_FALLBACKS", "").split(","):
+        name = name.strip()
+        if name and name not in chain:
+            chain.append(name)
+    return chain
+
+
+# Errors meaning "this model can't serve the request right now; another model might"
+_MODEL_UNAVAILABLE_MARKERS = (
+    "model_not_found", "does not exist", "decommissioned", "model_permission", "blocked",
+    "429", "rate limit", "rate_limit", "503", "over capacity",
+)
+
+
+def _is_model_unavailable(error_text: str) -> bool:
+    text = (error_text or "").lower()
+    return any(marker in text for marker in _MODEL_UNAVAILABLE_MARKERS)
+
+
+def _usage_tokens(response) -> Dict[str, Optional[int]]:
+    """prompt/completion/total tokens from a completion response (None when absent)."""
+    usage = getattr(response, "usage", None)
+    return {
+        "prompt_tokens": getattr(usage, "prompt_tokens", None),
+        "completion_tokens": getattr(usage, "completion_tokens", None),
+        "total_tokens": getattr(usage, "total_tokens", None),
+    }
+
+
 # AI Agent implementations
 class InstagramGrowthBot:
     def __init__(self):
@@ -389,6 +421,55 @@ class InstagramGrowthBot:
         logger.info("[OK] Bot initialized with Groq API and retry handler")
 
     # â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    def _complete(self, command: str, messages: list, temperature: float, max_tokens: int = None,
+                  json_mode: bool = False, model: str = None, extra_body: dict = None):
+        """One completion with retries, JSON-mode fallback, and the model fallback chain.
+
+        extra_body: additional request fields (e.g. tools, tool_choice), sent via extra_body so
+        they work with every groq SDK version.
+        Returns (response, success, model_used). On failure, response is the retry handler's
+        error dict for the last model tried.
+        """
+        chain = _fallback_models(model or self.model)
+        response, success, model_used = {"error": "no model attempted"}, False, chain[0]
+        for i, model_used in enumerate(chain):
+            kwargs = {"model": model_used, "messages": messages, "temperature": temperature,
+                      **_model_kwargs(model_used, max_tokens)}
+            if extra_body:
+                kwargs.setdefault("extra_body", {}).update(extra_body)
+            if json_mode:
+                # extra_body for SDK-version independence (see _model_kwargs)
+                kwargs.setdefault("extra_body", {})["response_format"] = {"type": "json_object"}
+            response, success = self.retry_handler.call_with_retry(self.client.chat.completions.create, **kwargs)
+            error_text = str(response.get("error", "")).lower() if isinstance(response, dict) else ""
+            # Only a JSON-validation rejection is worth retrying without JSON mode; connection
+            # errors and an open circuit breaker would just repeat the same failure.
+            if not success and json_mode and "json" in error_text:
+                logger.warning(f"[JSON MODE] {command} failed in JSON mode on {model_used}, retrying without it")
+                kwargs["extra_body"].pop("response_format", None)
+                response, success = self.retry_handler.call_with_retry(self.client.chat.completions.create, **kwargs)
+                error_text = str(response.get("error", "")).lower() if isinstance(response, dict) else ""
+            if success:
+                if i > 0:
+                    logger.warning(f"[MODEL FALLBACK] {command} answered by {model_used}")
+                return response, True, model_used
+            if i < len(chain) - 1 and _is_model_unavailable(error_text):
+                logger.warning(f"[MODEL FALLBACK] {command}: {model_used} unavailable "
+                               f"({error_text[:120]}); trying {chain[i + 1]}")
+                continue
+            break
+        return response, False, model_used
+
+    def _budget_guard(self, chat_id) -> Optional[dict]:
+        """Error dict if this user is over their per-minute token budget, else None."""
+        from src.services.token_budget import get_budget, rate_limited_message
+        allowed, retry_after = get_budget().check(chat_id)
+        if allowed:
+            return None
+        logger.info(f"[BUDGET] chat_id={chat_id} over budget; retry in {retry_after}s")
+        return {"status": "error", "error": rate_limited_message(retry_after),
+                "rate_limited": True, "retry_after": retry_after}
 
     def _make_cache_key(self, command: str, **context) -> str:
         """Build a deterministic SHA-256 cache key from command + semantic context."""
@@ -439,39 +520,25 @@ class InstagramGrowthBot:
                 logger.info("[CACHE] Fresh hit for %s", command)
                 return {**cached, "_from_cache": True, "_stale": False}
 
+        # Request context: the chat comes from the Telegram update when the caller didn't pass it
+        from src.observability import current_chat_id, ensure_request
+        chat_id = chat_id if chat_id is not None else current_chat_id()
+        request_id = ensure_request(chat_id)
+
+        over_budget = self._budget_guard(chat_id)
+        if over_budget:
+            return over_budget
+
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
-        call_kwargs: dict = {
-            "model": model,
-            "messages": messages,
-            "temperature": temperature,
-        }
-        call_kwargs.update(_model_kwargs(model, max_tokens))
-        if json_mode:
-            # extra_body for SDK-version independence (see _model_kwargs)
-            call_kwargs.setdefault("extra_body", {})["response_format"] = {"type": "json_object"}
 
         start = time.time()
         try:
-            # Wrap Groq API call with retry handler for resilience
-            response, success = self.retry_handler.call_with_retry(
-                self.client.chat.completions.create,
-                **call_kwargs
+            response, success, model_used = self._complete(
+                command, messages, temperature, max_tokens=max_tokens, json_mode=json_mode, model=model,
             )
-            error_text = str(response.get("error", "")).lower() if isinstance(response, dict) else ""
-            # Only a JSON-validation rejection is worth retrying without JSON mode; connection
-            # errors and an open circuit breaker would just repeat the same failure.
-            if not success and json_mode and ("json" in error_text or "400" in error_text):
-                # JSON mode rejects outputs that are not valid JSON; retry once without it
-                # and let parse_json_response repair the text.
-                logger.warning(f"[JSON MODE] {command} failed in JSON mode, retrying without it")
-                call_kwargs.get("extra_body", {}).pop("response_format", None)
-                response, success = self.retry_handler.call_with_retry(
-                    self.client.chat.completions.create,
-                    **call_kwargs
-                )
 
             # If retry handler returned error dict, it means API call ultimately failed
             if not success:
@@ -479,13 +546,16 @@ class InstagramGrowthBot:
                 latency_ms = int(duration * 1000)
                 logger.error(f"[ERROR] Groq API failed after retries: {response.get('error')}")
 
-                # Try stale cache as fallback
-                if PROMPT_LOG_ENABLED and ttl_hours is not None:
+                # Every failure is logged (previously only for cached commands)
+                if PROMPT_LOG_ENABLED:
                     _plog.log_prompt_response(
                         command=command, prompt_hash=cache_key, prompt_text=prompt,
                         response_json=None, success=0, error_msg=response.get("error"),
-                        latency_ms=latency_ms, model=self.model, chat_id=chat_id,
+                        latency_ms=latency_ms, model=model_used, chat_id=chat_id,
+                        request_id=request_id,
                     )
+                # Try stale cache as fallback
+                if PROMPT_LOG_ENABLED and ttl_hours is not None:
                     stale = _plog.get_cached_response(cache_key, ignore_ttl=True)
                     if stale:
                         logger.info(f"[FALLBACK] Serving stale cache for {command}")
@@ -495,10 +565,13 @@ class InstagramGrowthBot:
 
             duration = time.time() - start
             latency_ms = int(duration * 1000)
+            tokens = _usage_tokens(response)
+            from src.services.token_budget import get_budget
+            get_budget().record(chat_id, tokens["total_tokens"])
 
             if METRICS_ENABLED:
                 metrics.record_api_call(
-                    model=self.model, duration=duration,
+                    model=model_used, duration=duration,
                     success=True, prompt_length=len(prompt),
                 )
 
@@ -507,12 +580,36 @@ class InstagramGrowthBot:
             if result:
                 if METRICS_ENABLED:
                     health_check.record_success()
+                # Typed contract check (C2): log, never reject; handlers tolerate missing optionals
+                from src.contracts import contract_errors
+                violations = contract_errors(command, result) if "error" not in result else None
+                if violations:
+                    logger.warning(f"[CONTRACT] {command} response violates its contract: {violations[:3]}")
+                    # Evaluator-optimizer for every structured command (GENERATION_VALIDATE=1): one retry
+                    # with the violations listed; keep whichever answer has fewer. Image/text generation
+                    # has its own richer validator in generate_universal_prompts, and "*_retry" commands
+                    # have no contract, so this never recurses.
+                    from src.services.variation_validator import feedback_message, validation_enabled
+                    if validation_enabled() and not command.startswith("generate_universal_prompts"):
+                        retry = self._call_groq_with_fallback(
+                            command=f"{command}_retry", cache_key="",
+                            prompt=prompt + feedback_message(violations), chat_id=chat_id,
+                            temperature=temperature, max_tokens=max_tokens, ttl_hours=None,
+                            system=system, json_mode=json_mode, model=model,
+                        )
+                        if isinstance(retry, dict) and "error" not in retry:
+                            retry_violations = contract_errors(command, retry) or []
+                            if len(retry_violations) < len(violations):
+                                logger.info(f"[CONTRACT] {command}: retry reduced violations "
+                                            f"{len(violations)} -> {len(retry_violations)}")
+                                result, violations = retry, retry_violations
                 if PROMPT_LOG_ENABLED:
                     _plog.log_prompt_response(
                         command=command, prompt_hash=cache_key,
                         prompt_text=prompt, response_json=json.dumps(result),
-                        success=1, latency_ms=latency_ms, model=self.model,
-                        chat_id=chat_id,
+                        success=1, latency_ms=latency_ms, model=model_used,
+                        chat_id=chat_id, request_id=request_id, **tokens,
+                        error_msg=("contract: " + "; ".join(violations)) if violations else None,
                     )
                     _plog.upsert_cache(
                         cache_key=cache_key, command=command,
@@ -528,13 +625,15 @@ class InstagramGrowthBot:
                 f"Response preview: {raw_response}..."
             )
             
-            # Parse failure â€” try stale cache as fallback (only if caching enabled)
-            if PROMPT_LOG_ENABLED and ttl_hours is not None:  # Only fall back to stale cache if this request uses caching
+            if PROMPT_LOG_ENABLED:
                 _plog.log_prompt_response(
                     command=command, prompt_hash=cache_key, prompt_text=prompt,
                     response_json=None, success=0, error_msg="JSON parse failed after all parsing attempts",
-                    latency_ms=latency_ms, model=self.model, chat_id=chat_id,
+                    latency_ms=latency_ms, model=model_used, chat_id=chat_id,
+                    request_id=request_id, **tokens,
                 )
+            # Parse failure â€” try stale cache as fallback (only if caching enabled)
+            if PROMPT_LOG_ENABLED and ttl_hours is not None:  # Only fall back to stale cache if this request uses caching
                 stale = _plog.get_cached_response(cache_key, ignore_ttl=True)
                 if stale:
                     logger.warning("[CACHE] Stale fallback for %s (parse failure after %dms)", command, latency_ms)
@@ -556,7 +655,7 @@ class InstagramGrowthBot:
                 _plog.log_prompt_response(
                     command=command, prompt_hash=cache_key, prompt_text=prompt,
                     response_json=None, success=0, error_msg=f"{type(exc).__name__}: {str(exc)}",
-                    latency_ms=latency_ms, model=self.model, chat_id=chat_id,
+                    latency_ms=latency_ms, model=model, chat_id=chat_id, request_id=request_id,
                 )
                 # Only use stale cache if caching is enabled (ttl_hours set)
                 if ttl_hours is not None:
@@ -866,6 +965,33 @@ Write {count} variations of {'scripts, captions, or subject lines' if is_text_co
             # Optional larger model for the longest, most constraint-heavy output (CHANGES §5d)
             model=os.getenv("GROQ_MODEL_CREATIVE") or None,
         )
+
+        # B2 (evaluator-optimizer): check the output against the prompt's rules; on problems,
+        # retry once with the problems listed and keep whichever answer has fewer problems.
+        from src.services.variation_validator import (
+            feedback_message, required_literals, validate_variations, validation_enabled,
+        )
+        if (validation_enabled() and isinstance(result, dict) and "error" not in result
+                and not result.get("_from_cache")):
+            literals = required_literals(user_idea, reference_context)
+            problems = validate_variations(result.get("variations"), count, category, is_text_content, literals)
+            if problems:
+                logger.warning(f"[VALIDATE] {category}: {len(problems)} problem(s); retrying once: {problems[:3]}")
+                retry = self._call_groq_with_fallback(
+                    command="generate_universal_prompts_retry", cache_key="",
+                    prompt=prompt + feedback_message(problems), system=system_prompt,
+                    chat_id=chat_id, temperature=0.5, ttl_hours=None,
+                    model=os.getenv("GROQ_MODEL_CREATIVE") or None,
+                )
+                if isinstance(retry, dict) and "error" not in retry:
+                    retry_problems = validate_variations(retry.get("variations"), count, category,
+                                                         is_text_content, literals)
+                    if len(retry_problems) < len(problems):
+                        result, problems = retry, retry_problems
+                if problems:
+                    logger.info(f"[VALIDATE] {category}: {len(problems)} problem(s) remain after retry")
+                else:
+                    logger.info(f"[VALIDATE] {category}: fixed by retry")
 
         # Normalize result to {"status": "success", "category": ..., "variations": [...]}
         if result and isinstance(result, dict):
@@ -1404,38 +1530,46 @@ Return one JSON object and nothing else, in exactly this shape:
 
     def _call_text(self, command: str, messages: list, temperature: float, max_tokens: int,
                    chat_id: int = None, log_text: str = "") -> str:
-        """Plain-text Groq call with retries, metrics, and prompt logging. Raises RuntimeError on failure."""
+        """Plain-text Groq call with retries, model fallback, budget, metrics, and prompt logging.
+
+        Raises RuntimeError on failure (including when the user is over their token budget).
+        """
+        from src.observability import current_chat_id, ensure_request
+        chat_id = chat_id if chat_id is not None else current_chat_id()
+        request_id = ensure_request(chat_id)
+        over_budget = self._budget_guard(chat_id)
+        if over_budget:
+            raise RuntimeError(over_budget["error"])
+
         start = time.time()
-        response, success = self.retry_handler.call_with_retry(
-            self.client.chat.completions.create,
-            model=self.model,
-            messages=messages,
-            temperature=temperature,
-            **_model_kwargs(self.model, max_tokens),
-        )
+        response, success, model_used = self._complete(command, messages, temperature, max_tokens=max_tokens)
         duration = time.time() - start
         latency_ms = int(duration * 1000)
         prompt_hash = hashlib.sha256(f"{command}|{log_text}".encode("utf-8")).hexdigest()
         if not success:
             error = response.get("error", "AI unavailable") if isinstance(response, dict) else str(response)
             if METRICS_ENABLED:
-                metrics.record_api_call(model=self.model, duration=duration, success=False)
+                metrics.record_api_call(model=model_used, duration=duration, success=False)
                 health_check.record_error()
             if PROMPT_LOG_ENABLED:
                 _plog.log_prompt_response(
                     command=command, prompt_hash=prompt_hash, prompt_text=log_text, response_json=None,
-                    success=0, error_msg=str(error), latency_ms=latency_ms, model=self.model, chat_id=chat_id,
+                    success=0, error_msg=str(error), latency_ms=latency_ms, model=model_used, chat_id=chat_id,
+                    request_id=request_id,
                 )
             raise RuntimeError(error)
-        answer = response.choices[0].message.content.strip()
+        answer = (response.choices[0].message.content or "").strip()
+        tokens = _usage_tokens(response)
+        from src.services.token_budget import get_budget
+        get_budget().record(chat_id, tokens["total_tokens"])
         if METRICS_ENABLED:
-            metrics.record_api_call(model=self.model, duration=duration, success=True, prompt_length=len(log_text))
+            metrics.record_api_call(model=model_used, duration=duration, success=True, prompt_length=len(log_text))
             health_check.record_success()
         if PROMPT_LOG_ENABLED:
             _plog.log_prompt_response(
                 command=command, prompt_hash=prompt_hash, prompt_text=log_text,
                 response_json=json.dumps({"reply": answer}), success=1,
-                latency_ms=latency_ms, model=self.model, chat_id=chat_id,
+                latency_ms=latency_ms, model=model_used, chat_id=chat_id, request_id=request_id, **tokens,
             )
         return answer
 
@@ -1460,7 +1594,27 @@ Return one JSON object and nothing else, in exactly this shape:
         chat_id = profile.get("chat_id")
         ctx = self._profile_ctx(niche=niche, audience_size=audience_size, goals=goals)
 
-        system = (
+        system = self.chat_system_prompt(ctx)
+        messages = [{"role": "system", "content": system}]
+        for turn in (history or [])[-6:]:
+            if turn.get("role") in ("user", "assistant") and turn.get("content"):
+                messages.append({"role": turn["role"], "content": str(turn["content"])[:2000]})
+        messages.append({"role": "user", "content": user_message})
+        try:
+            return self._call_text(
+                "chat_response", messages, temperature=0.7, max_tokens=400,
+                chat_id=chat_id, log_text=user_message,
+            )
+        except Exception as e:
+            logger.error(f"chat_response error: {e}")
+            if "shared AI limit" in str(e):  # per-user token budget: tell the user how long to wait
+                return str(e)
+            return "Sorry, I couldn't process that. Please try again."
+
+    @staticmethod
+    def chat_system_prompt(ctx: str) -> str:
+        """System prompt for the chat coach (P17); shared by chat_response and ChatCoachAgent."""
+        return (
             "You are the Instagram growth coach inside a Telegram bot. Creators message you with "
             "questions about growing on Instagram: content ideas, captions, Reels, hashtags, "
             "posting times, engagement, and monetization.\n\n"
@@ -1483,19 +1637,6 @@ Return one JSON object and nothing else, in exactly this shape:
             "Creator profile (data from the user's /setup; empty if not set):"
             + (f"\n<creator_profile>{ctx}</creator_profile>" if ctx else "\n<creator_profile>not set</creator_profile>")
         )
-        messages = [{"role": "system", "content": system}]
-        for turn in (history or [])[-6:]:
-            if turn.get("role") in ("user", "assistant") and turn.get("content"):
-                messages.append({"role": turn["role"], "content": str(turn["content"])[:2000]})
-        messages.append({"role": "user", "content": user_message})
-        try:
-            return self._call_text(
-                "chat_response", messages, temperature=0.7, max_tokens=400,
-                chat_id=chat_id, log_text=user_message,
-            )
-        except Exception as e:
-            logger.error(f"chat_response error: {e}")
-            return "Sorry, I couldn't process that. Please try again."
 
     # â”€â”€ New AI methods (Phase 1 additions) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

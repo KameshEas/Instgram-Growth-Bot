@@ -60,6 +60,31 @@ class TrendsAgent(BaseAgent):
             return False
         return datetime.now() - self.last_fetch[key] < self.cache_expiry
     
+    async def _scrape_all(self) -> tuple:
+        """Fetch Reddit, GitHub and news trends concurrently.
+
+        The fetchers use blocking requests.get, so each runs in its own worker thread (which also
+        keeps the bot's event loop free). A failing source yields its empty/fallback value instead
+        of failing the whole scrape. Returns (reddit, github, news).
+        """
+        fetchers = (
+            (self._fetch_reddit_trends, self.fallback_topics),
+            (self._fetch_github_trends, []),
+            (self._fetch_news_topics, []),
+        )
+        results = await asyncio.gather(
+            *(asyncio.to_thread(asyncio.run, fetch()) for fetch, _ in fetchers),
+            return_exceptions=True,
+        )
+        out = []
+        for (fetch, fallback), res in zip(fetchers, results):
+            if isinstance(res, BaseException):
+                self.logger.warning(f"{fetch.__name__} failed: {res}")
+                out.append(list(fallback))
+            else:
+                out.append(res or [])
+        return tuple(out)
+
     async def _fetch_reddit_trends(self) -> List[str]:
         """Fetch trending topics from Reddit"""
         try:
@@ -184,10 +209,8 @@ class TrendsAgent(BaseAgent):
         niche = data.get("niche", "photography")
         region = data.get("region", "")
         try:
-            # Step 1 — collect all scraped data first
-            reddit_trends = await self._fetch_reddit_trends()
-            github_trends = await self._fetch_github_trends()
-            news_trends = await self._fetch_news_topics()
+            # Step 1 — collect all scraped data first (three sources in parallel)
+            reddit_trends, github_trends, news_trends = await self._scrape_all()
             combined_scraped: List[str] = reddit_trends + github_trends + news_trends
 
             # Step 2 — AI analysis from scraped data
@@ -240,17 +263,11 @@ class TrendsAgent(BaseAgent):
             # Fetch from real APIs
             trends = {}
             
-            # Get Reddit trends
-            reddit_trends = await self._fetch_reddit_trends()
+            # Reddit, GitHub and news fetched in parallel
+            reddit_trends, github_trends, news_trends = await self._scrape_all()
             trends["reddit"] = reddit_trends
-            
-            # Get GitHub trends
-            github_trends = await self._fetch_github_trends()
             if github_trends:
                 trends["github"] = github_trends
-            
-            # Get news trends
-            news_trends = await self._fetch_news_topics()
             if news_trends:
                 trends["news"] = news_trends
             

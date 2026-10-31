@@ -1,0 +1,436 @@
+import asyncio
+from typing import Dict, Any, TYPE_CHECKING
+from src.agents.base_agent import BaseAgent
+from src.agents.content_generator import ContentGeneratorAgent
+from src.agents.design_enhancer import DesignPromptEnhancerAgent
+from src.agents.gift_design_agent import GiftDesignAgent
+from src.agents.engagement_agent import EngagementAgent
+from src.agents.monetization_agent import MonetizationAgent
+from src.agents.analytics_agent import AnalyticsAgent
+from src.agents.trends_agent import TrendsAgent
+from src.prompts.templates import get_category_meta
+from src.services.edge_case_handler import EdgeCaseHandlerFactory
+from src.services.prompt_sanitizer import PromptSanitizer
+
+if TYPE_CHECKING:
+    from src.main import InstagramGrowthBot
+
+# Parameters the intent classifier (P27) may set; everything else it returns is dropped.
+ALLOWED_INTENT_PARAMS = {
+    "category", "custom_prompt", "keyword", "topic", "style",
+    "niche", "account_size", "follower_count", "report_type",
+}
+
+
+class ContentOrchestratorAgent(BaseAgent):
+    """Master orchestrator that routes every Telegram command to the correct agent.
+
+    All agents that need AI power receive a reference to the shared
+    ``InstagramGrowthBot`` (Groq wrapper) so they can call its methods while
+    still falling back to their built-in static data when the bot is unavailable.
+    """
+
+    def __init__(self, groq_bot: "InstagramGrowthBot | None" = None):
+        super().__init__("Orchestrator")
+        self._groq_bot = groq_bot
+        self.agents = {
+            "content_generator": ContentGeneratorAgent(groq_bot=groq_bot),
+            "design_enhancer": DesignPromptEnhancerAgent(groq_bot=groq_bot),
+            "gift_design": GiftDesignAgent(groq_bot=groq_bot),
+            "engagement": EngagementAgent(groq_bot=groq_bot),
+            "monetization": MonetizationAgent(groq_bot=groq_bot),
+            "analytics": AnalyticsAgent(groq_bot=groq_bot),
+            "trends": TrendsAgent(groq_bot=groq_bot),
+        }
+
+    async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Route the request to the correct agent based on the Telegram command.
+        
+        For any message that is NOT a direct slash command, use AI intent classification
+        to determine the best command to execute. This allows natural language inputs like
+        'show me viral content about fitness' to route correctly without requiring /commands.
+        """
+        try:
+            # ── Extract UserContext (thread into every agent call) ─────────────────
+            niche = input_data.get("niche", "")
+            follower_count = input_data.get("follower_count")
+            region = input_data.get("region", "")
+            language = input_data.get("language", "")
+            account_stage = input_data.get("account_stage", "")
+            chat_id = input_data.get("chat_id")
+
+            # ── AI INTENT CLASSIFICATION (primary router for natural language) ─────
+            command = input_data.get("command", "").strip()
+            user_message = input_data.get("text", "").strip()
+            
+            # If message doesn't start with / and AI is available, classify intent first
+            if (
+                self._groq_bot
+                and user_message
+                and not command.startswith("/")
+                and not input_data.get("_intent_classified")
+            ):
+                available_commands = [
+                    "/generate", "/categories", "/search", "/content",
+                    "/inspire", "/trends", "/viral", "/hashtags",
+                    "/engagement", "/monetize", "/analytics", "/report",
+                    "/stats", "/help",
+                ]
+                try:
+                    intent = await asyncio.to_thread(self._groq_bot.classify_intent, 
+                        user_message=user_message,
+                        available_commands=available_commands,
+                        chat_id=chat_id,
+                    )
+                    if (
+                        isinstance(intent, dict)
+                        and not intent.get("fallback_to_chat")
+                        and float(intent.get("confidence", 0)) >= 0.5
+                    ):
+                        classified_cmd = intent.get("command", "")
+                        if classified_cmd not in available_commands:
+                            classified_cmd = "/help"
+                        # Model output must not overwrite internal state (chat_id, clarified, ...)
+                        raw_params = intent.get("extracted_params") or {}
+                        extracted = {
+                            k: v for k, v in raw_params.items()
+                            if k in ALLOWED_INTENT_PARAMS and isinstance(v, (str, int, float))
+                        } if isinstance(raw_params, dict) else {}
+                        self.logger.info(
+                            f"[INTENT] Classified '{user_message[:40]}...' → {classified_cmd} "
+                            f"(confidence: {intent.get('confidence', 0):.2f})"
+                        )
+                        return await self.execute({
+                            **input_data,
+                            **extracted,
+                            "command": classified_cmd,
+                            "_intent_classified": True,
+                        })
+                    else:
+                        confidence = float(intent.get("confidence", 0))
+                        self.logger.info(
+                            f"[INTENT] Low confidence ({confidence:.2f}) or fallback_to_chat requested"
+                        )
+                except Exception as ie:
+                    self.logger.warning(f"Intent classification failed: {ie}")
+            
+            # Fallback: if no command and classification failed/unavailable, use "help"
+            if not command or not command.startswith("/"):
+                command = "/help"
+
+            # ── Content library commands ──────────────────────────────────────
+            if command == "/generate":
+                custom_prompt = input_data.get("custom_prompt")
+                category = input_data.get("category", "general_photography").lower()
+                self.logger.info(f"[TRACE] /generate called category={category} custom_prompt={custom_prompt}")
+                level = input_data.get("level")
+                user_input = input_data.get("user_input", "")  # For design briefs
+                
+                # Design categories that require design enhancement
+                design_categories = {
+                    "design_posters", 
+                    "ui_ux_design", 
+                    "brand_identity"
+                }
+                
+                # Route design categories to design enhancer agent (with ambiguity check)
+                if category in design_categories and user_input:
+                    try:
+                        handler = EdgeCaseHandlerFactory.get_handler()
+                        ambiguous = await handler.is_ambiguous({"content_prompt": user_input})
+                    except Exception:
+                        ambiguous = False
+
+                    if ambiguous and not input_data.get("clarified"):
+                        try:
+                            question = await handler.get_clarifying_question({"content_prompt": user_input})
+                        except Exception:
+                            question = "Could you provide a bit more detail for the request?"
+                        result = {"status": "clarify", "question": question}
+                    else:
+                        clean_input, warnings = PromptSanitizer.sanitize(user_input)
+                        if warnings:
+                            self.logger.warning(f"Prompt sanitization warnings: {warnings}")
+                        result = await self.agents["design_enhancer"].execute({
+                            **input_data,
+                            "action": "enhance",
+                            "category": category,
+                            "user_input": clean_input or user_input,
+                            "brand_context": {"niche": niche, "region": region},
+                        })
+                elif category in design_categories and custom_prompt and custom_prompt.strip():
+                    # Design brief from custom prompt (check ambiguity)
+                    try:
+                        handler = EdgeCaseHandlerFactory.get_handler()
+                        ambiguous = await handler.is_ambiguous({"content_prompt": custom_prompt})
+                    except Exception:
+                        ambiguous = False
+
+                    if ambiguous and not input_data.get("clarified"):
+                        try:
+                            question = await handler.get_clarifying_question({"content_prompt": custom_prompt})
+                        except Exception:
+                            question = "Could you provide a bit more detail for the request?"
+                        result = {"status": "clarify", "question": question}
+                    else:
+                        # Design brief from custom prompt
+                        clean_prompt, warnings = PromptSanitizer.sanitize(custom_prompt)
+                        if warnings:
+                            self.logger.warning(f"Prompt sanitization warnings: {warnings}")
+                        result = await self.agents["design_enhancer"].execute({
+                            **input_data,
+                            "action": "enhance",
+                            "category": category,
+                            "user_input": clean_prompt or custom_prompt,
+                            "brand_context": {"niche": niche, "region": region},
+                        })
+                elif custom_prompt and custom_prompt.strip() and self._groq_bot:
+                    # Before delegating custom prompts directly to Groq, check for ambiguity
+                    try:
+                        handler = EdgeCaseHandlerFactory.get_handler()
+                        ambiguous = await handler.is_ambiguous({"content_prompt": custom_prompt})
+                        self.logger.info(f"[DEBUG] ambiguity check result: {ambiguous} for prompt: {str(custom_prompt)[:80]}")
+                        # Extra inline heuristic: if any vague keyword appears, mark ambiguous
+                        try:
+                            lower = str(custom_prompt).lower()
+                            if any(kw in lower for kw in handler.vague_keywords):
+                                ambiguous = True
+                        except Exception:
+                            pass
+                    except Exception:
+                        ambiguous = False
+
+                    if ambiguous and not input_data.get("clarified"):
+                        self.logger.info(f"[DEBUG] Returning clarify for custom prompt")
+                        try:
+                            question_obj = await handler.get_clarifying_question({"content_prompt": custom_prompt})
+                        except Exception:
+                            question_obj = {"question": "Could you provide a bit more detail for the request?", "fields": ["subject", "colors", "mood"]}
+                        # Support both string and structured dict returns from handler
+                        if isinstance(question_obj, dict):
+                            q_text = question_obj.get("question", "Could you clarify?")
+                            result = {"status": "clarify", "question": q_text, "clarify_fields": question_obj.get("fields", [])}
+                        else:
+                            result = {"status": "clarify", "question": str(question_obj)}
+                    else:
+                        # Custom-concept path: delegate to Groq for AI enhancement
+                        # For design_gifts, check if reference image description is provided
+                        reference_image_desc = input_data.get("reference_image_text") if category == "design_gifts" else None
+                        # If user clarified, merge the clarification into the custom prompt
+                        effective_prompt = custom_prompt
+                        if input_data.get("clarified") and input_data.get("clarification_answer"):
+                            try:
+                                clar = input_data.get("clarification_answer")
+                                if isinstance(clar, dict):
+                                    parts = [f"{k}: {v}" for k, v in clar.items()]
+                                    clarified_text = "; ".join(parts)
+                                else:
+                                    clarified_text = str(clar).strip()
+                                if clarified_text:
+                                    effective_prompt = f"{custom_prompt.strip()} — Clarification: {clarified_text}"
+                            except Exception:
+                                pass
+
+                        # Sanitize custom prompt to prevent injection attacks
+                        sanitized_prompt, warnings = PromptSanitizer.sanitize(effective_prompt)
+                        if warnings:
+                            self.logger.warning(f"Prompt sanitization warnings: {warnings}")
+                        if not sanitized_prompt:
+                            return {"status": "error", "message": "Prompt validation failed. Please try again with valid content."}
+
+                        # Route custom prompts through content_generator agent
+                        # (which calls generate_universal_prompts internally)
+                        agent_result = await self.agents["content_generator"].execute({
+                            **input_data,
+                            "action": "generate",
+                            "user_context": sanitized_prompt,
+                            "level": level,
+                        })
+
+                        if agent_result.get("status") == "success":
+                            # Agent returns {"variations": [...]} shape from universal generator
+                            result = {
+                                "status": "success",
+                                "category": category,
+                                "custom": True,
+                                "variations": agent_result.get("variations", []),
+                                "meta": get_category_meta(category) or {"emoji": "🎯", "style": ""},
+                            }
+                        else:
+                            result = agent_result
+                    # (Handled above) result is either a clarify dict or a normalized ai_result
+                else:
+                    # Standard path: serve via agent (calls universal generator)
+                    agent_result = await self.agents["content_generator"].execute({
+                        **input_data,
+                        "action": "generate",
+                    })
+                    # Pass through agent result directly (already in unified shape)
+                    if agent_result.get("status") == "success":
+                        result = {
+                            "status": "success",
+                            "category": category,
+                            "custom": False,
+                            "variations": agent_result.get("variations", []),
+                            "meta": get_category_meta(category) or {"emoji": "🎯", "style": ""},
+                            "available_categories": agent_result.get("available_categories", []),
+                        }
+                    else:
+                        result = agent_result
+
+            elif command == "/categories":
+                result = await self.agents["content_generator"].execute({
+                    **input_data,
+                    "action": "list_categories",
+                })
+
+            elif command == "/search":
+                result = await self.agents["content_generator"].execute({
+                    **input_data,
+                    "action": "search",
+                    "keyword": input_data.get("keyword", ""),
+                })
+
+            # ── Gift Design commands ──────────────────────────────────────────
+            elif command == "/design_gift":
+                action = input_data.get("action", "generate_concepts")
+                
+                if action == "list_products":
+                    result = await self.agents["gift_design"].execute({
+                        **input_data,
+                        "action": "list_products",
+                    })
+                elif action == "list_tones":
+                    result = await self.agents["gift_design"].execute({
+                        **input_data,
+                        "action": "list_tones",
+                    })
+                elif action == "get_product_specs":
+                    result = await self.agents["gift_design"].execute({
+                        **input_data,
+                        "action": "get_product_specs",
+                        "product_type": input_data.get("product_type", ""),
+                    })
+                else:  # generate_concepts (default)
+                    result = await self.agents["gift_design"].execute({
+                        **input_data,
+                        "action": "generate_concepts",
+                        "product_type": input_data.get("product_type", ""),
+                        "concept_idea": input_data.get("concept_idea", ""),
+                        "brand_colors": input_data.get("brand_colors", []),
+                        "tone": input_data.get("tone", ""),
+                        "occasion": input_data.get("occasion", ""),
+                        "recipient_type": input_data.get("recipient_type", ""),
+                    })
+
+            # ── Caption / content generation (Groq direct — no agent covers it) ──
+            elif command == "/content":
+                if self._groq_bot:
+                    result = await asyncio.to_thread(self._groq_bot.generate_content, 
+                        topic=input_data.get("topic", ""),
+                        style=input_data.get("style", "engaging"),
+                        niche=niche,
+                        follower_count=follower_count,
+                        region=region,
+                        language=language,
+                        account_stage=account_stage,
+                        chat_id=chat_id,
+                    )
+                else:
+                    result = {"status": "error", "error": "Groq bot not available"}
+
+            # ── Inspire — handler calls Groq client directly; pass through ─────
+            elif command == "/inspire":
+                result = {"status": "passthrough"}
+
+            # ── Trends agent (real scrape + AI analysis) ──────────────────────
+            elif command in ("/trends", "/viral", "/hashtags"):
+                result = await self.agents["trends"].execute({
+                    **input_data,
+                    "action": "analyze_for_niche",
+                    "niche": niche or input_data.get("niche", "photography"),
+                    "region": region,
+                })
+
+            # ── Engagement agent (AI strategy) ────────────────────────────────
+            elif command == "/engagement":
+                result = await self.agents["engagement"].execute({
+                    **input_data,
+                    "action": "strategy_for_size",
+                    "account_size": input_data.get("account_size", "micro"),
+                    "niche": niche, "follower_count": follower_count, "region": region,
+                })
+
+            # ── Monetization agent (AI ideas) ─────────────────────────────────
+            elif command == "/monetize":
+                result = await self.agents["monetization"].execute({
+                    **input_data,
+                    "action": "ideas_for_niche",
+                    "niche": niche or input_data.get("niche", "general"),
+                    "follower_count": follower_count or input_data.get("follower_count", 10000),
+                    "region": region,
+                })
+
+            # ── Analytics agent ───────────────────────────────────────────────
+            elif command in ("/analytics", "/report", "/stats"):
+                result = await self.agents["analytics"].execute({
+                    **input_data,
+                    "report_type": input_data.get("report_type", "daily"),
+                    "niche": niche, "follower_count": follower_count,
+                    "account_stage": account_stage, "region": region,
+                })
+
+            # ── Help ──────────────────────────────────────────────────────────
+            elif command in ("/help", "help"):
+                result = self._get_help()
+
+            else:
+                # No recognized command at this point
+                result = {"status": "error", "message": f"Unknown command: {command}"}
+
+            # Ensure result is defined to avoid UnboundLocalError
+            if 'result' not in locals():
+                result = {"status": "error", "error": "Orchestrator produced no result"}
+            await self.log_execution(input_data, result, "success")
+            return result
+
+        except Exception as e:
+            self.logger.error(f"Orchestrator error: {str(e)}")
+            return {"status": "error", "error": str(e)}
+
+    def _get_help(self) -> Dict[str, Any]:
+        """Return the list of available commands mapped to their active agents."""
+        return {
+            "status": "success",
+            "available_agents": 6,
+            "commands": {
+                "Content Library": {
+                    "commands": ["/generate", "/categories", "/search"],
+                    "agent": "ContentGeneratorAgent",
+                },
+                "Gift Design": {
+                    "commands": ["/design_gift"],
+                    "agent": "GiftDesignAgent",
+                },
+                "Caption Generation": {
+                    "commands": ["/content"],
+                    "agent": "InstagramGrowthBot (Groq direct)",
+                },
+                "Trends": {
+                    "commands": ["/trends"],
+                    "agent": "TrendsAgent → InstagramGrowthBot",
+                },
+                "Engagement": {
+                    "commands": ["/engagement"],
+                    "agent": "EngagementAgent → InstagramGrowthBot",
+                },
+                "Monetization": {
+                    "commands": ["/monetize"],
+                    "agent": "MonetizationAgent → InstagramGrowthBot",
+                },
+                "Analytics": {
+                    "commands": ["/analytics", "/report", "/stats"],
+                    "agent": "AnalyticsAgent",
+                },
+            },
+        }

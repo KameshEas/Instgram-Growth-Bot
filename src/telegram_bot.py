@@ -185,6 +185,35 @@ class TelegramBotHandler:
 
     # ── helpers ───────────────────────────────────────────────────────────────
 
+    def _restore_state(self, context, chat_id: int) -> None:
+        """After a restart, reload saved chat history / pending clarification (PERSIST_CHAT_STATE=1)."""
+        try:
+            from src.database.user_db import persist_chat_state_enabled, get_conversation_state
+            if not persist_chat_state_enabled() or context.user_data.get("_state_restored"):
+                return
+            state = get_conversation_state(chat_id)
+            if state["chat_history"] and "chat_history" not in context.user_data:
+                context.user_data["chat_history"] = state["chat_history"]
+            if state["pending_clarification"] and "pending_clarification" not in context.user_data:
+                context.user_data["pending_clarification"] = state["pending_clarification"]
+            context.user_data["_state_restored"] = True
+        except Exception as e:
+            logger.warning(f"[STATE] restore failed for chat {chat_id}: {e}")
+
+    def _persist_state(self, context, chat_id: int) -> None:
+        """Save chat history and pending clarification so they survive restarts (PERSIST_CHAT_STATE=1)."""
+        try:
+            from src.database.user_db import persist_chat_state_enabled, save_conversation_state
+            if not persist_chat_state_enabled():
+                return
+            save_conversation_state(
+                chat_id,
+                chat_history=context.user_data.get("chat_history", []),
+                pending_clarification=context.user_data.get("pending_clarification"),
+            )
+        except Exception as e:
+            logger.warning(f"[STATE] persist failed for chat {chat_id}: {e}")
+
     def _get_profile(self, chat_id: int) -> dict:
         """Return the user's profile dict, or an empty dict if DB unavailable."""
         if DB_AVAILABLE:
@@ -1844,8 +1873,9 @@ class TelegramBotHandler:
                 if result.get("clarify_fields"):
                     pending["fields"] = result.get("clarify_fields")
                 context.user_data["pending_clarification"] = pending
+                self._persist_state(context, chat_id)
                 return
-            
+
             if result and result.get("status") == "success":
                 # Use unified prompt handler for all categories with variations
                 if "variations" in result:
@@ -2319,6 +2349,7 @@ class TelegramBotHandler:
         """Route free-text messages to Groq chat with profile context."""
         user_text = update.message.text.strip()
         chat_id = update.effective_chat.id
+        self._restore_state(context, chat_id)
         # First, check if we're waiting for a clarification answer
         pending_clar = context.user_data.get("pending_clarification")
         if pending_clar:
@@ -2350,10 +2381,12 @@ class TelegramBotHandler:
             except Exception as e:
                 await update.message.reply_text(f"❌ Error: {e}")
                 context.user_data.pop("pending_clarification", None)
+                self._persist_state(context, chat_id)
                 return
 
             # Clear pending state
             context.user_data.pop("pending_clarification", None)
+            self._persist_state(context, chat_id)
 
             # If generation succeeded, display prompts (support both "variations" and "prompts" keys)
             if result and result.get("status") == "success":
@@ -2395,11 +2428,19 @@ class TelegramBotHandler:
         await update.message.reply_text("💬 Thinking...")
         try:
             history = context.user_data.get("chat_history", [])
-            reply = await asyncio.to_thread(self.bot.chat_response, user_text, profile=profile, history=history)
+            from src.agents.chat_agent import ChatCoachAgent, chat_agent_enabled
+            if chat_agent_enabled():
+                # Tool-using coach: may look up profile, history, trends, or generate prompts (max 3 steps)
+                agent = ChatCoachAgent(self.bot, profile_lookup=self._get_profile)
+                reply = await asyncio.to_thread(agent.respond, user_text, profile={**profile, "chat_id": chat_id},
+                                                history=history)
+            else:
+                reply = await asyncio.to_thread(self.bot.chat_response, user_text, profile=profile, history=history)
             # Keep the last 3 exchanges so follow-up questions have context
             history = (history + [{"role": "user", "content": user_text},
                                   {"role": "assistant", "content": reply}])[-6:]
             context.user_data["chat_history"] = history
+            self._persist_state(context, chat_id)
             for chunk in self._send_long(reply):
                 await update.message.reply_text(chunk)
         except Exception as e:
@@ -2477,6 +2518,18 @@ class TelegramBotHandler:
 def _build_app(handler: "TelegramBotHandler") -> "Application":
     """Build and configure the Telegram Application with all handlers."""
     app = Application.builder().token(handler.bot_token).build()
+
+    # Tracing: give every update a request ID (and the chat ID) before any other handler runs.
+    # Handlers for one update run in the same task, and asyncio.to_thread copies the context,
+    # so every gateway call for this update logs the same request_id.
+    from telegram.ext import TypeHandler
+    from src.observability import start_request
+
+    async def _start_trace(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        chat = getattr(update, "effective_chat", None)
+        start_request(chat_id=chat.id if chat else None)
+
+    app.add_handler(TypeHandler(Update, _start_trace), group=-1)
 
     # /setup — multi-step ConversationHandler
     setup_conv = ConversationHandler(

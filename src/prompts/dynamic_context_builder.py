@@ -45,6 +45,27 @@ class DynamicContextBuilder:
 - Styling: polished business or business-casual attire that fits the subject's field.
 - Avoid: distracting backgrounds, heavy retouching, harsh shadows.""",
 
+        # Transform categories normally get scenario + styling sections; these entries cover the
+        # no-custom-text path (category buttons), which previously got only a generic line.
+        "women_transform": """Category guidance: transformation of the creator's own photo
+- Goal: place the person from the creator's reference photo into a new, flattering scene or look.
+- Identity: every prompt starts with "Using the reference photo," and states that the face, skin tone, hair, and body proportions stay identical. The person must remain recognisably the same individual; never morph, swap, or alter their identity.
+- Variety: change the setting, outfit, pose, and lighting between variations, not the person.
+- Avoid: different faces, idealised or changed body shapes, plastic or over-retouched skin.""",
+
+        "men_transform": """Category guidance: transformation of the creator's own photo
+- Goal: place the person from the creator's reference photo into a new, flattering scene or look.
+- Identity: every prompt starts with "Using the reference photo," and states that the face, skin tone, hair, and body proportions stay identical. The person must remain recognisably the same individual; never morph, swap, or alter their identity.
+- Variety: change the setting, outfit, pose, and lighting between variations, not the person.
+- Avoid: different faces, idealised or changed body shapes, plastic or over-retouched skin.""",
+
+        "couples_transform": """Category guidance: transformation of a couple's own photo
+- Goal: place both people from the couple's reference photo into a new, romantic or fun scene.
+- Identity: every prompt starts with "Using the reference photo," and states that both people keep their exact faces, skin tones, hair, and body proportions. Exactly two people; never morph, swap, merge, or alter either identity.
+- Composition: both people clearly visible and interacting naturally; neither dominates the frame.
+- Variety: change the setting, outfits, pose, and lighting between variations, not the people.
+- Avoid: extra people, swapped or merged faces, changed body shapes.""",
+
         "couples_general": """Category guidance: couple photography
 - Goal: genuine connection and emotion between two people.
 - Composition: both people clearly visible and engaged with each other or the camera; neither dominates the frame.

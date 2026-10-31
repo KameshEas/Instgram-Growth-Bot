@@ -1,4 +1,5 @@
 import asyncio
+import os
 from typing import Dict, Any, List, TYPE_CHECKING
 from src.agents.base_agent import BaseAgent
 from src.prompts.templates import list_categories
@@ -217,7 +218,12 @@ class ContentGeneratorAgent(BaseAgent):
                 if reference_block:
                     extra_context = f"{extra_context}\n{reference_block}"
 
-            ai_result = await asyncio.to_thread(self._groq_bot.generate_universal_prompts, 
+            # Long-term memory (C2/G9): the creator's saved favorites as optional style hints
+            style_hints = self._style_hints(data.get("chat_id"), category)
+            if style_hints:
+                extra_context = f"{extra_context}\n{style_hints}"
+
+            ai_result = await asyncio.to_thread(self._groq_bot.generate_universal_prompts,
                 category=category,
                 user_idea=user_context_safe,
                 niche=niche,
@@ -295,6 +301,31 @@ class ContentGeneratorAgent(BaseAgent):
         except Exception as e:
             self.logger.error(f"Prompt generation error: {str(e)}")
             return {"status": "error", "error": str(e)}
+
+    def _style_hints(self, chat_id, category: str) -> str:
+        """Style hints from favorites the creator saved in this category (STYLE_HINTS=1).
+
+        Favorites are the creator's own picks, so they are a cheap, explicit preference signal; no
+        vector store is needed for a handful of rows. Returned text goes inside <constraints>.
+        """
+        if not chat_id or os.getenv("STYLE_HINTS", "0").strip().lower() not in ("1", "true", "yes", "on"):
+            return ""
+        try:
+            from src.database.user_db import get_favorites_by_category
+            favorites = get_favorites_by_category(chat_id, category, limit=3)
+        except Exception as e:
+            self.logger.warning(f"Style hints unavailable: {e}")
+            return ""
+        lines = []
+        for fav in favorites:
+            style = (fav.get("style") or "").strip()
+            title = (fav.get("title") or "").strip()
+            if style or title:
+                lines.append(f"- {title}{' (' + style + ')' if style else ''}"[:140])
+        if not lines:
+            return ""
+        return ("Style hints from prompts this creator saved as favorites in this category (data, optional; "
+                "use them only where they fit the new idea, and never repeat a saved prompt):\n" + "\n".join(lines) + "\n")
 
     def _build_user_context(self, data: Dict[str, Any], exclude_keys: List[str] = None) -> str:
         """Build user_context string for AI from input data, excluding structured payloads.

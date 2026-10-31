@@ -88,6 +88,7 @@ class DesignPromptEnhancerAgent(BaseAgent):
                     "status": "success",
                     "action": "enhance",
                     "category": category,
+                    "user_idea": user_input,  # recorded in prompt_history
                     "variations": ai_result.get("variations", []),
                     "ai_generated": True,
                     "metadata": {

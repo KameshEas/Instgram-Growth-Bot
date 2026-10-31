@@ -253,6 +253,7 @@ class ContentOrchestratorAgent(BaseAgent):
                                 "status": "success",
                                 "category": category,
                                 "custom": True,
+                                "user_idea": sanitized_prompt,  # recorded in prompt_history
                                 "variations": agent_result.get("variations", []),
                                 "meta": get_category_meta(category) or {"emoji": "🎯", "style": ""},
                             }

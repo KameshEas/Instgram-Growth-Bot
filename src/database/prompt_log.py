@@ -96,6 +96,15 @@ def init_prompt_log_db() -> None:
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_prl_created  ON prompt_response_logs(created_at)"
         )
+        # Additive migration: token accounting and request tracing (agentic report A2)
+        existing = {row[1] for row in conn.execute("PRAGMA table_info(prompt_response_logs)")}
+        for column, ddl in (("prompt_tokens", "INTEGER"), ("completion_tokens", "INTEGER"),
+                            ("total_tokens", "INTEGER"), ("request_id", "TEXT")):
+            if column not in existing:
+                conn.execute(f"ALTER TABLE prompt_response_logs ADD COLUMN {column} {ddl}")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_prl_request ON prompt_response_logs(request_id)"
+        )
         conn.commit()
     logger.debug("[DB] prompt_response_logs and ai_response_cache tables ready")
 
@@ -127,6 +136,10 @@ def log_prompt_response(
     chat_id: int = None,
     response_json: str = None,
     error_msg: str = None,
+    prompt_tokens: int = None,
+    completion_tokens: int = None,
+    total_tokens: int = None,
+    request_id: str = None,
 ) -> None:
     """Append one row to prompt_response_logs (fire-and-forget, never raises)."""
     try:
@@ -135,13 +148,15 @@ def log_prompt_response(
                 """
                 INSERT INTO prompt_response_logs
                     (chat_id, command, prompt_hash, prompt_text,
-                     response_json, success, error_msg, latency_ms, model, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     response_json, success, error_msg, latency_ms, model, created_at,
+                     prompt_tokens, completion_tokens, total_tokens, request_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     chat_id, command, prompt_hash, prompt_text,
                     response_json, success, error_msg, latency_ms, model,
                     datetime.utcnow().isoformat(),
+                    prompt_tokens, completion_tokens, total_tokens, request_id,
                 ),
             )
             conn.commit()
